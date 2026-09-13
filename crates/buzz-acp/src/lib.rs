@@ -5272,6 +5272,13 @@ mod agent_draft_prompt_tests {
         assert!(prompt.contains("## Reading Incoming Turns"));
         assert!(prompt.contains("`Content:` field in the current `<buzz-event>`"));
         assert!(prompt.contains("each event inside `<buzz-events>`"));
+        // Merged (cancel + re-prompt) turns render no `<buzz-event>` — the new
+        // events ride in the merge framing tags instead. Bind the wording to
+        // the production tag so a rename in `queue::MergeFraming` fails here
+        // rather than silently leaving the prompt pointing at a section that
+        // the harness no longer emits.
+        assert!(prompt.contains(crate::queue::native_steer_framing().0));
+        assert!(prompt.contains("new-request-supersedes-previous"));
         assert!(prompt.contains("Use `<thread-context>` or `<conversation-context>`"));
         assert!(prompt.contains("do not mistake prior messages for the current request"));
         assert!(prompt.contains("Treat `<context>` as authoritative routing"));
