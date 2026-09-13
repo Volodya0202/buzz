@@ -62,6 +62,7 @@ const MAX_HYDRATED_THREAD_ROOTS_PER_SCOPE: usize = 1024;
 #[derive(Clone, Debug, Eq, Hash, PartialEq)]
 pub struct SuccessfulSteerDelivery {
     pub event_id: String,
+    pub hydrated_thread_root: Option<String>,
     pub session_id: String,
 }
 
@@ -1169,6 +1170,7 @@ impl AgentPool {
         &mut self,
         scope: &SessionScope,
         event_id: String,
+        hydrated_thread_root: Option<String>,
         session_id: String,
     ) -> bool {
         if let Some(meta) = self
@@ -1179,6 +1181,7 @@ impl AgentPool {
             meta.successful_steer_deliveries
                 .insert(SuccessfulSteerDelivery {
                     event_id,
+                    hydrated_thread_root,
                     session_id,
                 });
             return true;
@@ -1189,9 +1192,12 @@ impl AgentPool {
         }) else {
             return false;
         };
-        agent
-            .state
-            .mark_scope_delivery_success(scope.clone(), false, [event_id], []);
+        agent.state.mark_scope_delivery_success(
+            scope.clone(),
+            false,
+            [event_id],
+            hydrated_thread_root,
+        );
         true
     }
 
@@ -7495,6 +7501,7 @@ printf '%s\n' '{{"jsonrpc":"2.0","id":0,"result":{{"stopReason":"end_turn"}}}}'"
         assert!(pool.record_successful_steer(
             &conv(channel_id),
             steered_event_id.clone(),
+            Some(steered_event_id.clone()),
             "live-session".into(),
         ));
         let agent = pool
