@@ -62,7 +62,6 @@ const MAX_HYDRATED_THREAD_ROOTS_PER_SCOPE: usize = 1024;
 #[derive(Clone, Debug, Eq, Hash, PartialEq)]
 pub struct SuccessfulSteerDelivery {
     pub event_id: String,
-    pub hydrated_thread_root: Option<String>,
     pub session_id: String,
 }
 
@@ -1170,7 +1169,6 @@ impl AgentPool {
         &mut self,
         scope: &SessionScope,
         event_id: String,
-        hydrated_thread_root: Option<String>,
         session_id: String,
     ) -> bool {
         if let Some(meta) = self
@@ -1181,7 +1179,6 @@ impl AgentPool {
             meta.successful_steer_deliveries
                 .insert(SuccessfulSteerDelivery {
                     event_id,
-                    hydrated_thread_root,
                     session_id,
                 });
             return true;
@@ -1192,12 +1189,9 @@ impl AgentPool {
         }) else {
             return false;
         };
-        agent.state.mark_scope_delivery_success(
-            scope.clone(),
-            false,
-            [event_id],
-            hydrated_thread_root,
-        );
+        agent
+            .state
+            .mark_scope_delivery_success(scope.clone(), false, [event_id], []);
         true
     }
 
@@ -2891,8 +2885,6 @@ pub async fn run_prompt_task(
                 .get(&b.scope)
                 .is_some_and(|delivery| delivery.hydrated_thread_roots.contains(root))
         });
-        pending_hydrated_thread_roots.extend(thread_roots_to_hydrate(b, is_dm));
-
         let conversation_context = if ctx.context_message_limit > 0 {
             fetch_conversation_context_for_target(
                 b.channel_id,
@@ -2904,6 +2896,11 @@ pub async fn run_prompt_task(
         } else {
             None
         };
+        if let Some(root) =
+            fetched_thread_root_to_hydrate(&context_target, conversation_context.as_ref(), is_dm)
+        {
+            pending_hydrated_thread_roots.insert(root);
+        }
         let rendered_batch_ids: HashSet<String> = b
             .events
             .iter()
@@ -4029,25 +4026,22 @@ fn resolve_context_target(batch: &FlushBatch, is_dm: bool) -> ContextTarget {
     ContextTarget::None
 }
 
-/// Resolve every canonical thread that a successful turn hydrates. A channel-
-/// policy batch can merge events from several threads, including cancelled
-/// events requeued by steering. Top-level events use their own IDs because
-/// those become the roots when the agent replies.
-fn thread_roots_to_hydrate(batch: &FlushBatch, is_dm: bool) -> HashSet<String> {
-    if is_dm {
-        return HashSet::new();
+/// Return the one canonical thread whose history this prompt successfully
+/// fetched. This is deliberately narrower than the set of events rendered in
+/// a merged channel-policy batch: only fetched context proves that a provider
+/// session can safely omit that thread's agent-authored relay messages later.
+fn fetched_thread_root_to_hydrate(
+    target: &ContextTarget,
+    context: Option<&ConversationContext>,
+    is_dm: bool,
+) -> Option<String> {
+    if is_dm || !matches!(context, Some(ConversationContext::Thread { .. })) {
+        return None;
     }
-    batch
-        .cancelled_events
-        .iter()
-        .chain(&batch.events)
-        .map(|event| {
-            crate::queue::parse_thread_tags(&event.event)
-                .root_event_id
-                .unwrap_or_else(|| event.event.id.to_hex())
-                .to_ascii_lowercase()
-        })
-        .collect()
+    match target {
+        ContextTarget::Thread(root) => Some(root.clone()),
+        ContextTarget::Dm | ContextTarget::None => None,
+    }
 }
 
 /// Normalize AND validate a pubkey for the batch profile API request.
@@ -4544,11 +4538,11 @@ fn json_to_context_message(obj: &serde_json::Value) -> Option<ContextMessage> {
 
 /// Parse a Nostr query response (array of events) into thread context.
 ///
-/// Separates the root event (matching `root_event_id`) from replies, keeps the
-/// newest `limit` replies returned by the sentinel query, then sorts the
-/// displayed window chronologically for the prompt. If the agent's newest reply
-/// is outside that window, keep it instead of the oldest displayed reply so the
-/// next prompt always includes the agent's most recent prior turn.
+/// Separates the root event (matching `root_event_id`) from replies, then sorts
+/// the selected window chronologically for the prompt. Fresh sessions pin the
+/// agent's newest reply inside the `limit`; hydrated sessions reserve the full
+/// limit for humans and retain fetched agent replies only until the session
+/// delta accounts for their omission.
 #[cfg(test)]
 fn parse_nostr_thread_response(
     json: serde_json::Value,
@@ -4604,23 +4598,46 @@ fn parse_nostr_thread_response_with_meta(
         .max_by_key(|(_, ts, _, _)| *ts)
         .cloned();
 
-    if !pin_agent_reply {
-        reply_msgs.retain(|(_, _, is_agent, _)| !is_agent);
-    }
-
     let reply_fetch_limit = if pin_agent_reply {
         limit
     } else {
         limit.saturating_mul(2)
     };
-    let truncated =
-        fetched_reply_count > reply_fetch_limit as usize || reply_msgs.len() > limit as usize;
-    if truncated {
+    let relay_window_truncated = fetched_reply_count > reply_fetch_limit as usize;
+    let has_agent_replies = reply_msgs.iter().any(|(_, _, is_agent, _)| *is_agent);
+    let human_reply_count = reply_msgs
+        .iter()
+        .filter(|(_, _, is_agent, _)| !is_agent)
+        .count();
+    let truncated = if pin_agent_reply {
+        fetched_reply_count > limit as usize
+    } else {
+        relay_window_truncated || has_agent_replies || human_reply_count > limit as usize
+    };
+
+    if pin_agent_reply && truncated {
         // The relay returns limited REQ results newest-first. Sort explicitly so
         // the sentinel we drop is the oldest reply in the fetched window, not an
         // arbitrary last element if the HTTP bridge ever changes iteration order.
         reply_msgs.sort_by_key(|(_, ts, _, _)| Reverse(*ts));
         reply_msgs.truncate(limit as usize);
+    } else if !pin_agent_reply {
+        // Keep agent replies until `conversation_context_delta` determines
+        // whether the provider session already owns them. Count only human
+        // replies against the display budget so omitted agent history cannot
+        // displace new human context.
+        reply_msgs.sort_by_key(|(_, ts, _, _)| Reverse(*ts));
+        let mut retained_humans = 0usize;
+        reply_msgs.retain(|(_, _, is_agent, _)| {
+            if *is_agent {
+                true
+            } else if retained_humans < limit as usize {
+                retained_humans += 1;
+                true
+            } else {
+                false
+            }
+        });
     }
 
     if let Some(agent_reply) = newest_agent_reply.filter(|_| pin_agent_reply) {
@@ -6529,9 +6546,28 @@ mod tests {
         .await
         .expect("thread context");
 
-        let ConversationContext::Thread { messages, .. } = ctx else {
+        let ctx = conversation_context_delta(
+            Some(ctx),
+            &HashSet::new(),
+            &HashSet::new(),
+            Some(&agent_hex),
+        )
+        .expect("human context remains after hydrated-session filtering");
+
+        let ConversationContext::Thread {
+            messages,
+            total,
+            truncated,
+            ..
+        } = ctx
+        else {
             panic!("expected thread context");
         };
+        assert_eq!(total, 4);
+        assert!(
+            truncated,
+            "omitted agent history must be represented as a truncated context window"
+        );
         assert!(messages
             .iter()
             .any(|message| message.content == "newer human reply"));
@@ -7008,10 +7044,9 @@ done"#
                 turn >= 2,
                 "channel event IDs must commit only after ACP success"
             );
-            assert_eq!(
-                delivery.hydrated_thread_roots.contains(&event_id),
-                turn >= 2,
-                "top-level thread hydration must commit only after ACP success"
+            assert!(
+                delivery.hydrated_thread_roots.is_empty(),
+                "a successful turn without fetched thread context must not hydrate a root"
             );
             agent = result.agent;
         }
@@ -7073,6 +7108,8 @@ done"#
             .await
             .expect("bind context server");
         let base_url = format!("http://{}", listener.local_addr().unwrap());
+        let first_response_body = serde_json::to_string(&vec![root.clone(), agent_reply.clone()])
+            .expect("serialize first context response");
         let response_body = serde_json::to_string(&vec![
             root.clone(),
             agent_reply,
@@ -7080,13 +7117,22 @@ done"#
             trigger.clone(),
         ])
         .unwrap();
+        let server_root_id = root_id.clone();
         let server = tokio::spawn(async move {
+            let mut served_first_context = false;
             while let Ok((mut socket, _)) = listener.accept().await {
                 let mut request = vec![0; 16 * 1024];
-                let _ = socket.read(&mut request).await;
+                let read = socket.read(&mut request).await.unwrap_or(0);
+                let request = String::from_utf8_lossy(&request[..read]);
+                let body = if request.contains(&server_root_id) && !served_first_context {
+                    served_first_context = true;
+                    &first_response_body
+                } else {
+                    &response_body
+                };
                 let response = format!(
                     "HTTP/1.1 200 OK\r\nContent-Type: application/json\r\nContent-Length: {}\r\nConnection: close\r\n\r\n{}",
-                    response_body.len(), response_body
+                    body.len(), body
                 );
                 let _ = socket.write_all(response.as_bytes()).await;
             }
@@ -7184,7 +7230,7 @@ done"#
             agent,
             Some(first_batch),
             None,
-            Arc::new(make_context(0)),
+            Arc::new(make_context(10)),
             result_tx.clone(),
             None,
             "first-turn".into(),
@@ -7237,6 +7283,8 @@ done"#
         assert!(wire.contains("new human context"));
         assert!(!wire.contains("agent reply already retained in the provider session"));
         assert!(wire.contains("follow-up mention"));
+        assert!(wire.contains("truncated=\"true\""));
+        assert!(wire.contains("buzz messages thread"));
     }
 
     #[tokio::test]
@@ -7501,7 +7549,6 @@ printf '%s\n' '{{"jsonrpc":"2.0","id":0,"result":{{"stopReason":"end_turn"}}}}'"
         assert!(pool.record_successful_steer(
             &conv(channel_id),
             steered_event_id.clone(),
-            Some(steered_event_id.clone()),
             "live-session".into(),
         ));
         let agent = pool
@@ -7937,50 +7984,50 @@ printf '%s\n' '{{"jsonrpc":"2.0","id":0,"result":{{"stopReason":"end_turn"}}}}'"
     }
 
     #[test]
-    fn top_level_channel_turn_hydrates_its_future_thread_root() {
-        let ch = Uuid::new_v4();
-        let event = signed_event_with_tags(vec![]);
-        let root = event.id.to_hex();
-        let batch = batch_with_scope(conv(ch), event);
-
-        assert_eq!(
-            thread_roots_to_hydrate(&batch, false),
-            HashSet::from([root])
-        );
-        assert!(
-            thread_roots_to_hydrate(&batch, true).is_empty(),
-            "DMs remain one conversation and do not use thread hydration"
-        );
-    }
-
-    #[test]
-    fn channel_turn_hydrates_every_rendered_thread() {
-        let ch = Uuid::new_v4();
-        let first_root = "a".repeat(64);
-        let second_root = "b".repeat(64);
-        let first = signed_event_with_tags(vec![
-            vec!["e".into(), first_root.clone(), String::new(), "root".into()],
+    fn merged_batch_hydrates_only_successfully_fetched_non_dm_target() {
+        let channel = Uuid::new_v4();
+        let cancelled_root = "a".repeat(64);
+        let fetched_root = "b".repeat(64);
+        let cancelled = signed_event_with_tags(vec![
+            vec!["e".into(), cancelled_root, String::new(), "root".into()],
             vec!["e".into(), "c".repeat(64), String::new(), "reply".into()],
         ]);
-        let second = signed_event_with_tags(vec![
+        let current = signed_event_with_tags(vec![
             vec![
                 "e".into(),
-                second_root.clone(),
+                fetched_root.clone(),
                 String::new(),
                 "root".into(),
             ],
             vec!["e".into(), "d".repeat(64), String::new(), "reply".into()],
         ]);
-        let mut batch = batch_with_scope(conv(ch), second);
+        let mut batch = batch_with_scope(conv(channel), current);
         batch.cancelled_events.push(crate::queue::BatchEvent {
-            event: first,
+            event: cancelled,
             prompt_tag: "cancelled".into(),
             received_at: std::time::Instant::now(),
         });
+        let target = resolve_context_target(&batch, false);
+        let context = ConversationContext::Thread {
+            messages: vec![context_message(&fetched_root, "thread root")],
+            total: 1,
+            root_present: true,
+            truncated: false,
+        };
 
         assert_eq!(
-            thread_roots_to_hydrate(&batch, false),
-            HashSet::from([first_root, second_root])
+            fetched_thread_root_to_hydrate(&target, Some(&context), false),
+            Some(fetched_root)
+        );
+        assert_eq!(fetched_thread_root_to_hydrate(&target, None, false), None);
+        assert_eq!(
+            fetched_thread_root_to_hydrate(&target, Some(&context), true),
+            None,
+            "DM conversations do not use per-thread hydration"
+        );
+        assert_eq!(
+            fetched_thread_root_to_hydrate(&ContextTarget::None, Some(&context), false),
+            None
         );
     }
 

@@ -2062,9 +2062,6 @@ struct SteerAckEvent {
     /// and deadline extension target this, not the whole channel.
     scope: scope::SessionScope,
     event_id: String,
-    /// Canonical root that this delivered event makes available to the live
-    /// provider session. Conversation-scoped DMs do not consult this ledger.
-    hydrated_thread_root: String,
     /// `Ok` if the read loop sent any of the locked `SteerAck` variants.
     /// `Err` if the oneshot was dropped without a send — should not happen
     /// under the current read-loop drains, but if it ever does the main
@@ -3802,7 +3799,6 @@ async fn tokio_main() -> Result<()> {
                 channel_id,
                 scope,
                 event_id,
-                hydrated_thread_root,
                 ack,
             })) => {
                 // Mid-turn steer attempt resolved (either transport:
@@ -3916,12 +3912,7 @@ async fn tokio_main() -> Result<()> {
                 );
                 if let Ok(pool::SteerAck::Success { session_id }) = &ack {
                     queue.extend_in_flight_deadline(&scope, config.max_turn_duration_secs);
-                    if !pool.record_successful_steer(
-                        &scope,
-                        event_id.clone(),
-                        Some(hydrated_thread_root),
-                        session_id.clone(),
-                    ) {
+                    if !pool.record_successful_steer(&scope, event_id.clone(), session_id.clone()) {
                         tracing::warn!(
                             channel = %channel_id,
                             event_id = %event_id,
@@ -4318,12 +4309,6 @@ fn try_native_steer(
     // steering (which is to inject only what's new).
     let (tag, closing) = queue::native_steer_framing();
     let event_id_hex = event.id.to_hex();
-    let hydrated_thread_root = match &scope {
-        scope::SessionScope::Thread { root_event_id, .. } => root_event_id.clone(),
-        scope::SessionScope::Conversation { .. } => queue::parse_thread_tags(&event)
-            .root_event_id
-            .unwrap_or_else(|| event_id_hex.clone()),
-    };
     let be = queue::BatchEvent {
         event,
         prompt_tag: prompt_tag.clone(),
@@ -4369,7 +4354,6 @@ fn try_native_steer(
             }
             let ack_tx_clone = steer_ack_tx.clone();
             let event_id_for_watcher = event_id_hex.clone();
-            let hydrated_thread_root_for_watcher = hydrated_thread_root.clone();
             let scope_for_watcher = scope.clone();
             tokio::spawn(async move {
                 let ack = ack_rx.await;
@@ -4377,7 +4361,6 @@ fn try_native_steer(
                     channel_id,
                     scope: scope_for_watcher,
                     event_id: event_id_for_watcher,
-                    hydrated_thread_root: hydrated_thread_root_for_watcher,
                     ack,
                 });
             });
@@ -4678,24 +4661,15 @@ fn handle_prompt_result(
         // resurrect delivery state for a dead session; its replacement must
         // receive fresh standing context and history.
         if let Some(live_session_id) = result.agent.state.sessions.get(scope).cloned() {
-            let matching_deliveries = successful_steer_deliveries
+            let event_ids = successful_steer_deliveries
                 .into_iter()
                 .filter(|delivery| delivery.session_id == live_session_id)
-                .collect::<Vec<_>>();
-            let event_ids = matching_deliveries
-                .iter()
-                .map(|delivery| delivery.event_id.clone())
-                .collect::<Vec<_>>();
-            let hydrated_thread_roots = matching_deliveries
-                .into_iter()
-                .filter_map(|delivery| delivery.hydrated_thread_root);
+                .map(|delivery| delivery.event_id);
             let scope = scope.clone();
-            result.agent.state.mark_scope_delivery_success(
-                scope,
-                false,
-                event_ids,
-                hydrated_thread_roots,
-            );
+            result
+                .agent
+                .state
+                .mark_scope_delivery_success(scope, false, event_ids, []);
         }
     }
 
@@ -9504,7 +9478,6 @@ mod error_outcome_emission_tests {
                 successful_steer_deliveries: HashSet::from([
                     crate::pool::SuccessfulSteerDelivery {
                         event_id: steer_event_id.into(),
-                        hydrated_thread_root: Some("thread-root".into()),
                         session_id: "live-session".into(),
                     },
                 ]),
@@ -9550,11 +9523,6 @@ mod error_outcome_emission_tests {
                 .delivered_event_ids
                 .contains(steer_event_id)
         );
-        assert!(
-            returned.state.deliveries[&scope::SessionScope::Conversation { channel_id }]
-                .hydrated_thread_roots
-                .contains(&"thread-root".to_string())
-        );
     }
 
     #[tokio::test]
@@ -9590,7 +9558,6 @@ mod error_outcome_emission_tests {
                 successful_steer_deliveries: HashSet::from([
                     crate::pool::SuccessfulSteerDelivery {
                         event_id: "stale-event".into(),
-                        hydrated_thread_root: Some("stale-root".into()),
                         session_id: "old-session".into(),
                     },
                 ]),
@@ -9656,7 +9623,6 @@ mod error_outcome_emission_tests {
         assert!(pool.record_successful_steer(
             &scope::SessionScope::Conversation { channel_id },
             steer_event_id.into(),
-            Some("thread-root".into()),
             "live-session".into(),
         ));
         let returned = pool.agents_mut()[0].as_ref().expect("idle returned agent");
@@ -9664,11 +9630,6 @@ mod error_outcome_emission_tests {
             returned.state.deliveries[&scope::SessionScope::Conversation { channel_id }]
                 .delivered_event_ids
                 .contains(steer_event_id)
-        );
-        assert!(
-            returned.state.deliveries[&scope::SessionScope::Conversation { channel_id }]
-                .hydrated_thread_roots
-                .contains(&"thread-root".to_string())
         );
     }
 
@@ -9689,7 +9650,6 @@ mod error_outcome_emission_tests {
         assert!(!pool.record_successful_steer(
             &scope::SessionScope::Conversation { channel_id },
             "stale-event".into(),
-            Some("stale-root".into()),
             "old-session".into(),
         ));
         let returned = pool.agents_mut()[0].as_ref().expect("replacement agent");
@@ -9720,7 +9680,6 @@ mod error_outcome_emission_tests {
                 successful_steer_deliveries: HashSet::from([
                     crate::pool::SuccessfulSteerDelivery {
                         event_id: "stale-event".into(),
-                        hydrated_thread_root: Some("stale-root".into()),
                         session_id: "invalidated-session".into(),
                     },
                 ]),
