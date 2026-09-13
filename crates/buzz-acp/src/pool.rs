@@ -20,7 +20,7 @@
 //! `AcpClient` is NOT Clone — ownership moves out on claim and back on return.
 
 use std::cmp::Reverse;
-use std::collections::{HashMap, HashSet};
+use std::collections::{HashMap, HashSet, VecDeque};
 use std::sync::{Arc, Mutex};
 use std::time::Duration;
 
@@ -47,6 +47,13 @@ use crate::scope::SessionScope;
 /// Window within which agent activity before a hard-cap death qualifies
 /// the turn as "recently active" (eligible for requeue instead of dead-letter).
 const RECENT_ACTIVITY_WINDOW: Duration = Duration::from_secs(60);
+
+/// Maximum canonical thread roots remembered by one live ACP session.
+///
+/// Evicting the oldest root only causes a future prompt to include redundant
+/// context again; it cannot drop user-authored context, so bounded fail-open
+/// behavior is preferable to an ever-growing channel-policy session ledger.
+const MAX_HYDRATED_THREAD_ROOTS_PER_SCOPE: usize = 1024;
 
 // FlushBatch and BatchEvent derive Clone (added in queue.rs) so we can store
 // a recoverable copy in TaskMeta for panic recovery in Queue mode.
@@ -110,6 +117,10 @@ pub struct ChannelDeliveryState {
     /// Buzz event IDs already delivered to this ACP session, either as trigger
     /// events or conversation context.
     pub delivered_event_ids: HashSet<String>,
+    /// Canonical thread roots that have completed a successful turn in this
+    /// ACP session. Once hydrated, the provider already retains the agent's
+    /// own replies in its conversation history, so relay context can omit them.
+    pub hydrated_thread_roots: VecDeque<String>,
 }
 
 /// Per-channel session IDs, turn counters, and delivery state.
@@ -222,10 +233,20 @@ impl SessionState {
         scope: SessionScope,
         standing_context_sent: bool,
         event_ids: impl IntoIterator<Item = String>,
+        hydrated_thread_roots: impl IntoIterator<Item = String>,
     ) {
         let delivery = self.deliveries.entry(scope).or_default();
         delivery.standing_context_sent |= standing_context_sent;
         delivery.delivered_event_ids.extend(event_ids);
+        for root in hydrated_thread_roots {
+            if delivery.hydrated_thread_roots.contains(&root) {
+                continue;
+            }
+            if delivery.hydrated_thread_roots.len() >= MAX_HYDRATED_THREAD_ROOTS_PER_SCOPE {
+                delivery.hydrated_thread_roots.pop_front();
+            }
+            delivery.hydrated_thread_roots.push_back(root);
+        }
     }
 
     #[cfg(test)]
@@ -1170,7 +1191,7 @@ impl AgentPool {
         };
         agent
             .state
-            .mark_scope_delivery_success(scope.clone(), false, [event_id]);
+            .mark_scope_delivery_success(scope.clone(), false, [event_id], []);
         true
     }
 
@@ -2690,7 +2711,7 @@ pub async fn run_prompt_task(
                     if !agent.has_system_prompt_support() {
                         agent
                             .state
-                            .mark_scope_delivery_success(scope.clone(), true, []);
+                            .mark_scope_delivery_success(scope.clone(), true, [], []);
                     }
                     let usage = agent.acp.take_turn_usage();
                     publish_agent_turn_metric(
@@ -2816,6 +2837,10 @@ pub async fn run_prompt_task(
     // Event IDs represented by this prompt. Commit only after ACP reports a
     // successful turn; failed/cancelled prompts must be retryable without loss.
     let mut pending_delivered_event_ids = HashSet::new();
+    // Thread hydration follows the same commit rule as event delivery. A
+    // failed or cancelled first turn must not make its retry assume that the
+    // provider retained any of that thread's context.
+    let mut pending_hydrated_thread_roots = HashSet::new();
     let prompt_sections: Vec<String> = if let Some(text) = prompt_text {
         // Heartbeats create their session before this point, so a Goose method-not-found
         // probe has already selected the correct framing for this process.
@@ -2844,8 +2869,32 @@ pub async fn run_prompt_task(
         // reuse that exact typed result for prompt formatting.
         let channel_info = resolved_channel_info.clone();
 
+        let is_dm = channel_info
+            .as_ref()
+            .map(|info| info.channel_type == "dm")
+            .unwrap_or(false);
+        let context_target = resolve_context_target(b, is_dm);
+        let hydrated_thread_root = match &context_target {
+            ContextTarget::Thread(root) => Some(root),
+            ContextTarget::Dm | ContextTarget::None => None,
+        };
+        let thread_context_is_hydrated = hydrated_thread_root.is_some_and(|root| {
+            agent
+                .state
+                .deliveries
+                .get(&b.scope)
+                .is_some_and(|delivery| delivery.hydrated_thread_roots.contains(root))
+        });
+        pending_hydrated_thread_roots.extend(thread_roots_to_hydrate(b, is_dm));
+
         let conversation_context = if ctx.context_message_limit > 0 {
-            fetch_conversation_context(b, &channel_info, &ctx).await
+            fetch_conversation_context_for_target(
+                b.channel_id,
+                &context_target,
+                &ctx,
+                !thread_context_is_hydrated,
+            )
+            .await
         } else {
             None
         };
@@ -2862,14 +2911,21 @@ pub async fn run_prompt_task(
             .map(|delivery| &delivery.delivered_event_ids)
             .cloned()
             .unwrap_or_default();
-        let conversation_context_had_delivered_events =
+        let agent_pubkey = ctx.agent_keys.public_key().to_hex();
+        let conversation_context_had_session_events =
             conversation_context.as_ref().is_some_and(|context| {
                 conversation_context_event_ids(Some(context))
                     .iter()
                     .any(|event_id| delivered_ids.contains(event_id))
+                    || (thread_context_is_hydrated
+                        && conversation_context_has_author(context, &agent_pubkey))
             });
-        let conversation_context =
-            conversation_context_delta(conversation_context, &delivered_ids, &rendered_batch_ids);
+        let conversation_context = conversation_context_delta(
+            conversation_context,
+            &delivered_ids,
+            &rendered_batch_ids,
+            thread_context_is_hydrated.then_some(agent_pubkey.as_str()),
+        );
         pending_delivered_event_ids.extend(rendered_batch_ids);
         pending_delivered_event_ids.extend(conversation_context_event_ids(
             conversation_context.as_ref(),
@@ -2901,7 +2957,7 @@ pub async fn run_prompt_task(
                 huddle_instructions: standing.huddle_instructions,
                 channel_info: channel_info.as_ref(),
                 conversation_context: conversation_context.as_ref(),
-                conversation_context_had_delivered_events,
+                conversation_context_had_session_events,
                 profile_lookup: profile_lookup.as_ref(),
                 has_system_prompt_support: agent.has_system_prompt_support(),
                 base_prompt: standing.base_prompt,
@@ -3134,6 +3190,7 @@ pub async fn run_prompt_task(
                                 scope.clone(),
                                 standing_sent,
                                 &pending_delivered_event_ids,
+                                &pending_hydrated_thread_roots,
                             );
                         }
                         apply_completed_before_control_signal(
@@ -3177,6 +3234,7 @@ pub async fn run_prompt_task(
                     scope.clone(),
                     standing_sent,
                     &pending_delivered_event_ids,
+                    &pending_hydrated_thread_roots,
                 );
             } else if !agent.has_system_prompt_support() {
                 agent.state.heartbeat_standing_context_sent = true;
@@ -3813,23 +3871,44 @@ fn conversation_context_event_ids(context: Option<&ConversationContext>) -> Hash
     }
 }
 
+fn conversation_context_has_author(context: &ConversationContext, author_pubkey: &str) -> bool {
+    let messages = match context {
+        ConversationContext::Thread { messages, .. } | ConversationContext::Dm { messages, .. } => {
+            messages
+        }
+    };
+    messages
+        .iter()
+        .any(|message| normalize_prompt_pubkey(&message.pubkey).as_deref() == Some(author_pubkey))
+}
+
 /// Remove events already delivered to this live ACP session. Triggering events
 /// are also excluded because they are rendered separately in `[Event]`.
+/// Once a thread has completed a turn in this session, replies authored by the
+/// agent are excluded too: the provider already retains those replies in its
+/// own tool-call and assistant history. Fresh sessions preserve them so a
+/// restarted or rotated provider can recover the prior conversation.
 /// IDs are compared in Buzz's canonical 64-character lowercase hex form: relay
 /// context JSON supplies the same form emitted by `EventId::to_hex()`. A
 /// non-canonical or missing ID deliberately fails open and may be re-sent.
+/// Author metadata follows the same fail-open rule.
 fn conversation_context_delta(
     context: Option<ConversationContext>,
     delivered: &HashSet<String>,
     triggering: &HashSet<String>,
+    excluded_author: Option<&str>,
 ) -> Option<ConversationContext> {
     let filter = |messages: Vec<ContextMessage>| {
         messages
             .into_iter()
             .filter(|message| {
-                message.event_id.is_empty()
-                    || (!delivered.contains(&message.event_id)
-                        && !triggering.contains(&message.event_id))
+                let authored_by_excluded = excluded_author.is_some_and(|author| {
+                    normalize_prompt_pubkey(&message.pubkey).as_deref() == Some(author)
+                });
+                !authored_by_excluded
+                    && (message.event_id.is_empty()
+                        || (!delivered.contains(&message.event_id)
+                            && !triggering.contains(&message.event_id)))
             })
             .collect::<Vec<_>>()
     };
@@ -3886,29 +3965,26 @@ fn conversation_context_delta(
 /// The delivery-delta filter (`conversation_context_delta`) then removes any
 /// events this scope's live session already received, so subsequent turns
 /// deliver only intervening same-thread messages plus the trigger.
-async fn fetch_conversation_context(
-    batch: &FlushBatch,
-    channel_info: &Option<PromptChannelInfo>,
+async fn fetch_conversation_context_for_target(
+    channel_id: Uuid,
+    target: &ContextTarget,
     ctx: &PromptContext,
+    pin_agent_reply: bool,
 ) -> Option<ConversationContext> {
     let limit = ctx.context_message_limit;
-    let is_dm = channel_info
-        .as_ref()
-        .map(|ci| ci.channel_type == "dm")
-        .unwrap_or(false);
-
-    match resolve_context_target(batch, is_dm) {
+    match target {
         ContextTarget::Thread(root_id) => {
             fetch_thread_context(
-                batch.channel_id,
-                &root_id,
+                channel_id,
+                root_id,
                 limit,
                 ctx.agent_keys.public_key(),
                 &ctx.rest_client,
+                pin_agent_reply,
             )
             .await
         }
-        ContextTarget::Dm => fetch_dm_context(batch.channel_id, limit, &ctx.rest_client).await,
+        ContextTarget::Dm => fetch_dm_context(channel_id, limit, &ctx.rest_client).await,
         ContextTarget::None => None,
     }
 }
@@ -3933,18 +4009,39 @@ enum ContextTarget {
 ///   conversation history; a plain top-level channel message has none.
 fn resolve_context_target(batch: &FlushBatch, is_dm: bool) -> ContextTarget {
     if let Some(root_id) = batch.scope.root_event_id() {
-        return ContextTarget::Thread(root_id.to_string());
+        return ContextTarget::Thread(root_id.to_ascii_lowercase());
     }
     let Some(last_event) = batch.events.last() else {
         return ContextTarget::None;
     };
     if let Some(root_id) = crate::queue::parse_thread_tags(&last_event.event).root_event_id {
-        return ContextTarget::Thread(root_id);
+        return ContextTarget::Thread(root_id.to_ascii_lowercase());
     }
     if is_dm {
         return ContextTarget::Dm;
     }
     ContextTarget::None
+}
+
+/// Resolve every canonical thread that a successful turn hydrates. A channel-
+/// policy batch can merge events from several threads, including cancelled
+/// events requeued by steering. Top-level events use their own IDs because
+/// those become the roots when the agent replies.
+fn thread_roots_to_hydrate(batch: &FlushBatch, is_dm: bool) -> HashSet<String> {
+    if is_dm {
+        return HashSet::new();
+    }
+    batch
+        .cancelled_events
+        .iter()
+        .chain(&batch.events)
+        .map(|event| {
+            crate::queue::parse_thread_tags(&event.event)
+                .root_event_id
+                .unwrap_or_else(|| event.event.id.to_hex())
+                .to_ascii_lowercase()
+        })
+        .collect()
 }
 
 /// Normalize AND validate a pubkey for the batch profile API request.
@@ -4104,16 +4201,17 @@ async fn fetch_prompt_profile_lookup(
 /// when the relay has more thread history, instead of reporting the capped page
 /// as the total. When the window is full, a best-effort `/count` attempts to
 /// improve that lower-bound total; because it is a separate racy request, the
-/// result is clamped to the sentinel-proven minimum. The query also asks for the
-/// agent's newest reply separately so the next prompt can include the agent's
-/// own prior turn even in busy threads where the recent-message window would
-/// otherwise push it out.
+/// result is clamped to the sentinel-proven minimum. For a fresh provider
+/// session, the query also asks for the agent's newest reply separately so its
+/// prior turn survives a busy recent-message window. A hydrated session skips
+/// that pin because it already retains the reply in its own history.
 async fn fetch_thread_context(
     channel_id: Uuid,
     root_event_id: &str,
     limit: u32,
     agent_pubkey: nostr::PublicKey,
     rest: &RestClient,
+    pin_agent_reply: bool,
 ) -> Option<ConversationContext> {
     fetch_thread_context_with(
         channel_id,
@@ -4122,6 +4220,7 @@ async fn fetch_thread_context(
         agent_pubkey,
         |filters| async move { rest.query(&filters).await },
         |filters| async move { rest.count(&filters).await },
+        pin_agent_reply,
     )
     .await
 }
@@ -4133,6 +4232,7 @@ async fn fetch_thread_context_with<Query, QueryFut, Count, CountFut>(
     agent_pubkey: nostr::PublicKey,
     query: Query,
     count: Count,
+    pin_agent_reply: bool,
 ) -> Option<ConversationContext>
 where
     Query: Fn(Vec<nostr::Filter>) -> QueryFut,
@@ -4172,19 +4272,18 @@ where
     let agent_reply_filter = replies_filter.clone().author(agent_pubkey).limit(1);
 
     let context = fetch_with_retry(|| async {
-        match timeout(
-            CONTEXT_FETCH_TIMEOUT,
-            query(vec![
-                root_filter.clone(),
-                replies_filter.clone(),
-                agent_reply_filter.clone(),
-            ]),
-        )
-        .await
-        {
-            Ok(Ok(json)) => {
-                parse_nostr_thread_response_with_meta(json, root_event_id, limit, &agent_pubkey)
-            }
+        let mut filters = vec![root_filter.clone(), replies_filter.clone()];
+        if pin_agent_reply {
+            filters.push(agent_reply_filter.clone());
+        }
+        match timeout(CONTEXT_FETCH_TIMEOUT, query(filters)).await {
+            Ok(Ok(json)) => parse_nostr_thread_response_with_meta(
+                json,
+                root_event_id,
+                limit,
+                &agent_pubkey,
+                pin_agent_reply,
+            ),
             Ok(Err(e)) => {
                 tracing::warn!(
                     channel_id = %channel_id,
@@ -4444,7 +4543,7 @@ fn parse_nostr_thread_response(
     limit: u32,
     agent_pubkey: &nostr::PublicKey,
 ) -> Option<ConversationContext> {
-    parse_nostr_thread_response_with_meta(json, root_event_id, limit, agent_pubkey)
+    parse_nostr_thread_response_with_meta(json, root_event_id, limit, agent_pubkey, true)
         .map(|parsed| parsed.context)
 }
 
@@ -4458,6 +4557,7 @@ fn parse_nostr_thread_response_with_meta(
     root_event_id: &str,
     limit: u32,
     agent_pubkey: &nostr::PublicKey,
+    pin_agent_reply: bool,
 ) -> Option<ParsedThreadContext> {
     let events = json.as_array()?;
     let agent_pubkey_hex = agent_pubkey.to_hex();
@@ -4499,7 +4599,7 @@ fn parse_nostr_thread_response_with_meta(
         reply_msgs.truncate(limit as usize);
     }
 
-    if let Some(agent_reply) = newest_agent_reply {
+    if let Some(agent_reply) = newest_agent_reply.filter(|_| pin_agent_reply) {
         let agent_reply_already_displayed =
             reply_msgs.iter().any(|(id, _, _, _)| *id == agent_reply.0);
         if !agent_reply_already_displayed {
@@ -4712,6 +4812,7 @@ fn record_scope_delivery_success(
     scope: SessionScope,
     standing_context_sent: bool,
     event_ids: &HashSet<String>,
+    hydrated_thread_roots: &HashSet<String>,
 ) {
     tracing::info!(
         target: "pool::prompt",
@@ -4722,6 +4823,7 @@ fn record_scope_delivery_success(
         scope,
         standing_context_sent,
         event_ids.iter().cloned(),
+        hydrated_thread_roots.iter().cloned(),
     );
 }
 
@@ -6096,6 +6198,7 @@ mod tests {
                 assert_thread_count_filter(&filters, channel_id, root_id);
                 std::future::ready(Ok(json!({ "count": 6 })))
             },
+            true,
         )
         .await
         .expect("thread context");
@@ -6148,6 +6251,7 @@ mod tests {
             agent.public_key(),
             move |_filters| std::future::ready(Ok(json.clone())),
             |_filters| std::future::ready(Ok(json!({ "count": 6 }))),
+            true,
         )
         .await
         .expect("thread context");
@@ -6202,6 +6306,7 @@ mod tests {
             agent.public_key(),
             move |_filters| std::future::ready(Ok(json.clone())),
             |_filters| std::future::ready(Ok(json!({ "count": 1 }))),
+            true,
         )
         .await
         .expect("thread context");
@@ -6255,6 +6360,7 @@ mod tests {
             agent.public_key(),
             move |_filters| std::future::ready(Ok(json.clone())),
             |_filters| std::future::ready(Err(crate::relay::RelayError::Http("boom".into()))),
+            true,
         )
         .await
         .expect("thread context");
@@ -6317,6 +6423,7 @@ mod tests {
             agent.public_key(),
             move |_filters| std::future::ready(Ok(json.clone())),
             |_filters| std::future::ready(Ok(json!({ "count": 3 }))),
+            true,
         )
         .await
         .expect("thread context");
@@ -6348,6 +6455,69 @@ mod tests {
             }
             _ => panic!("expected Thread context"),
         }
+    }
+
+    #[tokio::test]
+    async fn hydrated_thread_does_not_pin_agent_reply_over_human_context() {
+        let agent = Keys::generate();
+        let agent_hex = agent.public_key().to_hex();
+        let root_id = "1111111111111111111111111111111111111111111111111111111111111111";
+        let channel_id = Uuid::new_v4();
+        let json = json!([
+            thread_event(root_id, "rootpub", "root", 1000),
+            thread_event(
+                "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+                "humanpub",
+                "newer human reply",
+                5000
+            ),
+            thread_event(
+                "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+                "humanpub",
+                "middle human reply",
+                4000
+            ),
+            thread_event(
+                "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+                &agent_hex,
+                "old agent reply from separate author query",
+                2000
+            )
+        ]);
+
+        let ctx = fetch_thread_context_with(
+            channel_id,
+            root_id,
+            2,
+            agent.public_key(),
+            move |filters| {
+                assert_eq!(
+                    filters.len(),
+                    2,
+                    "hydrated thread must skip the agent pin query"
+                );
+                let replies = serde_json::to_value(&filters[1]).expect("serialize replies filter");
+                assert!(replies.get("authors").is_none());
+                std::future::ready(Ok(json.clone()))
+            },
+            |_filters| std::future::ready(Ok(json!({ "count": 3 }))),
+            false,
+        )
+        .await
+        .expect("thread context");
+
+        let ConversationContext::Thread { messages, .. } = ctx else {
+            panic!("expected thread context");
+        };
+        assert!(messages
+            .iter()
+            .any(|message| message.content == "newer human reply"));
+        assert!(messages
+            .iter()
+            .any(|message| message.content == "middle human reply"));
+        assert!(messages
+            .iter()
+            .all(|message| message.content != "old agent reply from separate author query"));
     }
 
     #[tokio::test]
@@ -6391,6 +6561,7 @@ mod tests {
             agent.public_key(),
             move |_filters| std::future::ready(Ok(json.clone())),
             |_filters| std::future::ready(Err(crate::relay::RelayError::Http("boom".into()))),
+            true,
         )
         .await
         .expect("thread context");
@@ -6814,6 +6985,11 @@ done"#
                 turn >= 2,
                 "channel event IDs must commit only after ACP success"
             );
+            assert_eq!(
+                delivery.hydrated_thread_roots.contains(&event_id),
+                turn >= 2,
+                "top-level thread hydration must commit only after ACP success"
+            );
             agent = result.agent;
         }
         agent.acp.shutdown().await;
@@ -6838,6 +7014,206 @@ done"#
             !prompt_text(2).contains("<base>\nstanding-once\n</base>"),
             "turn after channel ACP success must omit standing context"
         );
+    }
+
+    #[tokio::test]
+    async fn hydrated_thread_prompt_omits_agent_reply_but_keeps_new_human_context() {
+        use tokio::io::{AsyncReadExt, AsyncWriteExt};
+
+        let channel_id = Uuid::new_v4();
+        let agent_keys = Keys::generate();
+        let human_keys = Keys::generate();
+        let h_tag = Tag::parse(["h", channel_id.to_string().as_str()]).unwrap();
+        let root = EventBuilder::new(Kind::Custom(9), "original question")
+            .tags([h_tag.clone()])
+            .sign_with_keys(&human_keys)
+            .unwrap();
+        let root_id = root.id.to_hex();
+        let reply_tag = Tag::parse(["e", root_id.as_str(), "", "reply"]).unwrap();
+        let agent_reply = EventBuilder::new(
+            Kind::Custom(9),
+            "agent reply already retained in the provider session",
+        )
+        .tags([h_tag.clone(), reply_tag.clone()])
+        .sign_with_keys(&agent_keys)
+        .unwrap();
+        let intervening_human = EventBuilder::new(Kind::Custom(9), "new human context")
+            .tags([h_tag.clone(), reply_tag.clone()])
+            .sign_with_keys(&human_keys)
+            .unwrap();
+        let trigger = EventBuilder::new(Kind::Custom(9), "follow-up mention")
+            .tags([h_tag, reply_tag])
+            .sign_with_keys(&human_keys)
+            .unwrap();
+
+        let listener = tokio::net::TcpListener::bind("127.0.0.1:0")
+            .await
+            .expect("bind context server");
+        let base_url = format!("http://{}", listener.local_addr().unwrap());
+        let response_body = serde_json::to_string(&vec![
+            root.clone(),
+            agent_reply,
+            intervening_human,
+            trigger.clone(),
+        ])
+        .unwrap();
+        let server = tokio::spawn(async move {
+            while let Ok((mut socket, _)) = listener.accept().await {
+                let mut request = vec![0; 16 * 1024];
+                let _ = socket.read(&mut request).await;
+                let response = format!(
+                    "HTTP/1.1 200 OK\r\nContent-Type: application/json\r\nContent-Length: {}\r\nConnection: close\r\n\r\n{}",
+                    response_body.len(), response_body
+                );
+                let _ = socket.write_all(response.as_bytes()).await;
+            }
+        });
+
+        let capture = std::env::temp_dir().join(format!(
+            "buzz-acp-hydrated-thread-wire-{}.ndjson",
+            Uuid::new_v4()
+        ));
+        let quoted_capture = capture.to_string_lossy().replace('\'', "'\\''");
+        let script = format!(
+            r#"count=0
+while IFS= read -r line; do
+  printf '%s\n' "$line" >> '{quoted_capture}'
+  printf '%s\n' "{{\"jsonrpc\":\"2.0\",\"id\":$count,\"result\":{{\"stopReason\":\"end_turn\"}}}}"
+  count=$((count + 1))
+done"#
+        );
+        let acp = AcpClient::spawn("bash", &["-c".into(), script], &[], false)
+            .await
+            .expect("spawn wire-capture ACP");
+        let scope = SessionScope::Thread {
+            channel_id,
+            root_event_id: root_id.clone(),
+        };
+        let mut agent = OwnedAgent {
+            index: 0,
+            acp,
+            state: SessionState::default(),
+            model_capabilities: None,
+            desired_model: None,
+            model_overridden: false,
+            desired_model_request_id: None,
+            desired_model_pending_ack: false,
+            startup_effort: None,
+            agent_name: "legacy-test-agent".into(),
+            goose_system_prompt_supported: None,
+            protocol_version: 1,
+        };
+        agent
+            .state
+            .sessions
+            .insert(scope.clone(), "live-session".into());
+        agent
+            .state
+            .deliveries
+            .insert(scope.clone(), ChannelDeliveryState::default());
+
+        let make_context = |context_message_limit| {
+            let mut ctx = make_prompt_context_impl(&agent_keys, None);
+            ctx.context_message_limit = context_message_limit;
+            ctx.rest_client.base_url = base_url.clone();
+            ctx.channel_info = ChannelInfoResolver::new(
+                HashMap::from([(
+                    channel_id,
+                    crate::relay::ChannelInfo {
+                        name: "test-thread".into(),
+                        channel_type: "stream".into(),
+                        description: None,
+                    },
+                )]),
+                RestClient {
+                    http: reqwest::Client::new(),
+                    base_url: base_url.clone(),
+                    keys: agent_keys.clone(),
+                    auth_tag_json: None,
+                },
+            );
+            ctx
+        };
+        let first_batch = FlushBatch {
+            channel_id,
+            scope: scope.clone(),
+            events: vec![crate::queue::BatchEvent {
+                event: root,
+                prompt_tag: "@mention".into(),
+                received_at: std::time::Instant::now(),
+            }],
+            cancelled_events: vec![],
+            cancel_reason: None,
+        };
+        let follow_up_batch = FlushBatch {
+            channel_id,
+            scope: scope.clone(),
+            events: vec![crate::queue::BatchEvent {
+                event: trigger,
+                prompt_tag: "@mention".into(),
+                received_at: std::time::Instant::now(),
+            }],
+            cancelled_events: vec![],
+            cancel_reason: None,
+        };
+        let (result_tx, mut result_rx) = mpsc::unbounded_channel();
+        run_prompt_task(
+            agent,
+            Some(first_batch),
+            None,
+            Arc::new(make_context(0)),
+            result_tx.clone(),
+            None,
+            "first-turn".into(),
+        )
+        .await;
+        let first_result = result_rx.recv().await.expect("first prompt result");
+        assert!(matches!(
+            first_result.outcome,
+            PromptOutcome::Ok(StopReason::EndTurn)
+        ));
+        assert!(first_result.agent.state.deliveries[&scope]
+            .hydrated_thread_roots
+            .contains(&root_id));
+
+        run_prompt_task(
+            first_result.agent,
+            Some(follow_up_batch),
+            None,
+            Arc::new(make_context(10)),
+            result_tx,
+            None,
+            "follow-up-turn".into(),
+        )
+        .await;
+        let mut result = result_rx.recv().await.expect("prompt result");
+        assert!(matches!(
+            result.outcome,
+            PromptOutcome::Ok(StopReason::EndTurn)
+        ));
+        assert!(result.agent.state.deliveries[&scope]
+            .hydrated_thread_roots
+            .contains(&root_id));
+        result.agent.acp.shutdown().await;
+        server.abort();
+
+        let requests: Vec<serde_json::Value> = std::fs::read_to_string(&capture)
+            .expect("read prompt capture")
+            .lines()
+            .map(|line| serde_json::from_str(line).expect("captured prompt JSON"))
+            .collect();
+        std::fs::remove_file(&capture).expect("remove prompt capture");
+        assert_eq!(requests.len(), 2);
+        let wire = requests[1]["params"]["prompt"]
+            .as_array()
+            .expect("prompt blocks")
+            .iter()
+            .filter_map(|block| block["text"].as_str())
+            .collect::<Vec<_>>()
+            .join("\n");
+        assert!(wire.contains("new human context"));
+        assert!(!wire.contains("agent reply already retained in the provider session"));
+        assert!(wire.contains("follow-up mention"));
     }
 
     #[tokio::test]
@@ -7174,15 +7550,37 @@ printf '%s\n' '{{"jsonrpc":"2.0","id":0,"result":{{"stopReason":"end_turn"}}}}'"
         let delivery = state.deliveries.get(&conv(channel)).unwrap();
         assert!(!delivery.standing_context_sent);
         assert!(delivery.delivered_event_ids.is_empty());
+        assert!(delivery.hydrated_thread_roots.is_empty());
 
         state.mark_scope_delivery_success(
             conv(channel),
             true,
             ["trigger".to_string(), "context".to_string()],
+            ["thread-root".to_string()],
         );
         let delivery = state.deliveries.get(&conv(channel)).unwrap();
         assert!(delivery.standing_context_sent);
         assert_eq!(delivery.delivered_event_ids.len(), 2);
+        assert!(delivery
+            .hydrated_thread_roots
+            .iter()
+            .any(|root| root == "thread-root"));
+    }
+
+    #[test]
+    fn delivery_state_bounds_hydrated_thread_roots() {
+        let channel = Uuid::new_v4();
+        let mut state = SessionState::default();
+        let roots = (0..=MAX_HYDRATED_THREAD_ROOTS_PER_SCOPE)
+            .map(|index| format!("root-{index}"))
+            .collect::<Vec<_>>();
+
+        state.mark_scope_delivery_success(conv(channel), false, [], roots);
+
+        let hydrated = &state.deliveries[&conv(channel)].hydrated_thread_roots;
+        assert_eq!(hydrated.len(), MAX_HYDRATED_THREAD_ROOTS_PER_SCOPE);
+        assert!(!hydrated.contains(&"root-0".to_string()));
+        assert!(hydrated.contains(&format!("root-{MAX_HYDRATED_THREAD_ROOTS_PER_SCOPE}")));
     }
 
     #[test]
@@ -7190,7 +7588,12 @@ printf '%s\n' '{{"jsonrpc":"2.0","id":0,"result":{{"stopReason":"end_turn"}}}}'"
         let channel = Uuid::new_v4();
         let mut state = SessionState::default();
         state.sessions.insert(conv(channel), "old-session".into());
-        state.mark_scope_delivery_success(conv(channel), true, ["old-event".to_string()]);
+        state.mark_scope_delivery_success(
+            conv(channel),
+            true,
+            ["old-event".to_string()],
+            ["old-root".to_string()],
+        );
 
         assert!(state.invalidate_channel(&channel) > 0);
         assert!(!state.deliveries.contains_key(&conv(channel)));
@@ -7202,6 +7605,7 @@ printf '%s\n' '{{"jsonrpc":"2.0","id":0,"result":{{"stopReason":"end_turn"}}}}'"
         let delivery = state.deliveries.get(&conv(channel)).unwrap();
         assert!(!delivery.standing_context_sent);
         assert!(delivery.delivered_event_ids.is_empty());
+        assert!(delivery.hydrated_thread_roots.is_empty());
     }
 
     #[test]
@@ -7219,7 +7623,7 @@ printf '%s\n' '{{"jsonrpc":"2.0","id":0,"result":{{"stopReason":"end_turn"}}}}'"
             truncated: false,
         };
 
-        let delta = conversation_context_delta(Some(context), &delivered, &triggering)
+        let delta = conversation_context_delta(Some(context), &delivered, &triggering, None)
             .expect("new context remains");
         match delta {
             ConversationContext::Thread {
@@ -7247,7 +7651,9 @@ printf '%s\n' '{{"jsonrpc":"2.0","id":0,"result":{{"stopReason":"end_turn"}}}}'"
             truncated: false,
         };
 
-        assert!(conversation_context_delta(Some(context), &delivered, &HashSet::new()).is_none());
+        assert!(
+            conversation_context_delta(Some(context), &delivered, &HashSet::new(), None).is_none()
+        );
     }
 
     #[test]
@@ -7259,8 +7665,61 @@ printf '%s\n' '{{"jsonrpc":"2.0","id":0,"result":{{"stopReason":"end_turn"}}}}'"
         };
 
         assert!(
-            conversation_context_delta(Some(context), &HashSet::new(), &HashSet::new()).is_some()
+            conversation_context_delta(Some(context), &HashSet::new(), &HashSet::new(), None)
+                .is_some()
         );
+    }
+
+    #[test]
+    fn conversation_context_delta_omits_agent_authored_messages_for_hydrated_thread() {
+        let agent = Keys::generate();
+        let human = Keys::generate();
+        let context = ConversationContext::Thread {
+            messages: vec![
+                ContextMessage {
+                    event_id: "agent-event".into(),
+                    pubkey: agent.public_key().to_hex().to_ascii_uppercase(),
+                    timestamp: "2026-09-11T20:23:47Z".into(),
+                    content: "agent reply already retained by ACP".into(),
+                },
+                ContextMessage {
+                    event_id: "human-event".into(),
+                    pubkey: human.public_key().to_hex(),
+                    timestamp: "2026-09-11T20:24:52Z".into(),
+                    content: "intervening human reply".into(),
+                },
+                ContextMessage {
+                    event_id: "legacy-event".into(),
+                    pubkey: "unknown".into(),
+                    timestamp: "2026-09-11T20:24:53Z".into(),
+                    content: "missing valid author metadata".into(),
+                },
+            ],
+            total: 3,
+            root_present: true,
+            truncated: false,
+        };
+
+        let delta = conversation_context_delta(
+            Some(context),
+            &HashSet::new(),
+            &HashSet::new(),
+            Some(&agent.public_key().to_hex()),
+        )
+        .expect("human context remains");
+        let ConversationContext::Thread { messages, .. } = delta else {
+            panic!("expected thread context");
+        };
+        assert_eq!(messages.len(), 2);
+        assert!(messages
+            .iter()
+            .all(|message| message.content != "agent reply already retained by ACP"));
+        assert!(messages
+            .iter()
+            .any(|message| message.content == "intervening human reply"));
+        assert!(messages
+            .iter()
+            .any(|message| message.content == "missing valid author metadata"));
     }
 
     #[test]
@@ -7320,6 +7779,7 @@ printf '%s\n' '{{"jsonrpc":"2.0","id":0,"result":{{"stopReason":"end_turn"}}}}'"
             ChannelDeliveryState {
                 standing_context_sent: true,
                 delivered_event_ids: HashSet::from(["event-a".into()]),
+                hydrated_thread_roots: VecDeque::from(["root-a".into()]),
             },
         );
         s.deliveries.insert(
@@ -7327,6 +7787,7 @@ printf '%s\n' '{{"jsonrpc":"2.0","id":0,"result":{{"stopReason":"end_turn"}}}}'"
             ChannelDeliveryState {
                 standing_context_sent: true,
                 delivered_event_ids: HashSet::from(["event-b".into()]),
+                hydrated_thread_roots: VecDeque::from(["root-b".into()]),
             },
         );
         s.heartbeat_session = Some("sess-hb".into());
@@ -7449,6 +7910,54 @@ printf '%s\n' '{{"jsonrpc":"2.0","id":0,"result":{{"stopReason":"end_turn"}}}}'"
         let ev = signed_event_with_tags(vec![]);
         let batch = batch_with_scope(conv(ch), ev);
         assert_eq!(resolve_context_target(&batch, false), ContextTarget::None);
+    }
+
+    #[test]
+    fn top_level_channel_turn_hydrates_its_future_thread_root() {
+        let ch = Uuid::new_v4();
+        let event = signed_event_with_tags(vec![]);
+        let root = event.id.to_hex();
+        let batch = batch_with_scope(conv(ch), event);
+
+        assert_eq!(
+            thread_roots_to_hydrate(&batch, false),
+            HashSet::from([root])
+        );
+        assert!(
+            thread_roots_to_hydrate(&batch, true).is_empty(),
+            "DMs remain one conversation and do not use thread hydration"
+        );
+    }
+
+    #[test]
+    fn channel_turn_hydrates_every_rendered_thread() {
+        let ch = Uuid::new_v4();
+        let first_root = "a".repeat(64);
+        let second_root = "b".repeat(64);
+        let first = signed_event_with_tags(vec![
+            vec!["e".into(), first_root.clone(), String::new(), "root".into()],
+            vec!["e".into(), "c".repeat(64), String::new(), "reply".into()],
+        ]);
+        let second = signed_event_with_tags(vec![
+            vec![
+                "e".into(),
+                second_root.clone(),
+                String::new(),
+                "root".into(),
+            ],
+            vec!["e".into(), "d".repeat(64), String::new(), "reply".into()],
+        ]);
+        let mut batch = batch_with_scope(conv(ch), second);
+        batch.cancelled_events.push(crate::queue::BatchEvent {
+            event: first,
+            prompt_tag: "cancelled".into(),
+            received_at: std::time::Instant::now(),
+        });
+
+        assert_eq!(
+            thread_roots_to_hydrate(&batch, false),
+            HashSet::from([first_root, second_root])
+        );
     }
 
     #[test]
