@@ -4204,7 +4204,9 @@ async fn fetch_prompt_profile_lookup(
 /// result is clamped to the sentinel-proven minimum. For a fresh provider
 /// session, the query also asks for the agent's newest reply separately so its
 /// prior turn survives a busy recent-message window. A hydrated session skips
-/// that pin because it already retains the reply in its own history.
+/// that pin because it already retains the reply in its own history, and
+/// overfetches a bounded 2x window so removing recent agent replies does not
+/// unnecessarily displace human context.
 async fn fetch_thread_context(
     channel_id: Uuid,
     root_event_id: &str,
@@ -4261,6 +4263,11 @@ where
     // Three filters: (1) root event by ID, (2) recent replies with #e=root +
     // #h=channel plus a sentinel, and (3) the agent's newest reply for pinning.
     let root_filter = nostr::Filter::new().id(nostr::EventId::from_hex(root_event_id).ok()?);
+    let reply_fetch_limit = if pin_agent_reply {
+        limit
+    } else {
+        limit.saturating_mul(2)
+    };
     let replies_filter = nostr::Filter::new()
         .kinds([
             nostr::Kind::Custom(buzz_core::kind::KIND_STREAM_MESSAGE as u16),
@@ -4268,7 +4275,7 @@ where
         ])
         .custom_tags(e_tag, [root_event_id])
         .custom_tags(h_tag, [ch_str.as_str()])
-        .limit(limit.saturating_add(1) as usize);
+        .limit(reply_fetch_limit.saturating_add(1) as usize);
     let agent_reply_filter = replies_filter.clone().author(agent_pubkey).limit(1);
 
     let context = fetch_with_retry(|| async {
@@ -4583,14 +4590,25 @@ fn parse_nostr_thread_response_with_meta(
     }
 
     let root_present = root_msg.is_some();
-    let fetched_total = reply_msgs.len() + usize::from(root_present);
+    let fetched_reply_count = reply_msgs.len();
+    let fetched_total = fetched_reply_count + usize::from(root_present);
     let newest_agent_reply = reply_msgs
         .iter()
         .filter(|(_, _, is_agent, _)| *is_agent)
         .max_by_key(|(_, ts, _, _)| *ts)
         .cloned();
 
-    let truncated = reply_msgs.len() > limit as usize;
+    if !pin_agent_reply {
+        reply_msgs.retain(|(_, _, is_agent, _)| !is_agent);
+    }
+
+    let reply_fetch_limit = if pin_agent_reply {
+        limit
+    } else {
+        limit.saturating_mul(2)
+    };
+    let truncated =
+        fetched_reply_count > reply_fetch_limit as usize || reply_msgs.len() > limit as usize;
     if truncated {
         // The relay returns limited REQ results newest-first. Sort explicitly so
         // the sentinel we drop is the oldest reply in the fetched window, not an
@@ -4623,11 +4641,9 @@ fn parse_nostr_thread_response_with_meta(
         return None;
     }
 
-    let total = if truncated {
-        fetched_total // all distinct fetched replies plus the root are proven visible history
-    } else {
-        messages.len()
-    };
+    // Preserve the canonical fetched count even when hydrated-session filtering
+    // intentionally omits agent-authored replies from the displayed messages.
+    let total = fetched_total;
 
     Some(ParsedThreadContext {
         context: ConversationContext::Thread {
@@ -6458,7 +6474,7 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn hydrated_thread_does_not_pin_agent_reply_over_human_context() {
+    async fn hydrated_thread_does_not_let_recent_agent_reply_displace_human_context() {
         let agent = Keys::generate();
         let agent_hex = agent.public_key().to_hex();
         let root_id = "1111111111111111111111111111111111111111111111111111111111111111";
@@ -6480,8 +6496,8 @@ mod tests {
             thread_event(
                 "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
                 &agent_hex,
-                "old agent reply from separate author query",
-                2000
+                "recent agent reply already in provider history",
+                6000
             )
         ]);
 
@@ -6498,6 +6514,7 @@ mod tests {
                 );
                 let replies = serde_json::to_value(&filters[1]).expect("serialize replies filter");
                 assert!(replies.get("authors").is_none());
+                assert_eq!(replies.get("limit"), Some(&json!(5)));
                 std::future::ready(Ok(json.clone()))
             },
             |_filters| std::future::ready(Ok(json!({ "count": 3 }))),
@@ -6517,7 +6534,7 @@ mod tests {
             .any(|message| message.content == "middle human reply"));
         assert!(messages
             .iter()
-            .all(|message| message.content != "old agent reply from separate author query"));
+            .all(|message| message.content != "recent agent reply already in provider history"));
     }
 
     #[tokio::test]
