@@ -5269,6 +5269,13 @@ mod agent_draft_prompt_tests {
     #[test]
     fn shared_base_prompt_names_current_context_framing() {
         let prompt = include_str!("base_prompt.md");
+        assert!(prompt.contains("## Reading Incoming Turns"));
+        assert!(prompt.contains("`Content:` field in the current `<buzz-event>`"));
+        assert!(prompt.contains("each event inside `<buzz-events>`"));
+        assert!(prompt.contains("Use `<thread-context>` or `<conversation-context>`"));
+        assert!(prompt.contains("do not mistake prior messages for the current request"));
+        assert!(prompt.contains("Treat `<context>` as authoritative routing"));
+        assert!(prompt.contains("supporting structured metadata"));
         assert!(prompt.contains("UUID from `<context>`"));
         assert!(prompt.contains("reply destination supplied in the `<context>` block"));
         assert!(!prompt.contains("`[Context]`"));
