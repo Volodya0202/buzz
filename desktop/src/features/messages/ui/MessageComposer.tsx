@@ -273,11 +273,11 @@ function MessageComposerImpl({
     });
   }, []);
   const computedPlaceholder = editTarget
-    ? "Edit your message"
+    ? "Редактировать сообщение"
     : (placeholder ??
       (replyTarget
-        ? `Reply to ${replyTarget.author} in #${channelName}`
-        : `Message #${channelName}`));
+        ? `Ответить ${replyTarget.author} в #${channelName}`
+        : `Написать в #${channelName}`));
   const richText = useRichTextEditor({
     placeholder: computedPlaceholder,
     editable: !composerDisabled,

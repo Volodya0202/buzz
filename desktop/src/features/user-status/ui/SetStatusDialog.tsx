@@ -27,19 +27,19 @@ import {
 import { Popover, PopoverContent, PopoverTrigger } from "@/shared/ui/popover";
 
 const PRESETS = [
-  { text: "In a meeting", emoji: "\uD83D\uDDE3\uFE0F" },
-  { text: "Commuting", emoji: "\uD83D\uDE8C" },
-  { text: "Out sick", emoji: "\uD83E\uDD12" },
-  { text: "Vacationing", emoji: "\uD83C\uDFD6\uFE0F" },
-  { text: "Working remotely", emoji: "\uD83C\uDFE0" },
+  { text: "На встрече", emoji: "\uD83D\uDDE3\uFE0F" },
+  { text: "В пути", emoji: "\uD83D\uDE8C" },
+  { text: "На больничном", emoji: "\uD83E\uDD12" },
+  { text: "В отпуске", emoji: "\uD83C\uDFD6\uFE0F" },
+  { text: "Удалённая работа", emoji: "\uD83C\uDFE0" },
 ] as const;
 
 const DURATIONS = [
-  "1 hour",
-  "8 hours",
-  "Today",
-  "This week",
-  "Custom",
+  "1 час",
+  "8 часов",
+  "Сегодня",
+  "На этой неделе",
+  "Другой",
 ] as const;
 
 type DurationLabel = (typeof DURATIONS)[number];

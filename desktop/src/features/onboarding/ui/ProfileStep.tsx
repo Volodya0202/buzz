@@ -221,11 +221,11 @@ export function ProfileStep({
     >
       <div className="w-full max-w-2xl">
         <h1 className="text-title font-normal text-foreground">
-          What should we call you?
+          Как к вам обращаться?
         </h1>
         <p className="mt-5 text-sm leading-6 text-muted-foreground">
-          Pick the name people and agents will see in Buzz. You can change it
-          anytime.
+          Выберите имя, которое люди и агенты будут видеть в Buzz. Его можно изменить
+          в любой момент.
         </p>
       </div>
 
@@ -233,7 +233,7 @@ export function ProfileStep({
         className="mt-12 flex w-full cursor-text flex-col items-center"
         htmlFor="onboarding-display-name"
       >
-        <span className="sr-only">Name</span>
+        <span className="sr-only">Имя</span>
         <div className="relative h-20 w-full max-w-[576px]">
           {!hasDisplayNameDraft ? (
             <div
@@ -245,12 +245,12 @@ export function ProfileStep({
                   aria-hidden="true"
                   className="buzz-onboarding-name-placeholder-caret h-[0.9em] w-0.5 rounded-full bg-primary"
                 />
-                Enter your name
+                Введите ваше имя
               </span>
             </div>
           ) : null}
           <input
-            aria-label="Name"
+            aria-label="Имя"
             autoCapitalize="none"
             autoComplete="off"
             autoCorrect="off"
@@ -288,11 +288,11 @@ export function ProfileStep({
           type="button"
         >
           {isSaving ? (
-            <Spinner aria-label="Saving profile" className="h-4 w-4 border-2" />
+            <Spinner aria-label="Сохранение профиля" className="h-4 w-4 border-2" />
           ) : usesExistingIdentity ? (
-            "Continue"
+            "Продолжить"
           ) : (
-            "Create an identity key"
+            "Создать ключ идентичности"
           )}
         </Button>
 
@@ -305,7 +305,7 @@ export function ProfileStep({
             type="button"
             variant="ghost"
           >
-            Back
+            Назад
           </Button>
         ) : null}
 
@@ -318,7 +318,7 @@ export function ProfileStep({
             type="button"
             variant="ghost"
           >
-            I already have a key
+            У меня уже есть ключ
           </Button>
         ) : null}
 
@@ -332,7 +332,7 @@ export function ProfileStep({
               type="button"
               variant="ghost"
             >
-              Skip for now
+              Пропустить
             </Button>
           ) : null}
           {saveRecovery.canAdvanceWithoutSaving ? (
@@ -343,7 +343,7 @@ export function ProfileStep({
               type="button"
               variant="ghost"
             >
-              Continue without saving
+              Продолжить без сохранения
             </Button>
           ) : null}
           <div className="flex-1" />

@@ -112,11 +112,11 @@ export function AppSidebarPrimaryMenu({
               className="data-[active=true]:font-normal"
               isActive={selectedView === "home"}
               onClick={onSelectHome}
-              tooltip="Inbox"
+              tooltip="Входящие"
               type="button"
             >
               <Inbox className="h-4 w-4" />
-              <SidebarMenuLabel>Inbox</SidebarMenuLabel>
+              <SidebarMenuLabel>Входящие</SidebarMenuLabel>
             </SidebarMenuButton>
             {homeBadgeCount > 0 ? (
               <SidebarMenuBadge
@@ -133,11 +133,11 @@ export function AppSidebarPrimaryMenu({
                 data-testid="open-pulse-view"
                 isActive={selectedView === "pulse"}
                 onClick={onSelectPulse}
-                tooltip="Pulse"
+                tooltip="Пульс"
                 type="button"
               >
                 <Activity className="h-4 w-4" />
-                <SidebarMenuLabel>Pulse</SidebarMenuLabel>
+                <SidebarMenuLabel>Пульс</SidebarMenuLabel>
               </SidebarMenuButton>
             </SidebarMenuItem>
           </FeatureGate>
@@ -147,11 +147,11 @@ export function AppSidebarPrimaryMenu({
                 data-testid="open-projects-view"
                 isActive={selectedView === "projects" && projectsOverviewActive}
                 onClick={onSelectProjects}
-                tooltip="Projects"
+                tooltip="Проекты"
                 type="button"
               >
                 <Folders className="h-4 w-4" />
-                <SidebarMenuLabel>Projects</SidebarMenuLabel>
+                <SidebarMenuLabel>Проекты</SidebarMenuLabel>
               </SidebarMenuButton>
             </SidebarMenuItem>
           </FeatureGate>
@@ -161,11 +161,11 @@ export function AppSidebarPrimaryMenu({
               data-testid="open-agents-view"
               isActive={selectedView === "agents"}
               onClick={onSelectAgents}
-              tooltip="Agents"
+              tooltip="Агенты"
               type="button"
             >
               <Bot className="h-4 w-4" />
-              <SidebarMenuLabel>Agents</SidebarMenuLabel>
+              <SidebarMenuLabel>Агенты</SidebarMenuLabel>
             </SidebarMenuButton>
           </SidebarMenuItem>
           <ProtectedBestieSidebarEntry />
@@ -175,11 +175,11 @@ export function AppSidebarPrimaryMenu({
                 data-testid="open-workflows-view"
                 isActive={selectedView === "workflows"}
                 onClick={onSelectWorkflows}
-                tooltip="Workflows"
+                tooltip="Воркфлоу"
                 type="button"
               >
                 <Zap className="h-4 w-4" />
-                <SidebarMenuLabel>Workflows</SidebarMenuLabel>
+                <SidebarMenuLabel>Воркфлоу</SidebarMenuLabel>
               </SidebarMenuButton>
             </SidebarMenuItem>
           </FeatureGate>

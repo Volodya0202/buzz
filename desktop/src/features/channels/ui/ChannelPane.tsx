@@ -780,19 +780,19 @@ export const ChannelPane = React.memo(function ChannelPane({
                     showBackgroundUploadProgress={false}
                     placeholder={
                       timeoutState.active
-                        ? "You're timed out by community moderators."
+                        ? "Вы временно ограничены модераторами сообщества."
                         : isModerationDmChannel
-                          ? "This channel is read-only."
+                          ? "Этот канал доступен только для чтения."
                           : activeChannel?.archivedAt
-                            ? "Archived channels are read-only."
+                            ? "Архивные каналы доступны только для чтения."
                             : activeChannel?.channelType === "forum"
-                              ? "Forum posting is not wired in this pass."
+                              ? "Публикация на форуме временно недоступна."
                               : activeChannel
                                 ? activeChannel.channelType === "dm" &&
                                   directMessageIntro
-                                  ? `Message ${directMessageIntro.displayName}`
-                                  : `Message #${activeChannel.name}`
-                                : "Select a channel"
+                                  ? `Написать ${directMessageIntro.displayName}`
+                                  : `Написать в #${activeChannel.name}`
+                                : "Выберите канал"
                     }
                     showTopBorder={false}
                   />

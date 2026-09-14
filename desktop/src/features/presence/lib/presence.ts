@@ -74,11 +74,11 @@ export function resolveAutomaticPresenceStatus(
 export function getPresenceLabel(status: PresenceStatus) {
   switch (status) {
     case "online":
-      return "Online";
+      return "В сети";
     case "away":
-      return "Away";
+      return "Отошёл";
     case "offline":
-      return "Offline";
+      return "Не в сети";
   }
 }
 

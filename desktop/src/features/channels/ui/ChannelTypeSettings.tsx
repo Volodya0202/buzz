@@ -25,20 +25,20 @@ import { EditableInfoFieldRow } from "./ChannelManagementSheetRows";
 import { ChannelTypePicker } from "./ChannelTypePicker";
 
 const CHANNEL_TYPE_OPTIONS = [
-  { value: "temporary", label: "Temporary", Icon: ClockFading },
-  { value: "ongoing", label: "Ongoing", Icon: Hash },
+  { value: "temporary", label: "Временный", Icon: ClockFading },
+  { value: "ongoing", label: "Постоянный", Icon: Hash },
 ] as const;
 
 const EPHEMERAL_TIMEOUT_OPTIONS = [
-  { label: "30 minutes", seconds: 30 * 60 },
-  { label: "1 hour", seconds: 60 * 60 },
-  { label: "6 hours", seconds: 6 * 60 * 60 },
-  { label: "12 hours", seconds: 12 * 60 * 60 },
-  { label: "1 day", seconds: 24 * 60 * 60 },
-  { label: "3 days", seconds: 3 * 24 * 60 * 60 },
-  { label: "7 days", seconds: DEFAULT_EPHEMERAL_TTL_SECONDS },
-  { label: "14 days", seconds: 14 * 24 * 60 * 60 },
-  { label: "30 days", seconds: 30 * 24 * 60 * 60 },
+  { label: "30 минут", seconds: 30 * 60 },
+  { label: "1 час", seconds: 60 * 60 },
+  { label: "6 часов", seconds: 6 * 60 * 60 },
+  { label: "12 часов", seconds: 12 * 60 * 60 },
+  { label: "1 день", seconds: 24 * 60 * 60 },
+  { label: "3 дня", seconds: 3 * 24 * 60 * 60 },
+  { label: "7 дней", seconds: DEFAULT_EPHEMERAL_TTL_SECONDS },
+  { label: "14 дней", seconds: 14 * 24 * 60 * 60 },
+  { label: "30 дней", seconds: 30 * 24 * 60 * 60 },
 ] as const;
 
 const CHANNEL_TYPE_RESIZE_TRANSITION = {

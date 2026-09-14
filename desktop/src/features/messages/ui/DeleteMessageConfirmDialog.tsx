@@ -30,20 +30,20 @@ export function DeleteMessageConfirmDialog({
     <AlertDialog onOpenChange={onOpenChange} open={open}>
       <AlertDialogContent>
         <AlertDialogHeader>
-          <AlertDialogTitle>Delete message?</AlertDialogTitle>
+          <AlertDialogTitle>Удалить сообщение?</AlertDialogTitle>
           <AlertDialogDescription>
-            This will permanently delete this message and cannot be undone.
+            Это действие навсегда удалит сообщение и не может быть отменено.
           </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>
           <AlertDialogCancel asChild>
             <Button type="button" variant="outline">
-              Cancel
+              Отмена
             </Button>
           </AlertDialogCancel>
           <AlertDialogAction asChild>
             <Button onClick={onConfirm} type="button" variant="destructive">
-              Delete
+              Удалить
             </Button>
           </AlertDialogAction>
         </AlertDialogFooter>

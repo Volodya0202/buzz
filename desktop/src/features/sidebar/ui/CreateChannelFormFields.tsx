@@ -71,7 +71,7 @@ export function CreateChannelFormFields({
           className="text-sm font-medium text-foreground"
           htmlFor="create-channel-name"
         >
-          Name
+          Название
         </label>
         <div
           className={cn(
@@ -106,8 +106,8 @@ export function CreateChannelFormFields({
           className="text-sm font-medium text-foreground"
           htmlFor="create-channel-description"
         >
-          Description
-          <span className={CREATE_LABEL_OPTIONAL_CLASS}>Optional</span>
+          Описание
+          <span className={CREATE_LABEL_OPTIONAL_CLASS}>Опционально</span>
         </label>
         <div className={CHANNEL_FORM_FIELD_SHELL_CLASS}>
           <Textarea
@@ -119,7 +119,7 @@ export function CreateChannelFormFields({
             disabled={isCreating}
             id="create-channel-description"
             onChange={(event) => form.setDescription(event.target.value)}
-            placeholder={`What this ${kindLabel} is for`}
+            placeholder={`Для чего предназначен этот ${kindLabel === "forum" ? "форум" : "канал"}`}
             rows={2}
             value={form.description}
           />
@@ -250,7 +250,7 @@ export function CreateChannelFormFooter({
         form={CREATE_CHANNEL_FORM_ID}
         type="submit"
       >
-        {isCreating ? "Creating..." : (submitLabel ?? `Create ${kindLabel}`)}
+        {isCreating ? "Создание..." : (submitLabel ?? `Создать ${kindLabel === "forum" ? "форум" : "канал"}`)}
       </Button>
     </div>
   );

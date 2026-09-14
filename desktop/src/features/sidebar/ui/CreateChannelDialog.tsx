@@ -54,7 +54,7 @@ export function CreateChannelDialog({
     onCreated: () => onOpenChange(false),
   });
 
-  const kindLabel = channelKind === "forum" ? "forum" : "channel";
+  const kindLabel = channelKind === "forum" ? "форум" : "канал";
 
   return (
     <Dialog
@@ -70,12 +70,12 @@ export function CreateChannelDialog({
         data-testid={testId}
         footerClassName="border-t-0 pt-0"
         headerClassName="pb-2"
-        title={title ?? `Create a new ${kindLabel}`}
+        title={title ?? `Создать новый ${kindLabel}`}
         description={
           description ??
           (channelKind === "forum"
-            ? "Forums organize threaded discussions around a topic."
-            : "Channels are real-time streams for team conversation.")
+            ? "Форумы организуют обсуждения вокруг определенной темы."
+            : "Каналы — это потоки для общения команды в реальном времени.")
         }
         footer={<CreateChannelFormFooter form={form} />}
       >

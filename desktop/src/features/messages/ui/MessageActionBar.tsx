@@ -183,7 +183,7 @@ function MoreActionsMenu({
               }}
             >
               <Pencil className="h-4 w-4" />
-              Edit message
+              Редактировать сообщение
             </DropdownMenuItem>
           ) : null}
 
@@ -203,7 +203,7 @@ function MoreActionsMenu({
               ) : (
                 <MailOpen className="h-4 w-4" />
               )}
-              {isUnread ? "Mark read" : "Mark unread"}
+              {isUnread ? "Отметить прочитанным" : "Отметить непрочитанным"}
             </DropdownMenuItem>
           ) : null}
 
@@ -222,7 +222,7 @@ function MoreActionsMenu({
               ) : (
                 <BellRing className="h-4 w-4" />
               )}
-              {isFollowingThread ? "Unfollow thread" : "Follow thread"}
+              {isFollowingThread ? "Отписаться от ветки" : "Подписаться на ветку"}
             </DropdownMenuItem>
           ) : null}
 
@@ -231,7 +231,7 @@ function MoreActionsMenu({
               onClick={() => {
                 copyTextToClipboard(
                   message.body,
-                  "Message copied to clipboard",
+                  "Сообщение скопировано в буфер обмена",
                   buildMentionClipboardHtml({
                     identities: mentionIdentities,
                     text: message.body,
@@ -240,7 +240,7 @@ function MoreActionsMenu({
               }}
             >
               <Copy className="h-4 w-4" />
-              Copy message
+              Копировать сообщение
             </DropdownMenuItem>
           ) : null}
 
@@ -251,23 +251,23 @@ function MoreActionsMenu({
               }}
             >
               <Clock className="h-4 w-4" />
-              Remind me later
+              Напомнить позже
             </DropdownMenuItem>
           ) : null}
 
           {onSendToChannel ? (
             <DropdownMenuItem
-              aria-label="Send to channel"
+              aria-label="Отправить в канал"
               data-testid={`send-to-channel-${message.id}`}
               onClick={() => {
                 void onSendToChannel(message)
-                  .then(() => toast.success("Sent to channel"))
+                  .then(() => toast.success("Отправлено в канал"))
                   .catch((error) => {
                     console.error(
                       "Failed to send thread message to channel",
                       error,
                     );
-                    toast.error("Couldn't send to channel");
+                    toast.error("Не удалось отправить в канал");
                   });
               }}
             >
@@ -276,7 +276,7 @@ function MoreActionsMenu({
                 className="h-4 w-4"
                 data-testid="send-to-channel-icon"
               />
-              Send to channel
+              Отправить в канал
             </DropdownMenuItem>
           ) : null}
 
@@ -288,7 +288,7 @@ function MoreActionsMenu({
               }}
             >
               <Link2 className="h-4 w-4" />
-              Copy link
+              Копировать ссылку
             </DropdownMenuItem>
           ) : null}
 
@@ -302,7 +302,7 @@ function MoreActionsMenu({
               }}
             >
               <Flag className="h-4 w-4" />
-              Report message
+              Пожаловаться
             </DropdownMenuItem>
           ) : null}
 
@@ -315,7 +315,7 @@ function MoreActionsMenu({
               }}
             >
               <Trash2 className="h-4 w-4" />
-              Delete message
+              Удалить сообщение
             </DropdownMenuItem>
           ) : null}
 

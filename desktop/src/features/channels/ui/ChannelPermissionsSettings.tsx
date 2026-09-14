@@ -13,8 +13,8 @@ import { cn } from "@/shared/lib/cn";
 import { SegmentedControl } from "@/shared/ui/segmented-control";
 
 const VISIBILITY_OPTIONS = [
-  { value: "private", label: "Private", Icon: Lock },
-  { value: "open", label: "Public", Icon: Globe },
+  { value: "private", label: "Приватный", Icon: Lock },
+  { value: "open", label: "Публичный", Icon: Globe },
 ] as const;
 
 export function ChannelPermissionsSettings({
@@ -30,7 +30,7 @@ export function ChannelPermissionsSettings({
   visibility: ChannelVisibility;
   variant?: "dropdown" | "segmented";
 }) {
-  const visibilityLabel = visibility === "private" ? "Private" : "Public";
+  const visibilityLabel = visibility === "private" ? "Приватный" : "Публичный";
 
   return (
     <div
@@ -46,12 +46,12 @@ export function ChannelPermissionsSettings({
           disabled && variant === "segmented" && "opacity-50",
         )}
       >
-        Visibility
+        Видимость
       </span>
       {variant === "segmented" ? (
         <SegmentedControl
           disabled={disabled}
-          legend="Visibility"
+          legend="Видимость"
           onValueChange={onVisibilityChange}
           optionTestIdPrefix={`${testIdPrefix}-permissions-option`}
           options={VISIBILITY_OPTIONS}

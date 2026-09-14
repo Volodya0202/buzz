@@ -108,7 +108,7 @@ function SectionNameDialog({
               <div className="relative shrink-0">
                 <PopoverTrigger asChild>
                   <button
-                    aria-label="Choose section icon"
+                    aria-label="Выбрать иконку раздела"
                     className="flex h-9 w-9 items-center justify-center rounded-md border border-input text-lg transition-colors hover:bg-accent"
                     type="button"
                   >
@@ -121,7 +121,7 @@ function SectionNameDialog({
                 </PopoverTrigger>
                 {icon ? (
                   <button
-                    aria-label="Clear section icon"
+                    aria-label="Очистить иконку раздела"
                     className="absolute -right-1 -top-1 flex h-4 w-4 items-center justify-center rounded-full border border-background bg-muted text-muted-foreground hover:bg-accent hover:text-foreground"
                     onClick={(event) => {
                       event.stopPropagation();
@@ -147,7 +147,7 @@ function SectionNameDialog({
               autoCorrect="off"
               className="flex-1"
               onChange={(event) => setName(event.target.value)}
-              placeholder="Section name"
+              placeholder="Название раздела"
               ref={inputRef}
               spellCheck={false}
               value={name}
@@ -156,7 +156,7 @@ function SectionNameDialog({
           <div className="flex justify-end gap-2 mt-4">
             <DialogClose asChild>
               <Button variant="ghost" type="button">
-                Cancel
+                Отмена
               </Button>
             </DialogClose>
             <Button
@@ -187,10 +187,10 @@ export function CreateSectionDialog({
     <SectionNameDialog
       open={open}
       onOpenChange={onOpenChange}
-      title="Create section"
-      description="Sections let you group related channels in the sidebar."
+      title="Создать раздел"
+      description="Разделы позволяют группировать похожие каналы на боковой панели."
       initialValue=""
-      confirmLabel="Create"
+      confirmLabel="Создать"
       isConfirmDisabled={(trimmed) => trimmed.length === 0}
       onConfirm={onConfirm}
     />
@@ -216,11 +216,11 @@ export function RenameSectionDialog({
     <SectionNameDialog
       open={open}
       onOpenChange={onOpenChange}
-      title="Rename section"
-      description="Enter a new name for this section."
+      title="Переименовать раздел"
+      description="Введите новое название для этого раздела."
       initialValue={sectionName}
       initialIcon={sectionIcon}
-      confirmLabel="Save"
+      confirmLabel="Сохранить"
       isConfirmDisabled={(trimmed, icon) =>
         trimmed.length === 0 ||
         (trimmed === sectionName && icon === (sectionIcon ?? ""))
@@ -246,26 +246,26 @@ export function DeleteSectionAlertDialog({
   onConfirm,
 }: DeleteSectionAlertDialogProps) {
   const channelLabel =
-    channelCount === 1 ? "1 channel" : `${channelCount} channels`;
+    channelCount === 1 ? "1 канал" : `${channelCount} каналов`;
   const description =
     channelCount === 0
-      ? `Delete section "${sectionName}"? It has no channels.`
-      : `Delete section "${sectionName}"? Its ${channelLabel} will move back to the default Channels group.`;
+      ? `Удалить раздел "${sectionName}"? В нём нет каналов.`
+      : `Удалить раздел "${sectionName}"? Каналы (${channelLabel}) будут перемещены обратно в стандартную группу «Каналы».`;
 
   return (
     <AlertDialog open={open} onOpenChange={onOpenChange}>
       <AlertDialogContent>
         <AlertDialogHeader>
-          <AlertDialogTitle>Delete section</AlertDialogTitle>
+          <AlertDialogTitle>Удалить раздел</AlertDialogTitle>
           <AlertDialogDescription>{description}</AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>
-          <AlertDialogCancel>Cancel</AlertDialogCancel>
+          <AlertDialogCancel>Отмена</AlertDialogCancel>
           <AlertDialogAction
             className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
             onClick={onConfirm}
           >
-            Delete
+            Удалить
           </AlertDialogAction>
         </AlertDialogFooter>
       </AlertDialogContent>
@@ -294,18 +294,18 @@ export function LeaveChannelAlertDialog({
     <AlertDialog open={open} onOpenChange={onOpenChange}>
       <AlertDialogContent>
         <AlertDialogHeader>
-          <AlertDialogTitle>Leave channel</AlertDialogTitle>
+          <AlertDialogTitle>Покинуть канал</AlertDialogTitle>
           <AlertDialogDescription>
-            {`Leave "${channelName}"? You'll stop receiving its messages and can rejoin later.`}
+            {`Покинуть «${channelName}»? Вы перестанете получать его сообщения и сможете вернуться позже.`}
           </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>
-          <AlertDialogCancel>Cancel</AlertDialogCancel>
+          <AlertDialogCancel>Отмена</AlertDialogCancel>
           <AlertDialogAction
             className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
             onClick={onConfirm}
           >
-            Leave
+            Покинуть
           </AlertDialogAction>
         </AlertDialogFooter>
       </AlertDialogContent>
