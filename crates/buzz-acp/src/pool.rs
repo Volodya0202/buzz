@@ -3879,7 +3879,9 @@ fn conversation_context_delta(
     triggering: &HashSet<String>,
 ) -> Option<ConversationContext> {
     let filter = |messages: Vec<ContextMessage>| {
-        let original_len = messages.len();
+        let omitted_from_prior_session = messages
+            .iter()
+            .any(|message| !message.event_id.is_empty() && delivered.contains(&message.event_id));
         let messages = messages
             .into_iter()
             .filter(|message| {
@@ -3888,8 +3890,7 @@ fn conversation_context_delta(
                         && !triggering.contains(&message.event_id))
             })
             .collect::<Vec<_>>();
-        let omitted = messages.len() != original_len;
-        (messages, omitted)
+        (messages, omitted_from_prior_session)
     };
 
     match context? {
@@ -3899,12 +3900,12 @@ fn conversation_context_delta(
             root_present,
             truncated,
         } => {
-            let (messages, omitted) = filter(messages);
+            let (messages, omitted_from_prior_session) = filter(messages);
             (!messages.is_empty()).then_some(ConversationContext::Thread {
                 messages,
                 total,
                 root_present,
-                truncated: truncated || omitted,
+                truncated: truncated || omitted_from_prior_session,
             })
         }
         ConversationContext::Dm {
@@ -3912,11 +3913,11 @@ fn conversation_context_delta(
             total,
             truncated,
         } => {
-            let (messages, omitted) = filter(messages);
+            let (messages, omitted_from_prior_session) = filter(messages);
             (!messages.is_empty()).then_some(ConversationContext::Dm {
                 messages,
                 total,
-                truncated: truncated || omitted,
+                truncated: truncated || omitted_from_prior_session,
             })
         }
     }
@@ -4364,6 +4365,21 @@ async fn fetch_dm_context(
     limit: u32,
     rest: &RestClient,
 ) -> Option<ConversationContext> {
+    fetch_dm_context_with(channel_id, limit, |filters| async move {
+        rest.query(&filters).await
+    })
+    .await
+}
+
+async fn fetch_dm_context_with<Query, QueryFut>(
+    channel_id: Uuid,
+    limit: u32,
+    query: Query,
+) -> Option<ConversationContext>
+where
+    Query: Fn(Vec<nostr::Filter>) -> QueryFut,
+    QueryFut: std::future::Future<Output = Result<serde_json::Value, crate::relay::RelayError>>,
+{
     use nostr::{Alphabet, SingleLetterTag};
 
     let h_tag = SingleLetterTag::lowercase(Alphabet::H);
@@ -4377,12 +4393,7 @@ async fn fetch_dm_context(
         .limit(limit as usize);
 
     fetch_with_retry(|| async {
-        match timeout(
-            CONTEXT_FETCH_TIMEOUT,
-            rest.query(std::slice::from_ref(&filter)),
-        )
-        .await
-        {
+        match timeout(CONTEXT_FETCH_TIMEOUT, query(vec![filter.clone()])).await {
             Ok(Ok(json)) => parse_nostr_dm_response(json, limit),
             Ok(Err(e)) => {
                 tracing::warn!(
@@ -7735,6 +7746,137 @@ printf '%s\n' '{{"jsonrpc":"2.0","id":0,"result":{{"stopReason":"end_turn"}}}}'"
             }
             _ => panic!("expected thread context"),
         }
+    }
+
+    #[tokio::test]
+    async fn fresh_thread_trigger_dedup_preserves_complete_context_hint() {
+        let channel_id = Uuid::new_v4();
+        let agent = Keys::generate();
+        let human = Keys::generate();
+        let h_tag = Tag::parse(["h", channel_id.to_string().as_str()]).unwrap();
+        let root = EventBuilder::new(Kind::Custom(9), "earlier thread root")
+            .tags([h_tag.clone()])
+            .sign_with_keys(&human)
+            .unwrap();
+        let root_id = root.id.to_hex();
+        let reply_tag = Tag::parse(["e", root_id.as_str(), "", "reply"]).unwrap();
+        let trigger = EventBuilder::new(Kind::Custom(9), "fresh thread trigger")
+            .tags([h_tag, reply_tag])
+            .sign_with_keys(&human)
+            .unwrap();
+        let trigger_id = trigger.id.to_hex();
+        let response = serde_json::to_value(vec![root, trigger.clone()]).unwrap();
+
+        let context = fetch_thread_context_with(
+            channel_id,
+            &root_id,
+            10,
+            agent.public_key(),
+            move |_filters| std::future::ready(Ok(response.clone())),
+            |_filters| -> std::future::Ready<Result<serde_json::Value, crate::relay::RelayError>> {
+                panic!("a complete thread window must not issue /count")
+            },
+            ThreadContextSessionDelta {
+                overfetch: false,
+                delivered_ids: &HashSet::new(),
+            },
+        )
+        .await
+        .expect("thread context");
+        let context = conversation_context_delta(
+            Some(context),
+            &HashSet::new(),
+            &HashSet::from([trigger_id]),
+        )
+        .expect("root remains after trigger deduplication");
+        let batch = FlushBatch {
+            channel_id,
+            scope: SessionScope::Thread {
+                channel_id,
+                root_event_id: root_id,
+            },
+            events: vec![crate::queue::BatchEvent {
+                event: trigger,
+                prompt_tag: "@mention".into(),
+                received_at: std::time::Instant::now(),
+            }],
+            cancelled_events: vec![],
+            cancel_reason: None,
+        };
+
+        let wire = crate::queue::format_prompt(
+            &batch,
+            &crate::queue::FormatPromptArgs {
+                conversation_context: Some(&context),
+                ..Default::default()
+            },
+        )
+        .join("\n");
+        assert!(wire.contains("<thread-context included=\"1\" total=\"2\" truncated=\"false\">"));
+        assert!(wire.contains("Thread context included below."));
+        assert!(!wire.contains("for full history if truncated"));
+        assert!(wire.contains("fresh thread trigger"));
+    }
+
+    #[tokio::test]
+    async fn fresh_dm_trigger_dedup_preserves_complete_context_hint() {
+        let channel_id = Uuid::new_v4();
+        let human = Keys::generate();
+        let h_tag = Tag::parse(["h", channel_id.to_string().as_str()]).unwrap();
+        let earlier = EventBuilder::new(Kind::Custom(9), "earlier DM message")
+            .tags([h_tag.clone()])
+            .sign_with_keys(&human)
+            .unwrap();
+        let trigger = EventBuilder::new(Kind::Custom(9), "fresh DM trigger")
+            .tags([h_tag])
+            .sign_with_keys(&human)
+            .unwrap();
+        let trigger_id = trigger.id.to_hex();
+        let response = serde_json::to_value(vec![earlier, trigger.clone()]).unwrap();
+
+        let context = fetch_dm_context_with(channel_id, 10, move |_filters| {
+            std::future::ready(Ok(response.clone()))
+        })
+        .await
+        .expect("DM context");
+        let context = conversation_context_delta(
+            Some(context),
+            &HashSet::new(),
+            &HashSet::from([trigger_id]),
+        )
+        .expect("earlier DM remains after trigger deduplication");
+        let batch = FlushBatch {
+            channel_id,
+            scope: SessionScope::Conversation { channel_id },
+            events: vec![crate::queue::BatchEvent {
+                event: trigger,
+                prompt_tag: "@mention".into(),
+                received_at: std::time::Instant::now(),
+            }],
+            cancelled_events: vec![],
+            cancel_reason: None,
+        };
+        let channel_info = PromptChannelInfo {
+            name: "test-dm".into(),
+            channel_type: "dm".into(),
+            ..Default::default()
+        };
+
+        let wire = crate::queue::format_prompt(
+            &batch,
+            &crate::queue::FormatPromptArgs {
+                channel_info: Some(&channel_info),
+                conversation_context: Some(&context),
+                ..Default::default()
+            },
+        )
+        .join("\n");
+        assert!(
+            wire.contains("<conversation-context included=\"1\" total=\"2\" truncated=\"false\">")
+        );
+        assert!(wire.contains("Conversation context included below."));
+        assert!(!wire.contains("for full history if truncated"));
+        assert!(wire.contains("fresh DM trigger"));
     }
 
     #[test]
