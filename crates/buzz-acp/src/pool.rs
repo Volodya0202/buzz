@@ -3879,14 +3879,17 @@ fn conversation_context_delta(
     triggering: &HashSet<String>,
 ) -> Option<ConversationContext> {
     let filter = |messages: Vec<ContextMessage>| {
-        messages
+        let original_len = messages.len();
+        let messages = messages
             .into_iter()
             .filter(|message| {
                 message.event_id.is_empty()
                     || (!delivered.contains(&message.event_id)
                         && !triggering.contains(&message.event_id))
             })
-            .collect::<Vec<_>>()
+            .collect::<Vec<_>>();
+        let omitted = messages.len() != original_len;
+        (messages, omitted)
     };
 
     match context? {
@@ -3896,12 +3899,12 @@ fn conversation_context_delta(
             root_present,
             truncated,
         } => {
-            let messages = filter(messages);
+            let (messages, omitted) = filter(messages);
             (!messages.is_empty()).then_some(ConversationContext::Thread {
                 messages,
                 total,
                 root_present,
-                truncated,
+                truncated: truncated || omitted,
             })
         }
         ConversationContext::Dm {
@@ -3909,11 +3912,11 @@ fn conversation_context_delta(
             total,
             truncated,
         } => {
-            let messages = filter(messages);
+            let (messages, omitted) = filter(messages);
             (!messages.is_empty()).then_some(ConversationContext::Dm {
                 messages,
                 total,
-                truncated,
+                truncated: truncated || omitted,
             })
         }
     }
@@ -4198,10 +4201,18 @@ async fn fetch_thread_context(
         agent_pubkey,
         |filters| async move { rest.query(&filters).await },
         |filters| async move { rest.count(&filters).await },
-        overfetch_session_delta,
-        delivered_ids,
+        ThreadContextSessionDelta {
+            overfetch: overfetch_session_delta,
+            delivered_ids,
+        },
     )
     .await
+}
+
+#[derive(Clone, Copy)]
+struct ThreadContextSessionDelta<'a> {
+    overfetch: bool,
+    delivered_ids: &'a HashSet<String>,
 }
 
 async fn fetch_thread_context_with<Query, QueryFut, Count, CountFut>(
@@ -4211,8 +4222,7 @@ async fn fetch_thread_context_with<Query, QueryFut, Count, CountFut>(
     agent_pubkey: nostr::PublicKey,
     query: Query,
     count: Count,
-    overfetch_session_delta: bool,
-    delivered_ids: &HashSet<String>,
+    session_delta: ThreadContextSessionDelta<'_>,
 ) -> Option<ConversationContext>
 where
     Query: Fn(Vec<nostr::Filter>) -> QueryFut,
@@ -4241,11 +4251,7 @@ where
     // Three filters: (1) root event by ID, (2) recent replies with #e=root +
     // #h=channel plus a sentinel, and (3) the agent's newest reply for pinning.
     let root_filter = nostr::Filter::new().id(nostr::EventId::from_hex(root_event_id).ok()?);
-    let reply_fetch_limit = if overfetch_session_delta {
-        limit.saturating_mul(2)
-    } else {
-        limit
-    };
+    let reply_fetch_limit = thread_reply_fetch_limit(limit, session_delta.overfetch);
     let replies_filter = nostr::Filter::new()
         .kinds([
             nostr::Kind::Custom(buzz_core::kind::KIND_STREAM_MESSAGE as u16),
@@ -4265,8 +4271,9 @@ where
                 root_event_id,
                 limit,
                 &agent_pubkey,
-                overfetch_session_delta,
-                delivered_ids,
+                session_delta.overfetch,
+                reply_fetch_limit,
+                session_delta.delivered_ids,
             ),
             Ok(Err(e)) => {
                 tracing::warn!(
@@ -4290,13 +4297,7 @@ where
 
     let mut parsed = context?;
 
-    if matches!(
-        parsed.context,
-        ConversationContext::Thread {
-            truncated: true,
-            ..
-        }
-    ) {
+    if parsed.needs_exact_count {
         let replies_count_filter = replies_filter.clone().limit(0);
         if let Some(total) = fetch_thread_total(
             channel_id,
@@ -4533,6 +4534,7 @@ fn parse_nostr_thread_response(
         limit,
         agent_pubkey,
         false,
+        thread_reply_fetch_limit(limit, false),
         &HashSet::new(),
     )
     .map(|parsed| parsed.context)
@@ -4541,6 +4543,15 @@ fn parse_nostr_thread_response(
 struct ParsedThreadContext {
     context: ConversationContext,
     root_present: bool,
+    needs_exact_count: bool,
+}
+
+fn thread_reply_fetch_limit(limit: u32, overfetch_session_delta: bool) -> u32 {
+    if overfetch_session_delta {
+        limit.saturating_mul(2)
+    } else {
+        limit
+    }
 }
 
 fn parse_nostr_thread_response_with_meta(
@@ -4549,6 +4560,7 @@ fn parse_nostr_thread_response_with_meta(
     limit: u32,
     agent_pubkey: &nostr::PublicKey,
     overfetch_session_delta: bool,
+    reply_fetch_limit: u32,
     delivered_ids: &HashSet<String>,
 ) -> Option<ParsedThreadContext> {
     let events = json.as_array()?;
@@ -4585,21 +4597,12 @@ fn parse_nostr_thread_response_with_meta(
         .max_by_key(|(_, ts, _, _, _)| *ts)
         .cloned();
 
-    let reply_fetch_limit = if overfetch_session_delta {
-        limit.saturating_mul(2)
-    } else {
-        limit
-    };
     let relay_window_truncated = fetched_reply_count > reply_fetch_limit as usize;
-    let has_delivered_replies = reply_msgs
-        .iter()
-        .any(|(_, _, _, was_delivered, _)| *was_delivered);
     let new_reply_count = reply_msgs
         .iter()
         .filter(|(_, _, _, was_delivered, _)| !was_delivered)
         .count();
-    let truncated =
-        relay_window_truncated || has_delivered_replies || new_reply_count > limit as usize;
+    let truncated = relay_window_truncated || new_reply_count > limit as usize;
 
     if !overfetch_session_delta && truncated {
         // The relay returns limited REQ results newest-first. Sort explicitly so
@@ -4654,8 +4657,8 @@ fn parse_nostr_thread_response_with_meta(
         return None;
     }
 
-    // Preserve the canonical fetched count even when hydrated-session filtering
-    // intentionally omits agent-authored replies from the displayed messages.
+    // Preserve the canonical fetched count even when session-delta filtering
+    // intentionally omits exact replies already delivered to this session.
     let total = fetched_total;
 
     Some(ParsedThreadContext {
@@ -4666,6 +4669,7 @@ fn parse_nostr_thread_response_with_meta(
             truncated,
         },
         root_present,
+        needs_exact_count: relay_window_truncated,
     })
 }
 
@@ -6227,8 +6231,10 @@ mod tests {
                 assert_thread_count_filter(&filters, channel_id, root_id);
                 std::future::ready(Ok(json!({ "count": 6 })))
             },
-            false,
-            &HashSet::new(),
+            ThreadContextSessionDelta {
+                overfetch: false,
+                delivered_ids: &HashSet::new(),
+            },
         )
         .await
         .expect("thread context");
@@ -6281,8 +6287,10 @@ mod tests {
             agent.public_key(),
             move |_filters| std::future::ready(Ok(json.clone())),
             |_filters| std::future::ready(Ok(json!({ "count": 6 }))),
-            false,
-            &HashSet::new(),
+            ThreadContextSessionDelta {
+                overfetch: false,
+                delivered_ids: &HashSet::new(),
+            },
         )
         .await
         .expect("thread context");
@@ -6337,8 +6345,10 @@ mod tests {
             agent.public_key(),
             move |_filters| std::future::ready(Ok(json.clone())),
             |_filters| std::future::ready(Ok(json!({ "count": 1 }))),
-            false,
-            &HashSet::new(),
+            ThreadContextSessionDelta {
+                overfetch: false,
+                delivered_ids: &HashSet::new(),
+            },
         )
         .await
         .expect("thread context");
@@ -6392,8 +6402,10 @@ mod tests {
             agent.public_key(),
             move |_filters| std::future::ready(Ok(json.clone())),
             |_filters| std::future::ready(Err(crate::relay::RelayError::Http("boom".into()))),
-            false,
-            &HashSet::new(),
+            ThreadContextSessionDelta {
+                overfetch: false,
+                delivered_ids: &HashSet::new(),
+            },
         )
         .await
         .expect("thread context");
@@ -6456,8 +6468,10 @@ mod tests {
             agent.public_key(),
             move |_filters| std::future::ready(Ok(json.clone())),
             |_filters| std::future::ready(Ok(json!({ "count": 3 }))),
-            false,
-            &HashSet::new(),
+            ThreadContextSessionDelta {
+                overfetch: false,
+                delivered_ids: &HashSet::new(),
+            },
         )
         .await
         .expect("thread context");
@@ -6544,9 +6558,13 @@ mod tests {
                 assert_eq!(replies.get("limit"), Some(&json!(7)));
                 std::future::ready(Ok(json.clone()))
             },
-            |_filters| std::future::ready(Ok(json!({ "count": 4 }))),
-            true,
-            &delivered,
+            |_filters| -> std::future::Ready<Result<serde_json::Value, crate::relay::RelayError>> {
+                panic!("session-delta omission alone must not issue /count")
+            },
+            ThreadContextSessionDelta {
+                overfetch: true,
+                delivered_ids: &delivered,
+            },
         )
         .await
         .expect("thread context");
@@ -6566,7 +6584,7 @@ mod tests {
         assert_eq!(total, 5);
         assert!(
             truncated,
-            "omitted agent history must be represented as a truncated context window"
+            "omitted session history must be represented as a truncated context window"
         );
         assert!(messages
             .iter()
@@ -6623,8 +6641,10 @@ mod tests {
             agent.public_key(),
             move |_filters| std::future::ready(Ok(json.clone())),
             |_filters| std::future::ready(Err(crate::relay::RelayError::Http("boom".into()))),
-            false,
-            &HashSet::new(),
+            ThreadContextSessionDelta {
+                overfetch: false,
+                delivered_ids: &HashSet::new(),
+            },
         )
         .await
         .expect("thread context");
@@ -7710,7 +7730,7 @@ printf '%s\n' '{{"jsonrpc":"2.0","id":0,"result":{{"stopReason":"end_turn"}}}}'"
                 assert_eq!(messages.len(), 1);
                 assert_eq!(messages[0].event_id, "new");
                 assert_eq!(total, 3);
-                assert!(!truncated);
+                assert!(truncated);
                 assert!(root_present);
             }
             _ => panic!("expected thread context"),
