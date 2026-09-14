@@ -117,9 +117,9 @@ pub struct ChannelDeliveryState {
     /// Buzz event IDs already delivered to this ACP session, either as trigger
     /// events or conversation context.
     pub delivered_event_ids: HashSet<String>,
-    /// Canonical thread roots that have completed a successful turn in this
-    /// ACP session. Once hydrated, the provider already retains the agent's
-    /// own replies in its conversation history, so relay context can omit them.
+    /// Canonical thread roots that have completed a successful context fetch in
+    /// this ACP session. Hydrated threads use bounded overfetch so exact event-ID
+    /// deduplication does not unnecessarily shrink the new-context window.
     pub hydrated_thread_roots: VecDeque<String>,
 }
 
@@ -2885,22 +2885,6 @@ pub async fn run_prompt_task(
                 .get(&b.scope)
                 .is_some_and(|delivery| delivery.hydrated_thread_roots.contains(root))
         });
-        let conversation_context = if ctx.context_message_limit > 0 {
-            fetch_conversation_context_for_target(
-                b.channel_id,
-                &context_target,
-                &ctx,
-                !thread_context_is_hydrated,
-            )
-            .await
-        } else {
-            None
-        };
-        if let Some(root) =
-            fetched_thread_root_to_hydrate(&context_target, conversation_context.as_ref(), is_dm)
-        {
-            pending_hydrated_thread_roots.insert(root);
-        }
         let rendered_batch_ids: HashSet<String> = b
             .events
             .iter()
@@ -2914,21 +2898,31 @@ pub async fn run_prompt_task(
             .map(|delivery| &delivery.delivered_event_ids)
             .cloned()
             .unwrap_or_default();
-        let agent_pubkey = ctx.agent_keys.public_key().to_hex();
+        let conversation_context = if ctx.context_message_limit > 0 {
+            fetch_conversation_context_for_target(
+                b.channel_id,
+                &context_target,
+                &ctx,
+                thread_context_is_hydrated,
+                &delivered_ids,
+            )
+            .await
+        } else {
+            None
+        };
+        if let Some(root) =
+            fetched_thread_root_to_hydrate(&context_target, conversation_context.as_ref(), is_dm)
+        {
+            pending_hydrated_thread_roots.insert(root);
+        }
         let conversation_context_had_session_events =
             conversation_context.as_ref().is_some_and(|context| {
                 conversation_context_event_ids(Some(context))
                     .iter()
                     .any(|event_id| delivered_ids.contains(event_id))
-                    || (thread_context_is_hydrated
-                        && conversation_context_has_author(context, &agent_pubkey))
             });
-        let conversation_context = conversation_context_delta(
-            conversation_context,
-            &delivered_ids,
-            &rendered_batch_ids,
-            thread_context_is_hydrated.then_some(agent_pubkey.as_str()),
-        );
+        let conversation_context =
+            conversation_context_delta(conversation_context, &delivered_ids, &rendered_batch_ids);
         pending_delivered_event_ids.extend(rendered_batch_ids);
         pending_delivered_event_ids.extend(conversation_context_event_ids(
             conversation_context.as_ref(),
@@ -3874,44 +3868,23 @@ fn conversation_context_event_ids(context: Option<&ConversationContext>) -> Hash
     }
 }
 
-fn conversation_context_has_author(context: &ConversationContext, author_pubkey: &str) -> bool {
-    let messages = match context {
-        ConversationContext::Thread { messages, .. } | ConversationContext::Dm { messages, .. } => {
-            messages
-        }
-    };
-    messages
-        .iter()
-        .any(|message| normalize_prompt_pubkey(&message.pubkey).as_deref() == Some(author_pubkey))
-}
-
 /// Remove events already delivered to this live ACP session. Triggering events
 /// are also excluded because they are rendered separately in `[Event]`.
-/// Once a thread has completed a turn in this session, replies authored by the
-/// agent are excluded too: the provider already retains those replies in its
-/// own tool-call and assistant history. Fresh sessions preserve them so a
-/// restarted or rotated provider can recover the prior conversation.
 /// IDs are compared in Buzz's canonical 64-character lowercase hex form: relay
 /// context JSON supplies the same form emitted by `EventId::to_hex()`. A
 /// non-canonical or missing ID deliberately fails open and may be re-sent.
-/// Author metadata follows the same fail-open rule.
 fn conversation_context_delta(
     context: Option<ConversationContext>,
     delivered: &HashSet<String>,
     triggering: &HashSet<String>,
-    excluded_author: Option<&str>,
 ) -> Option<ConversationContext> {
     let filter = |messages: Vec<ContextMessage>| {
         messages
             .into_iter()
             .filter(|message| {
-                let authored_by_excluded = excluded_author.is_some_and(|author| {
-                    normalize_prompt_pubkey(&message.pubkey).as_deref() == Some(author)
-                });
-                !authored_by_excluded
-                    && (message.event_id.is_empty()
-                        || (!delivered.contains(&message.event_id)
-                            && !triggering.contains(&message.event_id)))
+                message.event_id.is_empty()
+                    || (!delivered.contains(&message.event_id)
+                        && !triggering.contains(&message.event_id))
             })
             .collect::<Vec<_>>()
     };
@@ -3972,7 +3945,8 @@ async fn fetch_conversation_context_for_target(
     channel_id: Uuid,
     target: &ContextTarget,
     ctx: &PromptContext,
-    pin_agent_reply: bool,
+    overfetch_session_delta: bool,
+    delivered_ids: &HashSet<String>,
 ) -> Option<ConversationContext> {
     let limit = ctx.context_message_limit;
     match target {
@@ -3983,7 +3957,8 @@ async fn fetch_conversation_context_for_target(
                 limit,
                 ctx.agent_keys.public_key(),
                 &ctx.rest_client,
-                pin_agent_reply,
+                overfetch_session_delta,
+                delivered_ids,
             )
             .await
         }
@@ -4029,7 +4004,7 @@ fn resolve_context_target(batch: &FlushBatch, is_dm: bool) -> ContextTarget {
 /// Return the one canonical thread whose history this prompt successfully
 /// fetched. This is deliberately narrower than the set of events rendered in
 /// a merged channel-policy batch: only fetched context proves that a provider
-/// session can safely omit that thread's agent-authored relay messages later.
+/// session can use bounded overfetch for exact event-ID delta filtering later.
 fn fetched_thread_root_to_hydrate(
     target: &ContextTarget,
     context: Option<&ConversationContext>,
@@ -4201,19 +4176,20 @@ async fn fetch_prompt_profile_lookup(
 /// when the relay has more thread history, instead of reporting the capped page
 /// as the total. When the window is full, a best-effort `/count` attempts to
 /// improve that lower-bound total; because it is a separate racy request, the
-/// result is clamped to the sentinel-proven minimum. For a fresh provider
-/// session, the query also asks for the agent's newest reply separately so its
-/// prior turn survives a busy recent-message window. A hydrated session skips
-/// that pin because it already retains the reply in its own history, and
-/// overfetches a bounded 2x window so removing recent agent replies does not
-/// unnecessarily displace human context.
+/// result is clamped to the sentinel-proven minimum. The query also asks for
+/// the agent's newest reply separately so it survives a busy recent-message
+/// window. A hydrated session overfetches a bounded 2x window so removing exact
+/// event IDs already delivered to that session does not unnecessarily displace
+/// new context. Author identity alone is never delivery evidence because
+/// independent provider sessions can share one signing key.
 async fn fetch_thread_context(
     channel_id: Uuid,
     root_event_id: &str,
     limit: u32,
     agent_pubkey: nostr::PublicKey,
     rest: &RestClient,
-    pin_agent_reply: bool,
+    overfetch_session_delta: bool,
+    delivered_ids: &HashSet<String>,
 ) -> Option<ConversationContext> {
     fetch_thread_context_with(
         channel_id,
@@ -4222,7 +4198,8 @@ async fn fetch_thread_context(
         agent_pubkey,
         |filters| async move { rest.query(&filters).await },
         |filters| async move { rest.count(&filters).await },
-        pin_agent_reply,
+        overfetch_session_delta,
+        delivered_ids,
     )
     .await
 }
@@ -4234,7 +4211,8 @@ async fn fetch_thread_context_with<Query, QueryFut, Count, CountFut>(
     agent_pubkey: nostr::PublicKey,
     query: Query,
     count: Count,
-    pin_agent_reply: bool,
+    overfetch_session_delta: bool,
+    delivered_ids: &HashSet<String>,
 ) -> Option<ConversationContext>
 where
     Query: Fn(Vec<nostr::Filter>) -> QueryFut,
@@ -4263,10 +4241,10 @@ where
     // Three filters: (1) root event by ID, (2) recent replies with #e=root +
     // #h=channel plus a sentinel, and (3) the agent's newest reply for pinning.
     let root_filter = nostr::Filter::new().id(nostr::EventId::from_hex(root_event_id).ok()?);
-    let reply_fetch_limit = if pin_agent_reply {
-        limit
-    } else {
+    let reply_fetch_limit = if overfetch_session_delta {
         limit.saturating_mul(2)
+    } else {
+        limit
     };
     let replies_filter = nostr::Filter::new()
         .kinds([
@@ -4280,16 +4258,15 @@ where
 
     let context = fetch_with_retry(|| async {
         let mut filters = vec![root_filter.clone(), replies_filter.clone()];
-        if pin_agent_reply {
-            filters.push(agent_reply_filter.clone());
-        }
+        filters.push(agent_reply_filter.clone());
         match timeout(CONTEXT_FETCH_TIMEOUT, query(filters)).await {
             Ok(Ok(json)) => parse_nostr_thread_response_with_meta(
                 json,
                 root_event_id,
                 limit,
                 &agent_pubkey,
-                pin_agent_reply,
+                overfetch_session_delta,
+                delivered_ids,
             ),
             Ok(Err(e)) => {
                 tracing::warn!(
@@ -4541,8 +4518,8 @@ fn json_to_context_message(obj: &serde_json::Value) -> Option<ContextMessage> {
 /// Separates the root event (matching `root_event_id`) from replies, then sorts
 /// the selected window chronologically for the prompt. Fresh sessions pin the
 /// agent's newest reply inside the `limit`; hydrated sessions reserve the full
-/// limit for humans and retain fetched agent replies only until the session
-/// delta accounts for their omission.
+/// limit for events not yet delivered to this provider session and retain
+/// already-delivered events only until the session delta accounts for them.
 #[cfg(test)]
 fn parse_nostr_thread_response(
     json: serde_json::Value,
@@ -4550,8 +4527,15 @@ fn parse_nostr_thread_response(
     limit: u32,
     agent_pubkey: &nostr::PublicKey,
 ) -> Option<ConversationContext> {
-    parse_nostr_thread_response_with_meta(json, root_event_id, limit, agent_pubkey, true)
-        .map(|parsed| parsed.context)
+    parse_nostr_thread_response_with_meta(
+        json,
+        root_event_id,
+        limit,
+        agent_pubkey,
+        false,
+        &HashSet::new(),
+    )
+    .map(|parsed| parsed.context)
 }
 
 struct ParsedThreadContext {
@@ -4564,7 +4548,8 @@ fn parse_nostr_thread_response_with_meta(
     root_event_id: &str,
     limit: u32,
     agent_pubkey: &nostr::PublicKey,
-    pin_agent_reply: bool,
+    overfetch_session_delta: bool,
+    delivered_ids: &HashSet<String>,
 ) -> Option<ParsedThreadContext> {
     let events = json.as_array()?;
     let agent_pubkey_hex = agent_pubkey.to_hex();
@@ -4579,10 +4564,12 @@ fn parse_nostr_thread_response_with_meta(
                 root_msg = Some(msg);
             } else if seen_reply_ids.insert(ev_id.to_string()) {
                 let is_agent = msg.pubkey.eq_ignore_ascii_case(&agent_pubkey_hex);
+                let was_delivered = delivered_ids.contains(ev_id);
                 reply_msgs.push((
                     ev_id.to_string(),
                     ev.get("created_at").and_then(|v| v.as_u64()).unwrap_or(0),
                     is_agent,
+                    was_delivered,
                     msg,
                 ));
             }
@@ -4594,45 +4581,44 @@ fn parse_nostr_thread_response_with_meta(
     let fetched_total = fetched_reply_count + usize::from(root_present);
     let newest_agent_reply = reply_msgs
         .iter()
-        .filter(|(_, _, is_agent, _)| *is_agent)
-        .max_by_key(|(_, ts, _, _)| *ts)
+        .filter(|(_, _, is_agent, _, _)| *is_agent)
+        .max_by_key(|(_, ts, _, _, _)| *ts)
         .cloned();
 
-    let reply_fetch_limit = if pin_agent_reply {
-        limit
-    } else {
+    let reply_fetch_limit = if overfetch_session_delta {
         limit.saturating_mul(2)
+    } else {
+        limit
     };
     let relay_window_truncated = fetched_reply_count > reply_fetch_limit as usize;
-    let has_agent_replies = reply_msgs.iter().any(|(_, _, is_agent, _)| *is_agent);
-    let human_reply_count = reply_msgs
+    let has_delivered_replies = reply_msgs
         .iter()
-        .filter(|(_, _, is_agent, _)| !is_agent)
+        .any(|(_, _, _, was_delivered, _)| *was_delivered);
+    let new_reply_count = reply_msgs
+        .iter()
+        .filter(|(_, _, _, was_delivered, _)| !was_delivered)
         .count();
-    let truncated = if pin_agent_reply {
-        fetched_reply_count > limit as usize
-    } else {
-        relay_window_truncated || has_agent_replies || human_reply_count > limit as usize
-    };
+    let truncated =
+        relay_window_truncated || has_delivered_replies || new_reply_count > limit as usize;
 
-    if pin_agent_reply && truncated {
+    if !overfetch_session_delta && truncated {
         // The relay returns limited REQ results newest-first. Sort explicitly so
         // the sentinel we drop is the oldest reply in the fetched window, not an
         // arbitrary last element if the HTTP bridge ever changes iteration order.
-        reply_msgs.sort_by_key(|(_, ts, _, _)| Reverse(*ts));
+        reply_msgs.sort_by_key(|(_, ts, _, _, _)| Reverse(*ts));
         reply_msgs.truncate(limit as usize);
-    } else if !pin_agent_reply {
-        // Keep agent replies until `conversation_context_delta` determines
-        // whether the provider session already owns them. Count only human
-        // replies against the display budget so omitted agent history cannot
-        // displace new human context.
-        reply_msgs.sort_by_key(|(_, ts, _, _)| Reverse(*ts));
-        let mut retained_humans = 0usize;
-        reply_msgs.retain(|(_, _, is_agent, _)| {
-            if *is_agent {
+    } else if overfetch_session_delta {
+        // Keep delivered replies until `conversation_context_delta` records
+        // that context was omitted, but count only new replies against the
+        // display budget. An unseen reply signed by this same agent remains new:
+        // it may have come from an independent heartbeat/provider session.
+        reply_msgs.sort_by_key(|(_, ts, _, _, _)| Reverse(*ts));
+        let mut retained_new = 0usize;
+        reply_msgs.retain(|(_, _, _, was_delivered, _)| {
+            if *was_delivered {
                 true
-            } else if retained_humans < limit as usize {
-                retained_humans += 1;
+            } else if retained_new < limit as usize {
+                retained_new += 1;
                 true
             } else {
                 false
@@ -4640,25 +4626,29 @@ fn parse_nostr_thread_response_with_meta(
         });
     }
 
-    if let Some(agent_reply) = newest_agent_reply.filter(|_| pin_agent_reply) {
-        let agent_reply_already_displayed =
-            reply_msgs.iter().any(|(id, _, _, _)| *id == agent_reply.0);
+    if let Some(agent_reply) = newest_agent_reply.filter(|reply| !reply.3) {
+        let agent_reply_already_displayed = reply_msgs
+            .iter()
+            .any(|(id, _, _, _, _)| *id == agent_reply.0);
         if !agent_reply_already_displayed {
-            reply_msgs.sort_by_key(|(_, ts, _, _)| *ts);
-            if let Some(oldest) = reply_msgs.first_mut() {
+            reply_msgs.sort_by_key(|(_, ts, _, _, _)| *ts);
+            if let Some(oldest) = reply_msgs
+                .iter_mut()
+                .find(|(_, _, _, was_delivered, _)| !was_delivered)
+            {
                 *oldest = agent_reply;
             }
         }
     }
 
     // Sort displayed replies chronologically.
-    reply_msgs.sort_by_key(|(_, ts, _, _)| *ts);
+    reply_msgs.sort_by_key(|(_, ts, _, _, _)| *ts);
 
     let mut messages = Vec::new();
     if let Some(root) = root_msg {
         messages.push(root);
     }
-    messages.extend(reply_msgs.into_iter().map(|(_, _, _, msg)| msg));
+    messages.extend(reply_msgs.into_iter().map(|(_, _, _, _, msg)| msg));
 
     if messages.is_empty() {
         return None;
@@ -6237,7 +6227,8 @@ mod tests {
                 assert_thread_count_filter(&filters, channel_id, root_id);
                 std::future::ready(Ok(json!({ "count": 6 })))
             },
-            true,
+            false,
+            &HashSet::new(),
         )
         .await
         .expect("thread context");
@@ -6290,7 +6281,8 @@ mod tests {
             agent.public_key(),
             move |_filters| std::future::ready(Ok(json.clone())),
             |_filters| std::future::ready(Ok(json!({ "count": 6 }))),
-            true,
+            false,
+            &HashSet::new(),
         )
         .await
         .expect("thread context");
@@ -6345,7 +6337,8 @@ mod tests {
             agent.public_key(),
             move |_filters| std::future::ready(Ok(json.clone())),
             |_filters| std::future::ready(Ok(json!({ "count": 1 }))),
-            true,
+            false,
+            &HashSet::new(),
         )
         .await
         .expect("thread context");
@@ -6399,7 +6392,8 @@ mod tests {
             agent.public_key(),
             move |_filters| std::future::ready(Ok(json.clone())),
             |_filters| std::future::ready(Err(crate::relay::RelayError::Http("boom".into()))),
-            true,
+            false,
+            &HashSet::new(),
         )
         .await
         .expect("thread context");
@@ -6462,7 +6456,8 @@ mod tests {
             agent.public_key(),
             move |_filters| std::future::ready(Ok(json.clone())),
             |_filters| std::future::ready(Ok(json!({ "count": 3 }))),
-            true,
+            false,
+            &HashSet::new(),
         )
         .await
         .expect("thread context");
@@ -6497,7 +6492,7 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn hydrated_thread_does_not_let_recent_agent_reply_displace_human_context() {
+    async fn hydrated_thread_retains_same_key_reply_from_another_session() {
         let agent = Keys::generate();
         let agent_hex = agent.public_key().to_hex();
         let root_id = "1111111111111111111111111111111111111111111111111111111111111111";
@@ -6521,38 +6516,43 @@ mod tests {
                 &agent_hex,
                 "recent agent reply already in provider history",
                 6000
+            ),
+            thread_event(
+                "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+                &agent_hex,
+                "same-key reply from another provider session",
+                5500
             )
+        ]);
+        let delivered = HashSet::from([
+            "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc".to_string(),
         ]);
 
         let ctx = fetch_thread_context_with(
             channel_id,
             root_id,
-            2,
+            3,
             agent.public_key(),
             move |filters| {
                 assert_eq!(
                     filters.len(),
-                    2,
-                    "hydrated thread must skip the agent pin query"
+                    3,
+                    "same-key replies still require the agent pin query"
                 );
                 let replies = serde_json::to_value(&filters[1]).expect("serialize replies filter");
                 assert!(replies.get("authors").is_none());
-                assert_eq!(replies.get("limit"), Some(&json!(5)));
+                assert_eq!(replies.get("limit"), Some(&json!(7)));
                 std::future::ready(Ok(json.clone()))
             },
-            |_filters| std::future::ready(Ok(json!({ "count": 3 }))),
-            false,
+            |_filters| std::future::ready(Ok(json!({ "count": 4 }))),
+            true,
+            &delivered,
         )
         .await
         .expect("thread context");
 
-        let ctx = conversation_context_delta(
-            Some(ctx),
-            &HashSet::new(),
-            &HashSet::new(),
-            Some(&agent_hex),
-        )
-        .expect("human context remains after hydrated-session filtering");
+        let ctx = conversation_context_delta(Some(ctx), &delivered, &HashSet::new())
+            .expect("human context remains after hydrated-session filtering");
 
         let ConversationContext::Thread {
             messages,
@@ -6563,7 +6563,7 @@ mod tests {
         else {
             panic!("expected thread context");
         };
-        assert_eq!(total, 4);
+        assert_eq!(total, 5);
         assert!(
             truncated,
             "omitted agent history must be represented as a truncated context window"
@@ -6577,6 +6577,9 @@ mod tests {
         assert!(messages
             .iter()
             .all(|message| message.content != "recent agent reply already in provider history"));
+        assert!(messages
+            .iter()
+            .any(|message| message.content == "same-key reply from another provider session"));
     }
 
     #[tokio::test]
@@ -6620,7 +6623,8 @@ mod tests {
             agent.public_key(),
             move |_filters| std::future::ready(Ok(json.clone())),
             |_filters| std::future::ready(Err(crate::relay::RelayError::Http("boom".into()))),
-            true,
+            false,
+            &HashSet::new(),
         )
         .await
         .expect("thread context");
@@ -7694,7 +7698,7 @@ printf '%s\n' '{{"jsonrpc":"2.0","id":0,"result":{{"stopReason":"end_turn"}}}}'"
             truncated: false,
         };
 
-        let delta = conversation_context_delta(Some(context), &delivered, &triggering, None)
+        let delta = conversation_context_delta(Some(context), &delivered, &triggering)
             .expect("new context remains");
         match delta {
             ConversationContext::Thread {
@@ -7722,9 +7726,7 @@ printf '%s\n' '{{"jsonrpc":"2.0","id":0,"result":{{"stopReason":"end_turn"}}}}'"
             truncated: false,
         };
 
-        assert!(
-            conversation_context_delta(Some(context), &delivered, &HashSet::new(), None).is_none()
-        );
+        assert!(conversation_context_delta(Some(context), &delivered, &HashSet::new()).is_none());
     }
 
     #[test]
@@ -7736,22 +7738,27 @@ printf '%s\n' '{{"jsonrpc":"2.0","id":0,"result":{{"stopReason":"end_turn"}}}}'"
         };
 
         assert!(
-            conversation_context_delta(Some(context), &HashSet::new(), &HashSet::new(), None)
-                .is_some()
+            conversation_context_delta(Some(context), &HashSet::new(), &HashSet::new()).is_some()
         );
     }
 
     #[test]
-    fn conversation_context_delta_omits_agent_authored_messages_for_hydrated_thread() {
+    fn conversation_context_delta_preserves_same_author_message_not_delivered_to_session() {
         let agent = Keys::generate();
         let human = Keys::generate();
         let context = ConversationContext::Thread {
             messages: vec![
                 ContextMessage {
-                    event_id: "agent-event".into(),
+                    event_id: "session-event".into(),
                     pubkey: agent.public_key().to_hex().to_ascii_uppercase(),
                     timestamp: "2026-09-11T20:23:47Z".into(),
                     content: "agent reply already retained by ACP".into(),
+                },
+                ContextMessage {
+                    event_id: "heartbeat-event".into(),
+                    pubkey: agent.public_key().to_hex(),
+                    timestamp: "2026-09-11T20:24:00Z".into(),
+                    content: "same-key reply from another session".into(),
                 },
                 ContextMessage {
                     event_id: "human-event".into(),
@@ -7766,28 +7773,27 @@ printf '%s\n' '{{"jsonrpc":"2.0","id":0,"result":{{"stopReason":"end_turn"}}}}'"
                     content: "missing valid author metadata".into(),
                 },
             ],
-            total: 3,
+            total: 4,
             root_present: true,
             truncated: false,
         };
 
-        let delta = conversation_context_delta(
-            Some(context),
-            &HashSet::new(),
-            &HashSet::new(),
-            Some(&agent.public_key().to_hex()),
-        )
-        .expect("human context remains");
+        let delivered = HashSet::from(["session-event".to_string()]);
+        let delta = conversation_context_delta(Some(context), &delivered, &HashSet::new())
+            .expect("human context remains");
         let ConversationContext::Thread { messages, .. } = delta else {
             panic!("expected thread context");
         };
-        assert_eq!(messages.len(), 2);
+        assert_eq!(messages.len(), 3);
         assert!(messages
             .iter()
             .all(|message| message.content != "agent reply already retained by ACP"));
         assert!(messages
             .iter()
             .any(|message| message.content == "intervening human reply"));
+        assert!(messages
+            .iter()
+            .any(|message| message.content == "same-key reply from another session"));
         assert!(messages
             .iter()
             .any(|message| message.content == "missing valid author metadata"));
