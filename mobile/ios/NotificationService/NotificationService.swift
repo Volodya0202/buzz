@@ -5,7 +5,7 @@ import Security
 import UserNotifications
 
 final class NotificationService: UNNotificationServiceExtension {
-  private var contentHandler: ((UNNotificationContent) -> Void)?
+  private var handoff: BuzzNotificationHandoff<UNNotificationContent>?
   private var bestAttemptContent: UNMutableNotificationContent?
   private var restrictedFallbackContent: UNMutableNotificationContent?
   private var restrictionFenceAtStart = BuzzAgeRestrictionFence.initial
@@ -52,7 +52,7 @@ final class NotificationService: UNNotificationServiceExtension {
     _ request: UNNotificationRequest,
     withContentHandler contentHandler: @escaping (UNNotificationContent) -> Void
   ) {
-    self.contentHandler = contentHandler
+    handoff = BuzzNotificationHandoff(handler: contentHandler)
     restrictionFenceAtStart = Self.loadRestrictionFence(
       appGroupIdentifier: appGroupIdentifier
     )
@@ -108,30 +108,27 @@ final class NotificationService: UNNotificationServiceExtension {
   }
 
   private func finish(_ content: UNNotificationContent) {
-    guard let contentHandler else { return }
-    self.contentHandler = nil
-    let handedOff = Self.handoffIfRestrictionFenceUnchanged(
-      appGroupIdentifier: appGroupIdentifier,
-      since: restrictionFenceAtStart
-    ) {
-      contentHandler(content)
-    }
-    guard !handedOff else {
-      return
-    }
-
-    interactionDeletionDeadline.deleteAll { [weak self, restrictedFallbackContent] error in
-      if error != nil {
-        self?.activateRestrictionFence()
+    handoff?.finish(
+      content,
+      restrictedFallback: restrictedFallbackContent ?? Self.restrictedFallback(from: content),
+      handoffIfAllowed: { deliver in
+        Self.handoffIfRestrictionFenceUnchanged(
+          appGroupIdentifier: appGroupIdentifier,
+          since: restrictionFenceAtStart,
+          handoff: deliver
+        )
       }
+    ) { [self] in
+      // The service deadline cannot wait for Intents cleanup. The safe content
+      // has already been handed back synchronously, including on expiration.
       let center = UNUserNotificationCenter.current()
       center.removeAllDeliveredNotifications()
       center.removeAllPendingNotificationRequests()
-      contentHandler(restrictedFallbackContent ?? Self.restrictedFallback(from: content))
-      // The handler queues delivery, so purge again after handing back only the
-      // privacy-safe fallback. The persisted fence protects every later finish.
-      center.removeAllDeliveredNotifications()
-      center.removeAllPendingNotificationRequests()
+      interactionDeletionDeadline.deleteAll { [weak self] error in
+        if error != nil { self?.activateRestrictionFence() }
+        center.removeAllDeliveredNotifications()
+        center.removeAllPendingNotificationRequests()
+      }
     }
   }
 
