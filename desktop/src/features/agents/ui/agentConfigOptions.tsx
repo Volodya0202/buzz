@@ -267,6 +267,25 @@ function effectiveModelProviderForOptions(
   return providerId?.trim() ?? "";
 }
 
+export const OPENROUTER_FREE_MODEL_PRESETS: readonly PersonaModelOption[] = [
+  { id: "nvidia/nemotron-3.5-lightning:free", label: "nvidia/nemotron-3.5-lightning:free" },
+  { id: "google/gemma-4-31b-it:free", label: "google/gemma-4-31b-it:free" },
+  { id: "nvidia/nemotron-3-nano-omni-30b-a3b-reasoning:free", label: "nvidia/nemotron-3-nano-omni-30b-a3b-reasoning:free" },
+  { id: "cohere/north-mini-code:free", label: "cohere/north-mini-code:free" },
+  { id: "liquid/lfm-2.5-2.6b:free", label: "liquid/lfm-2.5-2.6b:free" },
+  { id: "nex-agi/nex-n2.5-mini:free", label: "nex-agi/nex-n2.5-mini:free" },
+  { id: "anthropic/claude-3.7-sonnet", label: "anthropic/claude-3.7-sonnet" },
+  { id: "openai/gpt-4o", label: "openai/gpt-4o" },
+  { id: "deepseek/deepseek-chat", label: "deepseek/deepseek-chat" },
+];
+
+export const GEMINI_MODEL_PRESETS: readonly PersonaModelOption[] = [
+  { id: "gemini-2.0-flash", label: "gemini-2.0-flash" },
+  { id: "gemini-2.0-flash-lite-preview", label: "gemini-2.0-flash-lite-preview" },
+  { id: "gemini-1.5-flash", label: "gemini-1.5-flash" },
+  { id: "gemini-1.5-pro", label: "gemini-1.5-pro" },
+];
+
 export function getPersonaModelOptions(
   runtimeId: string,
   providerId: string | null | undefined,
@@ -279,6 +298,23 @@ export function getPersonaModelOptions(
   if (trimmedProvider.length === 0) {
     return options.filter((option) => option.id.length === 0);
   }
+
+  const norm = trimmedProvider.toLowerCase();
+  const custom = getCustomApiProviders().find(
+    (p) => p.id === trimmedProvider || p.id.toLowerCase() === norm,
+  );
+  if (custom && custom.models && custom.models.length > 0) {
+    return custom.models.map((m) => ({ id: m, label: m }));
+  }
+
+  if (norm === "openrouter" || custom?.type === "openrouter") {
+    return OPENROUTER_FREE_MODEL_PRESETS;
+  }
+
+  if (norm === "gemini" || norm === "google" || custom?.type === "gemini") {
+    return GEMINI_MODEL_PRESETS;
+  }
+
   if (!isKnownLlmProvider(trimmedProvider)) {
     return options;
   }
@@ -464,7 +500,7 @@ export function getProviderApiKeyEnvVar(providerId: string): string | null {
     return "OPENAI_COMPAT_API_KEY";
   }
 
-  if (norm.startsWith("custom-") || norm === "__custom_provider__" || norm.length > 0) {
+  if (norm.startsWith("custom-") || norm === "__custom_provider__") {
     return "OPENAI_COMPAT_API_KEY";
   }
 
@@ -491,7 +527,7 @@ export function getProviderApiKeyLabel(providerId: string): string | null {
     return `${custom.name} API Key`;
   }
 
-  if (norm.startsWith("custom-") || norm === "__custom_provider__" || norm.length > 0) {
+  if (norm.startsWith("custom-") || norm === "__custom_provider__") {
     return "API Key";
   }
 

@@ -156,9 +156,15 @@ export function selectionOnProviderDropdownChange(
         next.envVars = { ...next.envVars, [requiredEnvVar]: custom.apiKey };
       }
       if (custom.baseUrl) {
+        const baseUrlKey =
+          custom.type === "openrouter"
+            ? "OPENROUTER_BASE_URL"
+            : custom.type === "anthropic"
+              ? "ANTHROPIC_BASE_URL"
+              : "OPENAI_COMPAT_BASE_URL";
         next.envVars = {
           ...next.envVars,
-          OPENAI_COMPAT_BASE_URL: custom.baseUrl,
+          [baseUrlKey]: custom.baseUrl,
         };
       }
       if (custom.defaultModel) {

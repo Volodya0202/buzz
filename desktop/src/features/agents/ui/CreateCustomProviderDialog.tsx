@@ -31,8 +31,10 @@ export function CreateCustomProviderDialog({
 }: CreateCustomProviderDialogProps) {
   const [apiKey, setApiKey] = React.useState("");
   const [providerName, setProviderName] = React.useState("");
+  const [baseUrl, setBaseUrl] = React.useState("");
   const [showKey, setShowKey] = React.useState(false);
   const [userEditedName, setUserEditedName] = React.useState(false);
+  const [userEditedBaseUrl, setUserEditedBaseUrl] = React.useState(false);
 
   const detected = React.useMemo(() => {
     if (!apiKey.trim()) return null;
@@ -46,11 +48,20 @@ export function CreateCustomProviderDialog({
     }
   }, [detected, userEditedName]);
 
+  // Sync auto-detected base URL until user manually overrides it
+  React.useEffect(() => {
+    if (!userEditedBaseUrl && detected?.baseUrl) {
+      setBaseUrl(detected.baseUrl);
+    }
+  }, [detected, userEditedBaseUrl]);
+
   function handleReset() {
     setApiKey("");
     setProviderName("");
+    setBaseUrl("");
     setShowKey(false);
     setUserEditedName(false);
+    setUserEditedBaseUrl(false);
   }
 
   function handleClose(nextOpen: boolean) {
@@ -67,12 +78,13 @@ export function CreateCustomProviderDialog({
 
     const detectedInfo = detectProviderFromApiKey(trimmedKey);
     const finalName = providerName.trim() || detectedInfo.name;
+    const finalBaseUrl = baseUrl.trim() || detectedInfo.baseUrl;
 
     const created = saveCustomApiProvider({
       name: finalName,
       apiKey: trimmedKey,
       type: detectedInfo.type,
-      baseUrl: detectedInfo.baseUrl,
+      baseUrl: finalBaseUrl || undefined,
       models: detectedInfo.models,
       defaultModel: detectedInfo.defaultModel,
     });
@@ -211,6 +223,30 @@ export function CreateCustomProviderDialog({
                 setUserEditedName(true);
                 setProviderName(e.target.value);
               }}
+            />
+          </div>
+
+          {/* Base URL input */}
+          <div className="space-y-1.5">
+            <label
+              htmlFor="custom-provider-base-url"
+              className="text-sm font-medium text-foreground flex items-center justify-between"
+            >
+              <span>Базовый URL (Base URL)</span>
+              <span className="text-xs text-muted-foreground font-normal">
+                Опционально (OmniRouter, LiteLLM, Ollama)
+              </span>
+            </label>
+            <Input
+              id="custom-provider-base-url"
+              type="text"
+              placeholder="http://localhost:20128/v1 или https://api.openai.com/v1"
+              value={baseUrl}
+              onChange={(e) => {
+                setUserEditedBaseUrl(true);
+                setBaseUrl(e.target.value);
+              }}
+              className="font-mono text-xs"
             />
           </div>
 

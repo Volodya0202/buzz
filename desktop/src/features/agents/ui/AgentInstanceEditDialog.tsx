@@ -37,6 +37,7 @@ import {
   formatRuntimeOptionLabel,
   getDefaultLlmModelLabel,
   getDefaultPersonaRuntime,
+  getPersonaModelOptions,
   getPersonaProviderOptions,
   isMissingRequiredDropdownField,
   NO_RUNTIME_DROPDOWN_VALUE,
@@ -853,7 +854,10 @@ export function AgentInstanceEditDialog({
     showCustomInput: showCustomModelInput,
   } = relayMeshModelPickerState({
     discoveredOptions: discoveredModelOptions,
-    fallbackOptions: [{ id: "", label: inheritedModelLabel }],
+    fallbackOptions: getPersonaModelOptions(
+      prospectiveRuntimeId,
+      providerForDiscovery,
+    ),
     isCustomEditing: isCustomModelEditing,
     model,
     provider: providerForDiscovery,

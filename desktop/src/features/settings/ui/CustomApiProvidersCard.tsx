@@ -5,7 +5,6 @@ import { openUrl } from "@tauri-apps/plugin-opener";
 import { Button } from "@/shared/ui/button";
 import {
   useCustomApiProviders,
-  type CustomApiProvider,
 } from "@/features/agents/lib/customApiProviders";
 import { CreateCustomProviderDialog } from "@/features/agents/ui/CreateCustomProviderDialog";
 import { SettingsOptionGroup } from "./SettingsOptionGroup";

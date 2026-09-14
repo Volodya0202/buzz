@@ -62,11 +62,17 @@ export function detectProviderFromApiKey(rawKey: string): DetectedProviderInfo {
       envVar: "OPENROUTER_API_KEY",
       baseUrl: "https://openrouter.ai/api/v1",
       models: [
+        "nvidia/nemotron-3.5-lightning:free",
+        "google/gemma-4-31b-it:free",
+        "nvidia/nemotron-3-nano-omni-30b-a3b-reasoning:free",
+        "cohere/north-mini-code:free",
+        "liquid/lfm-2.5-2.6b:free",
+        "nex-agi/nex-n2.5-mini:free",
         "anthropic/claude-3.7-sonnet",
         "openai/gpt-4o",
         "deepseek/deepseek-chat",
       ],
-      defaultModel: "anthropic/claude-3.7-sonnet",
+      defaultModel: "nvidia/nemotron-3.5-lightning:free",
       hint: "Распознан ключ OpenRouter",
     };
   }
@@ -104,7 +110,12 @@ export function detectProviderFromApiKey(rawKey: string): DetectedProviderInfo {
       name: "Google Gemini",
       envVar: "OPENAI_COMPAT_API_KEY",
       baseUrl: "https://generativelanguage.googleapis.com/v1beta/openai/",
-      models: ["gemini-2.0-flash", "gemini-1.5-pro", "gemini-1.5-flash"],
+      models: [
+        "gemini-2.0-flash",
+        "gemini-2.0-flash-lite-preview",
+        "gemini-1.5-flash",
+        "gemini-1.5-pro",
+      ],
       defaultModel: "gemini-2.0-flash",
       hint: "Распознан ключ Google Gemini (AI Studio)",
     };
@@ -117,7 +128,12 @@ export function detectProviderFromApiKey(rawKey: string): DetectedProviderInfo {
       name: "Google Gemini (Аккаунт Google)",
       envVar: "OPENAI_COMPAT_API_KEY",
       baseUrl: "https://generativelanguage.googleapis.com/v1beta/openai/",
-      models: ["gemini-2.0-flash", "gemini-1.5-pro"],
+      models: [
+        "gemini-2.0-flash",
+        "gemini-2.0-flash-lite-preview",
+        "gemini-1.5-flash",
+        "gemini-1.5-pro",
+      ],
       defaultModel: "gemini-2.0-flash",
       hint: "Распознан токен авторизации Google Аккаунта (OAuth)",
     };

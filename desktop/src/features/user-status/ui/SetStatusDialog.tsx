@@ -35,14 +35,22 @@ const PRESETS = [
 ] as const;
 
 const DURATIONS = [
-  "1 час",
-  "8 часов",
-  "Сегодня",
-  "На этой неделе",
-  "Другой",
+  "1 hour",
+  "8 hours",
+  "Today",
+  "This week",
+  "Custom",
 ] as const;
 
 type DurationLabel = (typeof DURATIONS)[number];
+
+const DURATION_LABELS: Record<DurationLabel, string> = {
+  "1 hour": "1 час",
+  "8 hours": "8 часов",
+  Today: "Сегодня",
+  "This week": "На этой неделе",
+  Custom: "Другой",
+};
 
 const HALF_HOUR_TIMES = Array.from({ length: 48 }, (_, index) => {
   const hour = Math.floor(index / 2);
@@ -424,7 +432,7 @@ export function SetStatusDialog({
               >
                 <Clock3 className="h-5 w-5 text-muted-foreground" />
                 <span className="flex-1">Duration</span>
-                <span className="text-muted-foreground">{duration}</span>
+                <span className="text-muted-foreground">{DURATION_LABELS[duration]}</span>
                 <ChevronDown className="h-4 w-4 text-muted-foreground" />
               </button>
             </DropdownMenuTrigger>
@@ -439,7 +447,7 @@ export function SetStatusDialog({
                     setSaveError("");
                   }}
                 >
-                  {option}
+                  {DURATION_LABELS[option]}
                   {duration === option ? <Check className="h-4 w-4" /> : null}
                 </DropdownMenuItem>
               ))}

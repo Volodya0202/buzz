@@ -36,6 +36,7 @@ import {
   BLOCK_BUILD_HIDDEN_PROVIDER_IDS,
   CARD_MINT_KEY_ANNOTATIONS,
   CUSTOM_PROVIDER_DROPDOWN_VALUE,
+  getPersonaModelOptions,
   getPersonaProviderOptions,
   getProviderApiKeyEnvVar,
   getProviderApiKeyLabel,
@@ -565,7 +566,13 @@ export function AgentConfigFields({
           nextEnvVars[nextApiKey] = custom.apiKey;
         }
         if (custom.baseUrl) {
-          nextEnvVars["OPENAI_COMPAT_BASE_URL"] = custom.baseUrl;
+          const baseUrlKey =
+            custom.type === "openrouter"
+              ? "OPENROUTER_BASE_URL"
+              : custom.type === "anthropic"
+                ? "ANTHROPIC_BASE_URL"
+                : "OPENAI_COMPAT_BASE_URL";
+          nextEnvVars[baseUrlKey] = custom.baseUrl;
         }
       } else if (nextProvider === "gemini") {
         nextEnvVars["OPENAI_COMPAT_BASE_URL"] =
@@ -843,7 +850,10 @@ export function AgentConfigFields({
             disableSelectDuringDiscovery={disableModelSelectDuringDiscovery}
             disabled={dependentFieldsDisabled}
             discoveredModelOptions={
-              dependentFieldsDisabled ? null : discoveredModelOptions
+              dependentFieldsDisabled
+                ? null
+                : (discoveredModelOptions ??
+                  getPersonaModelOptions(selectedRuntimeId, effectiveProvider))
             }
             globalModel={fallbackModel ?? undefined}
             id="global-agent-model"
