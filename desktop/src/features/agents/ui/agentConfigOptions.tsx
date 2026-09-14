@@ -4,6 +4,7 @@ import type {
 } from "@/shared/api/types";
 import { BUZZ_AGENT_THINKING_EFFORT } from "./buzzAgentConfig";
 import type { RuntimeFileConfigSubset } from "@/shared/api/tauri";
+import { getCustomApiProviders } from "../lib/customApiProviders";
 // Dialogs import getDefaultPersonaRuntime via this re-export; lib code imports
 // directly from lib/resolvePersonaRuntime.
 export { getDefaultPersonaRuntime } from "../lib/resolvePersonaRuntime";
@@ -135,6 +136,16 @@ const PROVIDER_CREDENTIAL_CONFIG: Partial<
     secretEnvVar: "OPENROUTER_API_KEY",
     apiKeyLabel: "OpenRouter API Key",
   },
+  gemini: {
+    requiredEnvKeys: ["OPENAI_COMPAT_API_KEY"],
+    secretEnvVar: "OPENAI_COMPAT_API_KEY",
+    apiKeyLabel: "Google Gemini API Key (AI Studio)",
+  },
+  google: {
+    requiredEnvKeys: ["OPENAI_COMPAT_API_KEY"],
+    secretEnvVar: "OPENAI_COMPAT_API_KEY",
+    apiKeyLabel: "Google Gemini API Key (AI Studio)",
+  },
 };
 
 const DEFAULT_MODEL_OPTION: PersonaModelOption = {
@@ -143,6 +154,7 @@ const DEFAULT_MODEL_OPTION: PersonaModelOption = {
 };
 
 export const PERSONA_LLM_PROVIDER_OPTIONS: readonly PersonaModelOption[] = [
+  { id: "gemini", label: "Google Gemini" },
   { id: "anthropic", label: "Anthropic" },
   { id: "openai", label: "OpenAI" },
   { id: "openai-compat", label: "OpenAI-compatible" },
@@ -189,8 +201,24 @@ export function requiredCredentialEnvKeys(
   if (normalizedRuntime !== "buzz-agent" && normalizedRuntime !== "goose") {
     return [];
   }
-  const config = PROVIDER_CREDENTIAL_CONFIG[provider.trim().toLowerCase()];
-  return config?.requiredEnvKeys ?? [];
+  const norm = provider.trim().toLowerCase();
+  const config = PROVIDER_CREDENTIAL_CONFIG[norm];
+  if (config) return config.requiredEnvKeys ?? [];
+
+  const custom = getCustomApiProviders().find(
+    (p) => p.id === provider || p.id.toLowerCase() === norm,
+  );
+  if (custom) {
+    if (custom.type === "anthropic") return ["ANTHROPIC_API_KEY"];
+    if (custom.type === "openrouter") return ["OPENROUTER_API_KEY"];
+    return ["OPENAI_COMPAT_API_KEY"];
+  }
+
+  if (norm.startsWith("custom-") || norm === "__custom_provider__") {
+    return ["OPENAI_COMPAT_API_KEY"];
+  }
+
+  return [];
 }
 
 export function isMissingRequiredDropdownField(
@@ -398,7 +426,13 @@ export function getPersonaProviderOptions(
   const filteredOptions = hideProviderIds?.size
     ? PERSONA_LLM_PROVIDER_OPTIONS.filter((o) => !hideProviderIds.has(o.id))
     : PERSONA_LLM_PROVIDER_OPTIONS;
-  const options = [...defaultProviderOptions, ...filteredOptions];
+
+  const customProviders = getCustomApiProviders().map((p) => ({
+    id: p.id,
+    label: `${p.name} (Кастомный)`,
+  }));
+
+  const options = [...defaultProviderOptions, ...filteredOptions, ...customProviders];
   if (
     trimmedProvider.length === 0 ||
     options.some((option) => option.id === trimmedProvider)
@@ -417,10 +451,24 @@ export function getPersonaProviderOptions(
  * Derived from PROVIDER_CREDENTIAL_CONFIG.secretEnvVar.
  */
 export function getProviderApiKeyEnvVar(providerId: string): string | null {
-  return (
-    PROVIDER_CREDENTIAL_CONFIG[providerId.trim().toLowerCase()]?.secretEnvVar ??
-    null
+  const norm = providerId.trim().toLowerCase();
+  const builtIn = PROVIDER_CREDENTIAL_CONFIG[norm]?.secretEnvVar;
+  if (builtIn) return builtIn;
+
+  const custom = getCustomApiProviders().find(
+    (p) => p.id === providerId || p.id.toLowerCase() === norm,
   );
+  if (custom) {
+    if (custom.type === "anthropic") return "ANTHROPIC_API_KEY";
+    if (custom.type === "openrouter") return "OPENROUTER_API_KEY";
+    return "OPENAI_COMPAT_API_KEY";
+  }
+
+  if (norm.startsWith("custom-") || norm === "__custom_provider__" || norm.length > 0) {
+    return "OPENAI_COMPAT_API_KEY";
+  }
+
+  return null;
 }
 
 /**
@@ -432,10 +480,22 @@ export function getProviderApiKeyEnvVar(providerId: string): string | null {
  * Databricks, which uses OAuth PKCE).
  */
 export function getProviderApiKeyLabel(providerId: string): string | null {
-  return (
-    PROVIDER_CREDENTIAL_CONFIG[providerId.trim().toLowerCase()]?.apiKeyLabel ??
-    null
+  const norm = providerId.trim().toLowerCase();
+  const builtIn = PROVIDER_CREDENTIAL_CONFIG[norm]?.apiKeyLabel;
+  if (builtIn) return builtIn;
+
+  const custom = getCustomApiProviders().find(
+    (p) => p.id === providerId || p.id.toLowerCase() === norm,
   );
+  if (custom) {
+    return `${custom.name} API Key`;
+  }
+
+  if (norm.startsWith("custom-") || norm === "__custom_provider__" || norm.length > 0) {
+    return "API Key";
+  }
+
+  return null;
 }
 
 /**

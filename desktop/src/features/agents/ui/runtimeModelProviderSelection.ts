@@ -7,6 +7,7 @@ import {
   getProviderApiKeyEnvVar,
   shouldClearKnownModelForSelectionScope,
 } from "./agentConfigOptions";
+import { getCustomApiProviders } from "@/features/agents/lib/customApiProviders";
 import { shouldClearModelForRuntimeChange } from "./personaRuntimeModel";
 import {
   envVarsClearingManagedApiKey,
@@ -146,6 +147,34 @@ export function selectionOnProviderDropdownChange(
   );
   next.isCustomProviderEditing = false;
   next.provider = nextProvider;
+
+  if (nextProvider) {
+    const custom = getCustomApiProviders().find((p) => p.id === nextProvider);
+    if (custom) {
+      const requiredEnvVar = getProviderApiKeyEnvVar(nextProvider);
+      if (requiredEnvVar) {
+        next.envVars = { ...next.envVars, [requiredEnvVar]: custom.apiKey };
+      }
+      if (custom.baseUrl) {
+        next.envVars = {
+          ...next.envVars,
+          OPENAI_COMPAT_BASE_URL: custom.baseUrl,
+        };
+      }
+      if (custom.defaultModel) {
+        next.model = custom.defaultModel;
+      }
+    } else if (nextProvider === "gemini") {
+      next.envVars = {
+        ...next.envVars,
+        OPENAI_COMPAT_BASE_URL:
+          "https://generativelanguage.googleapis.com/v1beta/openai/",
+      };
+      if (!next.model) {
+        next.model = "gemini-2.0-flash";
+      }
+    }
+  }
 
   if (params.clearModelWhenApiKeyMissing) {
     const requiredEnvVar = getProviderApiKeyEnvVar(nextProvider);

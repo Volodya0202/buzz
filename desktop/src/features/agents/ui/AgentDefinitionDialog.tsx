@@ -70,6 +70,7 @@ import {
 import { useBakedBuildEnvKeysQuery, useRuntimeFileConfigQuery } from "../hooks";
 import { useAgentDialogDefaults } from "./useAgentDialogDefaults";
 import { AgentDefaultsDialog } from "./AgentDefaultsDialog";
+import { CreateCustomProviderDialog } from "./CreateCustomProviderDialog";
 import { AgentHarnessField } from "./AgentHarnessField";
 import {
   AgentAiConfigurationModeField,
@@ -152,6 +153,8 @@ export function AgentDefinitionDialog({
   const [aiConfigurationMode, setAiConfigurationMode] =
     React.useState<AgentAiConfigurationMode>("defaults");
   const [isCustomProviderEditing, setIsCustomProviderEditing] =
+    React.useState(false);
+  const [isAddCustomProviderOpen, setIsAddCustomProviderOpen] =
     React.useState(false);
   const [namePoolText, setNamePoolText] = React.useState("");
   const [envVars, setEnvVars] = React.useState<EnvVarsValue>({});
@@ -597,7 +600,11 @@ export function AgentDefinitionDialog({
         label: option.label,
         value: option.id,
       })),
-    { label: "Custom provider...", value: CUSTOM_PROVIDER_DROPDOWN_VALUE },
+    {
+      label: "+ Добавить провайдер по API ключу...",
+      value: "__add_custom_provider_key__",
+    },
+    { label: "Кастомный провайдер (ID)...", value: CUSTOM_PROVIDER_DROPDOWN_VALUE },
   ];
   const modelDropdownOptions: PersonaDropdownOption[] =
     buildModelDropdownOptions({
@@ -703,6 +710,10 @@ export function AgentDefinitionDialog({
   );
 
   function handleProviderDropdownChange(nextValue: string) {
+    if (nextValue === "__add_custom_provider_key__") {
+      setIsAddCustomProviderOpen(true);
+      return;
+    }
     setHasUserChanges(true);
     const nextProvider =
       nextValue === AUTO_PROVIDER_DROPDOWN_VALUE ? "" : nextValue;
@@ -1001,18 +1012,28 @@ export function AgentDefinitionDialog({
   );
 
   return (
-    <AgentDefinitionDialogShell
-      description={description}
-      embedded={embedded}
-      footer={footer}
-      onOpenChange={(nextOpen) => {
-        if (!nextOpen && (isPending || isAvatarUploadPending)) return;
-        handleOpenChange(nextOpen);
-      }}
-      open={open}
-      title={title}
-    >
-      {form}
-    </AgentDefinitionDialogShell>
+    <>
+      <AgentDefinitionDialogShell
+        description={description}
+        embedded={embedded}
+        footer={footer}
+        onOpenChange={(nextOpen) => {
+          if (!nextOpen && (isPending || isAvatarUploadPending)) return;
+          handleOpenChange(nextOpen);
+        }}
+        open={open}
+        title={title}
+      >
+        {form}
+      </AgentDefinitionDialogShell>
+
+      <CreateCustomProviderDialog
+        open={isAddCustomProviderOpen}
+        onOpenChange={setIsAddCustomProviderOpen}
+        onProviderCreated={(created) => {
+          handleProviderDropdownChange(created.id);
+        }}
+      />
+    </>
   );
 }

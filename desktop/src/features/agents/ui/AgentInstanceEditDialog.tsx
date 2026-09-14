@@ -90,6 +90,7 @@ import { resolveModelFieldStatusMessage } from "./agentConfigControls";
 import { AdvancedRequiredBadge } from "./AdvancedRequiredBadge";
 import { showAgentProfileSyncWarning } from "./agentProfileSyncWarning";
 import { AddCustomHarnessDialog } from "./AddCustomHarnessDialog";
+import { CreateCustomProviderDialog } from "./CreateCustomProviderDialog";
 import {
   ADD_CUSTOM_HARNESS_OPTION,
   runtimeDropdownAction,
@@ -148,6 +149,8 @@ export function AgentInstanceEditDialog({
   const [isCustomModelEditing, setIsCustomModelEditing] = React.useState(false);
   const [provider, setProvider] = React.useState(agent.provider ?? "");
   const [isCustomProviderEditing, setIsCustomProviderEditing] =
+    React.useState(false);
+  const [isAddCustomProviderOpen, setIsAddCustomProviderOpen] =
     React.useState(false);
   const [envVars, setEnvVars] = React.useState<EnvVarsValue>(agent.envVars);
   const [autoRestartOnConfigChange, setAutoRestartOnConfigChange] =
@@ -574,6 +577,10 @@ export function AgentInstanceEditDialog({
   );
 
   function handleProviderDropdownChange(nextValue: string) {
+    if (nextValue === "__add_custom_provider_key__") {
+      setIsAddCustomProviderOpen(true);
+      return;
+    }
     const nextProvider =
       nextValue === AUTO_PROVIDER_DROPDOWN_VALUE ? "" : nextValue;
     if (nextProvider === "relay-mesh" && selectedRuntimeId !== "buzz-agent") {
@@ -896,7 +903,11 @@ export function AgentInstanceEditDialog({
           : option.label,
       value: option.id || AUTO_PROVIDER_DROPDOWN_VALUE,
     })),
-    { label: "Custom provider...", value: CUSTOM_PROVIDER_DROPDOWN_VALUE },
+    {
+      label: "+ Добавить провайдер по API ключу...",
+      value: "__add_custom_provider_key__",
+    },
+    { label: "Кастомный провайдер (ID)...", value: CUSTOM_PROVIDER_DROPDOWN_VALUE },
   ];
 
   const previewLabel = name.trim() || "Agent name";
@@ -911,7 +922,8 @@ export function AgentInstanceEditDialog({
     (updateMutation.error instanceof Error ? updateMutation.error : null);
 
   return (
-    <Dialog onOpenChange={handleOpenChange} open={open}>
+    <>
+      <Dialog onOpenChange={handleOpenChange} open={open}>
       <ChooserDialogContent
         className="max-w-3xl border-0"
         contentClassName="pt-3"
@@ -1221,5 +1233,14 @@ export function AgentInstanceEditDialog({
         </div>
       </ChooserDialogContent>
     </Dialog>
+
+    <CreateCustomProviderDialog
+      open={isAddCustomProviderOpen}
+      onOpenChange={setIsAddCustomProviderOpen}
+      onProviderCreated={(created) => {
+        handleProviderDropdownChange(created.id);
+      }}
+    />
+  </>
   );
 }

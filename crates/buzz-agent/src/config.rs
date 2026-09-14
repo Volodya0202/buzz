@@ -632,10 +632,19 @@ impl Config {
     pub fn from_env() -> Result<Self, String> {
         let databricks_host = env("DATABRICKS_HOST");
         let databricks_model = env("DATABRICKS_MODEL");
+        let requested_provider = env("BUZZ_AGENT_PROVIDER");
+        let is_gemini_requested = requested_provider
+            .as_deref()
+            .map(|p| p.eq_ignore_ascii_case("gemini") || p.eq_ignore_ascii_case("google"))
+            .unwrap_or(false);
+
+        let openai_compat_key = env("OPENAI_COMPAT_API_KEY")
+            .or_else(|| if is_gemini_requested { env("GEMINI_API_KEY") } else { None });
+
         let provider = resolve_provider(
-            env("BUZZ_AGENT_PROVIDER").as_deref(),
+            requested_provider.as_deref(),
             env("ANTHROPIC_API_KEY").as_deref(),
-            env("OPENAI_COMPAT_API_KEY").as_deref(),
+            openai_compat_key.as_deref(),
             env("OPENROUTER_API_KEY").as_deref(),
         )?;
 
@@ -662,16 +671,40 @@ impl Config {
                 env_or("ANTHROPIC_BASE_URL", "https://api.anthropic.com"),
                 OpenAiApi::Auto, // unused for Anthropic
             ),
-            Provider::OpenAi => (
-                req("OPENAI_COMPAT_API_KEY")?,
-                resolve_model(
-                    buzz_agent_model.as_deref(),
-                    env("OPENAI_COMPAT_MODEL").as_deref(),
+            Provider::OpenAi => {
+                let default_url = if is_gemini_requested {
+                    "https://generativelanguage.googleapis.com/v1beta/openai/"
+                } else {
+                    "https://api.openai.com/v1"
+                };
+                let default_model = if is_gemini_requested {
+                    Some("gemini-2.0-flash")
+                } else {
+                    None
+                };
+                (
+                    openai_compat_key
+                        .or_else(|| env("OPENAI_COMPAT_API_KEY"))
+                        .or_else(|| env("GEMINI_API_KEY"))
+                        .ok_or_else(|| {
+                            if is_gemini_requested {
+                                "config: GEMINI_API_KEY or OPENAI_COMPAT_API_KEY required".to_string()
+                            } else {
+                                "config: OPENAI_COMPAT_API_KEY required".to_string()
+                            }
+                        })?,
+                    resolve_model(
+                        buzz_agent_model.as_deref(),
+                        env("OPENAI_COMPAT_MODEL")
+                            .or_else(|| env("GEMINI_MODEL"))
+                            .as_deref()
+                            .or(default_model),
+                    )
+                    .ok_or_else(|| "config: OPENAI_COMPAT_MODEL required".to_string())?,
+                    env_or("OPENAI_COMPAT_BASE_URL", default_url),
+                    parse_openai_api(env("OPENAI_COMPAT_API").as_deref())?,
                 )
-                .ok_or_else(|| "config: OPENAI_COMPAT_MODEL required".to_string())?,
-                env_or("OPENAI_COMPAT_BASE_URL", "https://api.openai.com/v1"),
-                parse_openai_api(env("OPENAI_COMPAT_API").as_deref())?,
-            ),
+            }
             Provider::Databricks | Provider::DatabricksV2 => (
                 env("DATABRICKS_TOKEN").unwrap_or_default(),
                 resolve_model(buzz_agent_model.as_deref(), databricks_model.as_deref())
@@ -937,10 +970,17 @@ fn resolve_provider(
                 "openai" | "openai-compat" => Err(
                     "config: OPENAI_COMPAT_API_KEY required".into(),
                 ),
+                "gemini" | "google" if present_nonempty(openai_key) => Ok(Provider::OpenAi),
+                "gemini" | "google" => Err(
+                    "config: GEMINI_API_KEY or OPENAI_COMPAT_API_KEY required".into(),
+                ),
                 "databricks" => Ok(Provider::Databricks),
                 "databricks_v2" | "databricks-v2" => Ok(Provider::DatabricksV2),
                 "openrouter" if present_nonempty(openrouter_key) => Ok(Provider::OpenRouter),
                 "openrouter" => Err("config: OPENROUTER_API_KEY required".into()),
+                _ if present_nonempty(openai_key) => Ok(Provider::OpenAi),
+                _ if present_nonempty(anthropic_key) => Ok(Provider::Anthropic),
+                _ if present_nonempty(openrouter_key) => Ok(Provider::OpenRouter),
                 _ => Err(format!(
                     "config: BUZZ_AGENT_PROVIDER={raw} not supported"
                 )),
@@ -1335,6 +1375,30 @@ mod tests {
     fn resolve_provider_unsupported_error_preserves_user_casing() {
         let err = resolve_provider(Some("OpenAIish"), None, None, None).unwrap_err();
         assert!(err.contains("BUZZ_AGENT_PROVIDER=OpenAIish"));
+    }
+
+    #[test]
+    fn resolve_provider_custom_and_gemini() {
+        assert_eq!(
+            resolve_provider(Some("gemini"), None, Some("AIzaSy..."), None).unwrap(),
+            Provider::OpenAi
+        );
+        assert_eq!(
+            resolve_provider(Some("google"), None, Some("ya29..."), None).unwrap(),
+            Provider::OpenAi
+        );
+        assert_eq!(
+            resolve_provider(Some("custom-groq"), None, Some("gsk_..."), None).unwrap(),
+            Provider::OpenAi
+        );
+        assert_eq!(
+            resolve_provider(Some("custom-anthropic"), Some("sk-ant-..."), None, None).unwrap(),
+            Provider::Anthropic
+        );
+        assert_eq!(
+            resolve_provider(Some("custom-openrouter"), None, None, Some("sk-or-...")).unwrap(),
+            Provider::OpenRouter
+        );
     }
 
     #[test]

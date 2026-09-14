@@ -41,6 +41,10 @@ import {
   getProviderApiKeyLabel,
   runtimeSupportsLlmProviderSelection,
 } from "@/features/agents/ui/agentConfigOptions";
+import { CreateCustomProviderDialog } from "@/features/agents/ui/CreateCustomProviderDialog";
+import { getCustomApiProviders } from "@/features/agents/lib/customApiProviders";
+
+const ADD_PROVIDER_KEY_DROPDOWN_VALUE = "__add_custom_provider_key__";
 import {
   AgentConfigTextInput,
   AgentDropdownSelect,
@@ -520,7 +524,14 @@ export function AgentConfigFields({
     },
   });
 
+  const [createCustomProviderOpen, setCreateCustomProviderOpen] =
+    React.useState(false);
+
   function handleProviderChange(value: string) {
+    if (value === ADD_PROVIDER_KEY_DROPDOWN_VALUE) {
+      setCreateCustomProviderOpen(true);
+      return;
+    }
     userEditedProviderRef.current = true;
     const previousApiKey = getProviderApiKeyEnvVar(effectiveProvider);
     if (value === CUSTOM_PROVIDER_DROPDOWN_VALUE) {
@@ -545,6 +556,23 @@ export function AgentConfigFields({
     ) {
       delete nextEnvVars[previousApiKey];
     }
+
+    // Auto-inject credentials for custom providers or Gemini
+    if (nextProvider) {
+      const custom = getCustomApiProviders().find((p) => p.id === nextProvider);
+      if (custom) {
+        if (nextApiKey) {
+          nextEnvVars[nextApiKey] = custom.apiKey;
+        }
+        if (custom.baseUrl) {
+          nextEnvVars["OPENAI_COMPAT_BASE_URL"] = custom.baseUrl;
+        }
+      } else if (nextProvider === "gemini") {
+        nextEnvVars["OPENAI_COMPAT_BASE_URL"] =
+          "https://generativelanguage.googleapis.com/v1beta/openai/";
+      }
+    }
+
     const providerChanged = nextProvider !== (config.provider ?? null);
 
     onIsCustomProviderChange(false);
@@ -669,7 +697,13 @@ export function AgentConfigFields({
         value: opt.id || AUTO_PROVIDER_DROPDOWN_VALUE,
       })),
     ...(showCustomProviderOption
-      ? [{ label: "Custom provider…", value: CUSTOM_PROVIDER_DROPDOWN_VALUE }]
+      ? [
+          {
+            label: "+ Добавить провайдер по API ключу...",
+            value: ADD_PROVIDER_KEY_DROPDOWN_VALUE,
+          },
+          { label: "Кастомный провайдер (ID)...", value: CUSTOM_PROVIDER_DROPDOWN_VALUE },
+        ]
       : []),
   ];
   const providerSelect = useCustomSelect ? (
@@ -979,20 +1013,28 @@ export function AgentConfigFields({
     </>
   );
 
-  if (unstyled) {
-    return (
-      <div
-        className={progressiveDefaults ? "space-y-5" : "space-y-7"}
-        data-testid="global-agent-config-fields"
-      >
-        {content}
-      </div>
-    );
-  }
-
   return (
-    <SettingsOptionGroup data-testid="global-agent-config-fields">
-      {content}
-    </SettingsOptionGroup>
+    <>
+      {unstyled ? (
+        <div
+          className={progressiveDefaults ? "space-y-5" : "space-y-7"}
+          data-testid="global-agent-config-fields"
+        >
+          {content}
+        </div>
+      ) : (
+        <SettingsOptionGroup data-testid="global-agent-config-fields">
+          {content}
+        </SettingsOptionGroup>
+      )}
+
+      <CreateCustomProviderDialog
+        open={createCustomProviderOpen}
+        onOpenChange={setCreateCustomProviderOpen}
+        onProviderCreated={(created) => {
+          handleProviderChange(created.id);
+        }}
+      />
+    </>
   );
 }
