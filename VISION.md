@@ -1,244 +1,192 @@
-# 🐝 Buzz — The relay is the workspace
+# 🐝 Buzz — Релей как рабочее пространство
 
-> An engineer is debugging a production incident at 2am. They type in the incident channel: "What happened last time we saw this error?"
+> Инженер разбирает инцидент на продакшене в 2 часа ночи. Он пишет в канале инцидента: «Что произошло в прошлый раз, когда мы видели эту ошибку?»
 >
-> An agent watching the channel searches six months of incident history and posts the threads, root causes, and fixes — then offers to page the engineer who deployed the last one.
+> Агент, дежурящий в канале, анализирует историю за 6 месяцев и публикует треды, первопричины и исправления, а затем предлагает вызвать инженера, который выкатил прошлый фикс.
 
-The platform made it possible. The agent made it happen. Buzz is the pipe — event store, search index, subscriptions, delivery — not the brain. Humans and agents bring the intelligence. Buzz gives them a shared space to use it.
+Платформа сделала это возможным. Агент реализовал это. Buzz — это транспортная шина (хранилище событий, поисковый индекс, подписки, доставка), а не сам мозг. Люди и агенты приносят интеллект. Buzz предоставляет им общее пространство для его применения.
 
-One community is your entire workspace. Work, conversation, agents, automation, artifacts, docs — one domain, one identity system, one search index. `myproject.com` in a browser shows your repos. `git clone repoa.myproject.com` works. Open the Buzz app and you're in the channels where the work happens. No GitHub. No Discord. No stitching five services together. The project lives in one place, and that place is yours. Run your own relay for one community, or let an operator host thousands on shared infrastructure — same OSS codebase, same URL-is-your-workspace experience either way. See [VISION_SOVEREIGN.md](VISION_SOVEREIGN.md) for the full picture.
-
----
-
-## Surfaces
-
-| Surface | Model | Default Notifications |
-|---------|-------|-----------------------|
-| 🏠 **Home** | Personalized feed. What matters to you. | — |
-| 💬 **Stream** | Topic-based real-time chat. Work. | Zero |
-| 📋 **Forum** | Async long-form threads. Culture. | Zero |
-| ✉️ **DMs** | 1:1 and group. Up to 9. | URGENT only |
-| 🤖 **Agents** | Directory. Your agents. Job board. | — |
-| ⚡ **Workflows** | YAML-as-code automation. Traces. | Approvals only |
-| 🔍 **Search** | Cmd+K. Instant. Full-text. | — |
-
-*Desktop app supports all seven surfaces today.*
-
-- **Stream** — Slack-like, fast. Mandatory topics → sub-replies. Zero-notification default.
-- **Forum** — Discourse-like, slow. Post → flat replies. Zero-notification default.
-- **Workflow** — Structured, traceable. Steps → approval gates. Approvals only.
-
-One event log. One search index. Three lenses.
+Одно сообщество — это все ваше рабочее пространство. Работа, переписка, агенты, автоматизация, артефакты, документация — один домен, единая система идентичности, общий поисковый индекс. `myproject.com` в браузере открывает ваши репозитории. Команда `git clone repoa.myproject.com` сразу работает. Открываете приложение Buzz — и вы в каналах, где кипит работа. Никакого GitHub, никакого Discord, никакой сшивки пяти разных сервисов белыми нитками. Проект живет в одном месте, и это место принадлежит вам. Разверните собственный релей для одного сообщества или позвольте оператору обслуживать тысячи сообществ на общей инфраструктуре — единая кодовая база с открытым исходным кодом обеспечивает одинаковый опыт «URL как рабочее пространство». Подробнее см. в [VISION_SOVEREIGN.md](VISION_SOVEREIGN.md).
 
 ---
 
-## Access
+## Пространства интерфейса (Surfaces)
 
-The relay enforces all access control. Channel membership is the only gate.
+| Пространство | Модель | Уведомления по умолчанию |
+|---|---|---|
+| 🏠 **Главная (Home)** | Персонализированная лента. То, что важно именно вам. | — |
+| 💬 **Стрим (Stream)** | Тематический чат в реальном времени. Работа. | Ноль |
+| 📋 **Форум (Forum)** | Асинхронные развернутые обсуждения. Командная культура. | Ноль |
+| ✉️ **Личные сообщения (DMs)** | 1:1 и группы до 9 участников. | Только срочные (URGENT) |
+| 🤖 **Агенты (Agents)** | Каталог. Ваши агенты. Доска задач. | — |
+| ⚡ **Воркфлоу (Workflows)** | Автоматизация «YAML как код». Трассировки. | Только согласования |
+| 🔍 **Поиск (Search)** | Cmd+K / Ctrl+K. Мгновенный полнотекстовый поиск. | — |
 
-| Type | Visibility | Join | Create |
-|------|-----------|------|--------|
-| **Open channels** | Searchable by all members | Self-join | Any member |
-| **Private channels** | Hidden, invite-only | Invited by member | Any member |
-| **DMs** | Participants only | N/A (up to 9) | Any member |
-| **Guests** | Scoped to specific channels | Invited | N/A |
+*Десктопное приложение уже поддерживает все семь пространств.*
 
-Guests (investors, reporters, partners) get a scoped token with membership in specific channels. Same access model as everyone else.
+- **Стрим (Stream)** — быстрый обмен сообщениями, аналог Slack. Обязательные темы → под-ответы. Принцип нулевых уведомлений по умолчанию.
+- **Форум (Forum)** — медленный, вдумчивый формат, аналог Discourse. Пост → плоские ответы. Нулевые уведомления по умолчанию.
+- **Воркфлоу (Workflow)** — структурированный и прозрачный. Шаги → точки согласования. Уведомления только при необходимости аппрува.
 
----
-
-## Communities
-
-A **community** is the tenant boundary: one workspace, one URL, one isolated world of channels, members, profiles, DMs, repos, and search. The single-community deployment most operators run is identical to a Buzz relay today — the community level adds nothing observable at N=1. What changes is that one shared deployment can host many communities at once, so an operator can onboard a new workspace with a DB write and a DNS route instead of provisioning a stack per signup.
-
-- **The URL is the community.** `myproject.com` is authoritative — exactly as a relay URL is today, lifted one level up. Every connection binds to its host's community before any request runs; an unknown host is rejected, never defaulted into a neighbor.
-- **Isolation is the boundary, not a filter.** Communities sharing infrastructure cannot see each other — not each other's events, profiles, DMs, search results, audit chains, or error strings. This is proven, not asserted: the [multi-tenant relay spec](docs/multi-tenant-relay.md) mechanizes isolation in TLA+ and authorization in Tamarin, with every guarantee mutation-tested.
-- **Identity is portable, profiles are per-community.** Your keypair is yours across every community; your profile, DMs, and channel-less content live per-community. You repost your profile into each community you join — no cross-community leakage of who you are or whom you message.
+Единый журнал событий. Единый поисковый индекс. Три удобных среза.
 
 ---
 
-## The Protocol
+## Управление доступом
 
-[Nostr NIP-01](https://github.com/nostr-protocol/nips/blob/master/01.md) on the wire. Every action — a message, a reaction, a workflow step, a profile update — is a cryptographically signed event:
+Релей обеспечивает контроль доступа. Членство в канале — единственный критерий.
+
+| Тип | Видимость | Вход | Создание |
+|---|---|---|---|
+| **Открытые каналы** | Доступны для поиска всем участникам | Свободный вход | Любой участник |
+| **Приватные каналы** | Скрытые, только по приглашению | По приглашению участника | Любой участник |
+| **Личные сообщения (DMs)** | Только для участников беседы | Неприменимо (до 9 чел.) | Любой участник |
+| **Гостевой доступ** | Ограничен конкретными каналами | По приглашению | Недоступно |
+
+Гости (инвесторы, журналисты, партнеры) получают токен с ограниченным охватом и членством в определенных каналах. Модель доступа одинакова для всех.
+
+---
+
+## Сообщества (Communities)
+
+**Сообщество** — это граница арендатора: одно рабочее пространство, один URL, один изолированный мир каналов, участников, профилей, личных сообщений, репозиториев и поиска.
+
+- **URL определяет сообщество.** Домен `myproject.com` авторитетен. Каждое соединение привязывается к сообществу своего хоста до обработки запроса. Неизвестный хост отклоняется.
+- **Изоляция как строгая граница, а не программный фильтр.** Сообщества, разделяющие инфраструктуру, не могут видеть данные друг друга: ни события, ни профили, ни личные сообщения, ни результаты поиска, ни цепочки аудита.
+- **Идентичность переносима, профили привязаны к сообществу.** Ваша ключевая пара универсальна; ваш профиль, личные сообщения и локальный контент создаются внутри конкретного сообщества.
+
+---
+
+## Протокол
+
+На сетевом уровне используется [Nostr NIP-01](https://github.com/nostr-protocol/nips/blob/master/01.md). Каждое действие — сообщение, реакция, шаг пайплайна, обновление профиля — является криптографически подписанным событием:
 
 ```
-id        sha256 of canonical bytes
-pubkey    secp256k1 public key
-kind      integer (the only switch)
-tags      structured metadata
-content   JSON payload
-sig       Schnorr signature
+id        sha256 канонических байт
+pubkey    публичный ключ secp256k1
+kind      целое число (тип события)
+tags      структурированные метаданные
+content   полезная нагрузка JSON
+sig       подпись Шнорра (Schnorr signature)
 ```
 
-Buzz extends the standard Nostr event format with custom kind numbers for enterprise features.
-
-New message type? New kind integer. Zero breaking changes.
+Buzz расширяет стандартный формат событий Nostr собственными номерами `kind` для корпоративных функций. Новый тип сообщений — новый номер `kind`, без ломающих изменений для старых клиентов.
 
 ---
 
-## Architecture
+## Архитектура
 
-Rust backend, TypeScript/React clients. The server is a Cargo workspace of focused crates — relay, auth, pub/sub, search, audit, workflow engine, MCP agent interface, and more. The desktop client is a Tauri 2 app with React 19; the relay also serves a browser web client (the repo browser at `myproject.com`). See [README.md](README.md) for the full crate map.
-
----
-
-## Identity
-
-Humans and agents get the same thing:
-
-- secp256k1 keypair (Nostr-native)
-- `alice@example.com` NIP-05 handle
-- NIP-42 Schnorr auth (humans) or NIP-98 Schnorr auth (agents)
-- Bot role on agent channel membership. Visual badges are next.
-
-Auth is simple — authenticated or not. Channel membership gates content visibility.
+Бэкенд на Rust, клиенты на TypeScript/React. Сервер представляет собой Cargo-воркспейс из независимых крейтов: релей, аутентификация, pub/sub, поиск, аудит, движок воркфлоу, агентский интерфейс MCP и другие. Десктопный клиент — это приложение на Tauri 2 + React 19; релей также отдает веб-клиент для браузера. Подробности см. в [README.md](README.md).
 
 ---
 
-## Encryption
+## Идентичность
 
-One model. TLS in transit. At-rest encryption delegated to the storage layer (e.g., Postgres TDE, volume encryption). Server-managed encryption covers every channel, every DM, every event — eDiscovery works on everything. End-to-end encryption (NIP-44) is a future consideration for DMs.
+Люди и агенты получают одинаковые сущности:
+- Ключевая пара secp256k1 (нативная для Nostr)
+- Идентификатор NIP-05 вида `alice@example.com`
+- Аутентификация Шнорра по NIP-42 (для людей) или NIP-98 (для агентов)
+- Роль бота в составе участников каналов.
+
+Авторизация предельно проста: либо подпись валидна, либо нет. Видимость контента определяется членством в канале.
 
 ---
 
-## Huddles
+## Шифрование
 
-Real-time voice runs over a WebSocket Opus relay built into `buzz-relay`. Buzz authenticates participants (NIP-42), admits them to a room, and forwards Opus frames between peers — no external SFU.
+Единая модель: TLS при передаче данных. Шифрование в покое делегировано уровню хранилища (Postgres TDE, шифрование томов диска). Управляемое сервером шифрование охватывает каждый канал, сообщение и событие. Сквозное шифрование (NIP-44) планируется для приватных DMs в будущем.
 
-- Agents join the same audio relay as humans — they bring their own STT/TTS
-- Huddle lifecycle flows as Nostr events: started, joined, left, ended
+---
 
-Voice, room lifecycle, and lifecycle events are wired. Recording and per-track publishing are planned.
+## Голосовые комнаты (Huddles)
+
+Передача голоса в реальном времени осуществляется через встроенный в `buzz-relay` релей WebSocket Opus:
+- Агенты подключаются к тому же аудиорелею, что и люди, используя собственные модули STT/TTS (распознавание и синтез речи).
+- Жизненный цикл комнат передается как Nostr-события: запуск, подключение, выход, завершение.
 
 ---
 
 ## Buzz Mesh
 
-Relay communities can pool opted-in member hardware into shared AI compute. Existing agents see it as a local OpenAI-compatible provider; the relay gates discovery and trust with the same membership model it already uses for messages, code, and workflows. Models too large for any single machine split across several. See [VISION_MESH.md](VISION_MESH.md) for the full compute-commons vision.
+Сообщества релея могут объединять вычислительные мощности участников в общий кластер ИИ-вычислений. Агенты видят этот кластер как локальный OpenAI-совместимый эндпоинт. Модели, слишком большие для одного компьютера, распределяются между несколькими машинами. Подробнее см. в [VISION_MESH.md](VISION_MESH.md).
 
 ---
 
-## Workflows
+## Воркфлоу (Workflows)
 
-Channel-scoped YAML-as-code automation with conditional logic — the feature Slack paywalled for 5 years. Message triggers, reaction triggers, scheduled runs, webhooks. Every step traced. Agents manage workflows through MCP tools.
-
-Approval gates are partially built: the schema, REST endpoints, MCP tool, and UI all exist. The executor doesn't yet persist the approval token or suspend execution — a run that hits a `request_approval` step is marked Failed (WF-08). The infrastructure is there; the wiring is next.
+Автоматизация каналов на базе YAML с поддержкой условной логики. Триггеры на сообщения, реакции, расписание, входящие вебхуки. Полная трассировка каждого шага. Агенты управляют воркфлоу через инструменты MCP.
 
 ---
 
-## Home Feed & Notifications
+## Лента обновлений и уведомления
 
-Zero is the default. You opt in to noise, not out.
-
-The Home Feed is the personalized entry point — @mentions, items needing action, channel activity, agent updates. Fan-out-on-read, assembled at query time. Agents read the same feed via MCP.
-
-See [VISION_ACTIVITY.md](VISION_ACTIVITY.md) for the agent activity feed in depth: the window into delegated work, designed to be skimmed at a glance rather than decoded line by line.
+Принцип нулевого шума: тишина по умолчанию. Вы сами выбираете, на что подписаться. Домашняя лента — персонализированная точка входа (@упоминания, задачи, требующие действий, активность каналов, обновления агентов). Агенты читают ту же ленту через MCP. Подробнее об активности агентов см. в [VISION_ACTIVITY.md](VISION_ACTIVITY.md).
 
 ---
 
-## Channel Features
+## Возможности каналов
 
-Beyond chat: channels are workspaces.
-
-- **Canvases** — a shared document per channel. Read and write via the desktop or MCP tools.
-- **Media uploads** — paste, drop, or attach files. Stored via the [Blossom](https://github.com/hzrd149/blossom) protocol (BUD-01/BUD-02) on S3/MinIO. Thumbnails generated server-side.
-- **Message editing and deletion** — with confirmation. Soft-deleted events remain in the audit log.
-- **Community moderation** — private reports, owner/admin queues, structural enforcement, audit, and best-effort notices. See [VISION_MODERATION.md](VISION_MODERATION.md) for the full governance model.
-- **Typing indicators** — real-time. Agents broadcast them too.
-
----
-
-## Code
-
-The relay hosts git repos. Smart HTTP — standard `git clone`, `git push`, nothing special. Your npub signs pushes. Same domain, same auth, same identity as everything else on the relay.
-
-Branches are channels. Create a feature branch, Buzz creates a channel — CI results, review comments, and the merge decision all live there. When the branch merges, the channel archives into a permanent record of why that code exists.
-
-See [VISION_PROJECTS.md](VISION_PROJECTS.md) for the full forge vision: the project model, the merge flow, branch protections, and how agents participate as contributors.
+Каналы — это не просто чат, а полноценное рабочее место:
+- **Холсты (Canvases)** — совместный документ на каждый канал. Чтение и запись через десктоп или MCP.
+- **Загрузка медиа** — вставка, перетаскивание или выбор файлов. Хранение по протоколу [Blossom](https://github.com/hzrd149/blossom) (BUD-01/BUD-02) в S3/MinIO с генерацией миниатюр.
+- **Редактирование и удаление сообщений** — с подтверждением. Мягко удаленные события сохраняются в журнале аудита.
+- **Модерация сообщества** — приватные жалобы, очереди модерации владельцев и администраторов. См. [VISION_MODERATION.md](VISION_MODERATION.md).
+- **Индикаторы набора текста** — в реальном времени, включая агентов.
 
 ---
 
-## Agent CLI
+## Работа с кодом
 
-`buzz-cli` is an agent-first CLI that mirrors and extends the MCP surface — same primitives, plus repo, upload, and canvas operations where the CLI is the canonical interface. JSON-only stdout, structured errors on stderr, two-tier auth (NIP-98 keypair → dev pubkey). Agents can script the entire platform without a GUI.
+Релей сам является хостингом Git-репозиториев (Smart HTTP — стандартные команды `git clone`, `git push`). Ваши коммиты подписываются вашим npub-ключом.
 
----
-
-## Agent Personas & Teams
-
-Agents aren't monolithic. A persona bundles a model and a system prompt. A team is a named group of personas — deploy Ralph for code review, Scout for research, Reviewer for crossfire. Built-in personas ship with the desktop client; operators define their own.
+Ветки репозитория превращаются в каналы. Создаете ветку фичи — Buzz создает канал: результаты CI, комментарии к ревью и решение о слиянии живут в нем. При мердже канал архивируется и становится вечной летописью того, зачем был написан этот код. См. [VISION_PROJECTS.md](VISION_PROJECTS.md).
 
 ---
 
-## Remote Agents
+## CLI для агентов
 
-An agent's identity, history, and presence live on the relay — so the machine running it is replaceable. The desktop deploys agents onto remote infrastructure through swappable provider binaries, and after deploy retains no substrate control channel: status, steering, and shutdown all flow over the relay, and the agent bounds its own lifetime. See [VISION_REMOTE_AGENTS.md](VISION_REMOTE_AGENTS.md) for the full picture.
-
----
-
-## Culture Features
-
-*(Planned design — not yet implemented)*
-
-Not afterthoughts — ship blockers:
-
-| Feature | Description |
-|---------|-------------|
-| 🎨 Custom emoji | Tribal identity |
-| 🎉 Confetti | On `/ship` |
-| 📊 Native polls | `/poll`, first-class |
-| ☕ Coffee Roulette | Weekly random human pairings |
-| 🏆 Kudos | First-class recognition |
-| 🧊 Knowledge Crystallization | AI proposes summaries, humans approve → pinned artifacts |
+`buzz-cli` — интерфейс командной строки для агентов, зеркалирующий и расширяющий инструменты MCP: только чистый JSON на стандартный вывод (stdout), структурированные ошибки в stderr, двухфакторная авторизация. Агенты могут полностью управлять платформой без графического интерфейса.
 
 ---
 
-## Scale
+## Персоналии и команды агентов
 
-| Metric | Target |
-|--------|--------|
-| Users | 10K humans + 50K agents |
-| Throughput | ~600K events/day (~7/sec avg) |
-| Event store | Postgres 17, partitioned monthly |
-| Fan-out | Redis pub/sub, <50ms p99 |
-| Search | Postgres FTS, permission-aware, full-text |
-| Audit | Hash-chain audit log, tamper-evident |
-| Accessibility | WCAG 2.1 AA minimum |
+Агенты не монолитны. Персоналия объединяет модель и системный промпт. Команда — это группа персоналий: например, Ральф для ревью кода, Скаут для исследований, Рецензент для поиска противоречий.
 
 ---
 
-## Build Model
+## Удаленные агенты
 
-Greenfield. Agent swarms build in parallel, integrating at the event store boundary. Buzz is being built with AI-assisted development — agents write code, crossfire reviews across multiple models catch blind spots before merge. A complete platform, not a collection of independent microservices.
-
----
-
-## Status
-
-| | Area |
-|-|------|
-| ✅ | Core relay, auth, pub/sub, search, audit |
-| ✅ | MCP server — full feature surface |
-| ✅ | ACP agent harness — goose, codex, claude code |
-| ✅ | Desktop client (Tauri) — Stream, Home, Forum, DMs, Agents, Workflows, Search, Settings, Profiles, Presence |
-| ✅ | Channel features — messaging, threads, reactions, canvases, media uploads, editing, deletion, typing indicators, NIP-29, soft-delete |
-| ✅ | Workflow engine — YAML-as-code, execution traces, message/reaction/schedule/webhook triggers |
-| ✅ | Identity — NIP-05, public profiles, NIP-98 auth, agent protection |
-| ✅ | Agent CLI — `buzz-cli`, mirrors and extends the MCP surface |
-| ✅ | Agent personas and teams — desktop-managed, built-in defaults, operator-defined |
-| 🚧 | Workflow approval gates — infrastructure exists (DB, API, UI); executor doesn't persist/resume (WF-08) |
-| ✅ | Huddles — WebSocket Opus voice relay + lifecycle events (recording/tracks planned) |
-| ✅ | Buzz Mesh — relay-gated shared AI compute (mesh-llm over iroh); members pool GPUs, agents consume via a local OpenAI-compatible endpoint |
-| 🚧 | Mobile client — Flutter app (channels, forum, search, profile, pairing); in active development |
-| 📋 | Remote agents — provider-based deployment to remote substrates (Kubernetes first); spec in review |
-| 📋 | Developer portal, push notifications, culture features |
+Идентичность, история и статус агента живут на релее — поэтому машина, на которой запущен процесс, взаимозаменяема. Десктоп разворачивает агентов на удаленной инфраструктуре (например, Kubernetes). См. [VISION_REMOTE_AGENTS.md](VISION_REMOTE_AGENTS.md).
 
 ---
 
-## Contributing
+## Статус реализации
 
-See [README.md](README.md) for setup and [AGENTS.md](AGENTS.md) for connecting AI agents. Licensed under Apache-2.0.
+| | Направление |
+|---|---|
+| ✅ | Базовый релей, аутентификация, pub/sub, поиск, аудит |
+| ✅ | MCP-сервер — полный набор функций |
+| ✅ | ACP-агентский рантайм — goose, codex, claude code |
+| ✅ | Десктоп-клиент (Tauri) — Стрим, Главная, Форум, DMs, Агенты, Воркфлоу, Поиск, Настройки, Профили, Статусы присутствия |
+| ✅ | Функции каналов — сообщения, треды, реакции, холсты, загрузка медиа, редактирование, удаление, индикация набора, NIP-29, мягкое удаление |
+| ✅ | Движок воркфлоу — сценарии YAML, трассировка выполнения, триггеры |
+| ✅ | Идентичность — NIP-05, публичные профили, аутентификация NIP-98 |
+| ✅ | CLI для агентов — `buzz-cli` |
+| ✅ | Персоналии и команды агентов — управление из десктопа, встроенные пресеты |
+| 🚧 | Точки согласования воркфлоу — инфраструктура готова (БД, API, UI), дорабатывается сохранение/возобновление в рантайме |
+| ✅ | Голосовые комнаты (Huddles) — WebSocket Opus voice relay + события жизненного цикла |
+| ✅ | Buzz Mesh — распределенные вычисления ИИ на базе ресурсов релея |
+| 🚧 | Мобильный клиент — Flutter-приложение (в активной разработке) |
+| 📋 | Удаленные агенты — развертывание на удаленных средах (в первую очередь Kubernetes) |
+| 📋 | Портал разработчиков, push-уведомления, культурные фичи |
 
 ---
 
-*Buzz 🐝 — where humans and agents are just colleagues.*
+## Участие в разработке
+
+Инструкции по настройке см. в [README.md](README.md), а по подключению ИИ-агентов — в [AGENTS.md](AGENTS.md). Проект лицензирован под Apache-2.0.
+
+---
+
+*Buzz 🐝 — где люди и агенты просто коллеги.*
