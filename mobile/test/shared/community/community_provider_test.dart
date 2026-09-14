@@ -152,6 +152,25 @@ void main() {
       },
     );
 
+    test('empty community resume still acknowledges the age fence', () async {
+      final acknowledgements = <bool>[];
+      container = ProviderContainer(
+        overrides: [
+          communityStorageProvider.overrideWithValue(communityStorage),
+          ageGateCommunitySnapshotWriterProvider.overrideWithValue((
+            communities, {
+            required settleFence,
+          }) async {
+            expect(communities, isEmpty);
+            acknowledgements.add(settleFence);
+          }),
+        ],
+      );
+      await container.read(suspendCommunitySnapshotForAgeCheckProvider)();
+      await container.read(resumeCommunitySnapshotAfterAgeCheckProvider)();
+      expect(acknowledgements, [false, true]);
+    });
+
     test('exports migrated communities on startup', () async {
       final community = Community.create(
         name: 'Migrated',
@@ -652,6 +671,82 @@ void main() {
         expect(settleFenceValues, [isFalse, isTrue]);
       },
     );
+
+    test(
+      'removal clears an ordinary empty snapshot after strict restoration',
+      () async {
+        final community = Community.create(
+          name: 'Restored',
+          relayUrl: 'https://restored.example.com',
+          nsec: nostr.Keys.generate().nsec,
+        ).copyWith(pushNotificationsEnabled: true);
+        await communityStorage.save(community);
+        container = createContainer();
+        await container.read(suspendCommunitySnapshotForAgeCheckProvider)();
+        // Bootstrap loads C while suspension exports an ordinary empty snapshot.
+        await container.read(communityListProvider.future);
+        await container.read(resumeCommunitySnapshotAfterAgeCheckProvider)();
+        expect(snapshots.last.single.nsec, community.nsec);
+
+        await container
+            .read(communityListProvider.notifier)
+            .removeCommunity(community.id);
+
+        expect(await communityStorage.loadAll(), isEmpty);
+        expect(
+          snapshots.map((items) => items.map((c) => c.id).toList()).toList(),
+          [
+            <String>[],
+            <String>[],
+            [community.id],
+            <String>[],
+          ],
+        );
+        expect(snapshots.last, isEmpty);
+      },
+    );
+
+    test('resume reloads storage after an in-flight snapshot mutation', () async {
+      final community = Community.create(
+        name: 'Changing',
+        relayUrl: 'https://changing.example.com',
+        nsec: nostr.Keys.generate().nsec,
+      ).copyWith(pushNotificationsEnabled: true);
+      await communityStorage.save(community);
+      final writeStarted = Completer<void>();
+      final releaseWrite = Completer<void>();
+      final strictSnapshots = <List<Community>>[];
+      container = ProviderContainer(
+        overrides: [
+          communityStorageProvider.overrideWithValue(communityStorage),
+          communitySnapshotWriterProvider.overrideWithValue((_) async {
+            writeStarted.complete();
+            await releaseWrite.future;
+            await communityStorage.save(
+              community.copyWith(pushNotificationsEnabled: false),
+            );
+          }),
+          ageGateCommunitySnapshotWriterProvider.overrideWithValue((
+            communities, {
+            required settleFence,
+          }) async {
+            strictSnapshots.add(List.of(communities));
+          }),
+        ],
+      );
+      await container.read(suspendCommunitySnapshotForAgeCheckProvider)();
+      final bootstrap = container.read(communityListProvider.future);
+      await writeStarted.future;
+      final resume = container.read(
+        resumeCommunitySnapshotAfterAgeCheckProvider,
+      )();
+      // Let resume reach its in-flight-write barrier before completing the mutation.
+      await Future<void>(() {});
+      releaseWrite.complete();
+      await bootstrap;
+      await resume;
+      expect(strictSnapshots.last.single.pushNotificationsEnabled, isFalse);
+    });
 
     test('removeCommunity removes from list', () async {
       container = createContainer();

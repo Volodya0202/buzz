@@ -132,12 +132,9 @@ final resumeCommunitySnapshotAfterAgeCheckProvider =
     Provider<CommunitySnapshotAgeGateAction>((ref) {
       return () async {
         try {
-          final communities = await ref
-              .read(communityStorageProvider)
-              .loadAll();
           await ref
               .read(_communitySnapshotSyncProvider)
-              .resumeAfterAgeCheck(communities);
+              .resumeAfterAgeCheck(ref.read(communityStorageProvider).loadAll);
           pushCommunitySnapshotError.value = null;
         } catch (error, stackTrace) {
           reportPushCommunitySnapshotError(error, stackTrace);
@@ -236,8 +233,7 @@ class _CommunitySnapshotSync {
   final CommunitySnapshotWriter _writer;
   final AgeGateCommunitySnapshotWriter _ageGateWriter;
   final Set<Future<void>> _writesInFlight = {};
-  String? _lastSuccessfulSnapshot;
-  String? _lastSuccessfulAgeGateSnapshot;
+  ({String content, bool strict, bool settleFence})? _lastSuccessfulSnapshot;
   bool _ageRestricted = false;
   bool _ageCheckSuspended = false;
   Future<void> _ageGateMutationTail = Future.value();
@@ -273,17 +269,15 @@ class _CommunitySnapshotSync {
     );
   });
 
-  Future<void> resumeAfterAgeCheck(List<Community> communities) =>
-      _serializeAgeGateMutation(() async {
-        if (_ageRestricted) return;
-        await _waitForWrites();
-        _ageCheckSuspended = false;
-        await write(
-          communities,
-          useAgeGateWriter: true,
-          settleAgeGateFence: true,
-        );
-      });
+  Future<void> resumeAfterAgeCheck(
+    Future<List<Community>> Function() loadCommunities,
+  ) => _serializeAgeGateMutation(() async {
+    if (_ageRestricted) return;
+    await _waitForWrites();
+    final communities = await loadCommunities();
+    _ageCheckSuspended = false;
+    await write(communities, useAgeGateWriter: true, settleAgeGateFence: true);
+  });
 
   Future<void> write(
     List<Community> communities, {
@@ -320,13 +314,14 @@ class _CommunitySnapshotSync {
           ].join('\u0000'),
         )
         .join('\u0001');
-    final fingerprint = useAgeGateWriter
-        ? '$contentFingerprint\u0002${settleAgeGateFence ? 1 : 0}'
-        : contentFingerprint;
-    final lastSuccessfulSnapshot = useAgeGateWriter
-        ? _lastSuccessfulAgeGateSnapshot
-        : _lastSuccessfulSnapshot;
-    if (fingerprint == lastSuccessfulSnapshot) return;
+    // Both paths replace the same native data. Strict writes additionally
+    // acknowledge the age-gate fence, so their mode is part of the request.
+    final fingerprint = (
+      content: contentFingerprint,
+      strict: useAgeGateWriter,
+      settleFence: settleAgeGateFence,
+    );
+    if (fingerprint == _lastSuccessfulSnapshot) return;
 
     late final Future<void> writeFuture;
     writeFuture =
@@ -342,11 +337,7 @@ class _CommunitySnapshotSync {
     if (_ageRestricted && effectiveCommunities.isNotEmpty) {
       await write(const <Community>[], enforceAgeRestriction: true);
     } else {
-      if (useAgeGateWriter) {
-        _lastSuccessfulAgeGateSnapshot = fingerprint;
-      } else {
-        _lastSuccessfulSnapshot = fingerprint;
-      }
+      _lastSuccessfulSnapshot = fingerprint;
     }
   }
 }
