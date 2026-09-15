@@ -125,14 +125,18 @@ async function installE2eBridgeIfConfigured() {
 }
 
 async function bootstrap() {
-  resetDevWebviewStateFromUrl();
-  configureDevE2eBridgeFromUrl();
-  recoverLocalStorageQuotaOnStartup();
-  initializeConversationDensityPreference();
-  initializeFontSizePreference();
-  startLocalStorageSweep();
-  await installE2eBridgeIfConfigured();
-  await migrateLegacyCommunityStorageBeforeRender();
+  try {
+    resetDevWebviewStateFromUrl();
+    configureDevE2eBridgeFromUrl();
+    recoverLocalStorageQuotaOnStartup();
+    initializeConversationDensityPreference();
+    initializeFontSizePreference();
+    startLocalStorageSweep();
+    await installE2eBridgeIfConfigured();
+    await migrateLegacyCommunityStorageBeforeRender();
+  } catch (e) {
+    console.error("Pre-render bootstrap error:", e);
+  }
   renderApp();
   try {
     const { getCurrentWindow } = await import("@tauri-apps/api/window");

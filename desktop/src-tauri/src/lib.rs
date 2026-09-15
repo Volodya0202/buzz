@@ -124,6 +124,8 @@ pub fn run() {
         .plugin(tauri_plugin_single_instance::init(|app, argv, _cwd| {
             // Focus the existing window when a duplicate instance launches.
             if let Some(w) = app.get_webview_window("main") {
+                let _ = w.unminimize();
+                let _ = w.show();
                 let _ = w.set_focus();
             }
             // Forward any deep link URLs from the duplicate launch.
@@ -905,6 +907,15 @@ pub fn run() {
                 }
             }
         }
+        #[cfg(not(target_os = "macos"))]
+        RunEvent::WindowEvent {
+            label,
+            event: WindowEvent::CloseRequested { .. },
+            ..
+        } if label == "main" => {
+            shut_down_app(app_handle, &run_shutdown_done);
+            std::process::exit(0);
+        }
         RunEvent::WindowEvent {
             label,
             event: WindowEvent::CloseRequested { .. },
@@ -933,6 +944,8 @@ pub fn run() {
                 restart_requested.store(true, Ordering::SeqCst);
             }
             shut_down_app(app_handle, &run_shutdown_done);
+            #[cfg(not(target_os = "macos"))]
+            std::process::exit(0);
         }
         RunEvent::Exit => {
             shut_down_app(app_handle, &run_shutdown_done);
@@ -949,6 +962,8 @@ pub fn run() {
             // deliberately skipping those native global destructors.
             #[cfg(all(feature = "mesh-llm", target_os = "macos"))]
             hard_exit_after_mesh_shutdown();
+            #[cfg(not(target_os = "macos"))]
+            std::process::exit(0);
         }
         _ => {}
     });
