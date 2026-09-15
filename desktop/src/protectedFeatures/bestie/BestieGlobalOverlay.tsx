@@ -180,7 +180,7 @@ export function BestieGlobalOverlay() {
             }}
           >
             <Bloom.Trigger
-              ariaLabel="Open Bestie"
+              ariaLabel="Открыть Bestie"
               className="flex h-12 w-12 touch-none select-none items-center justify-center rounded-full border-0 bg-transparent p-0 focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring [&_img]:pointer-events-none"
             >
               <motion.div

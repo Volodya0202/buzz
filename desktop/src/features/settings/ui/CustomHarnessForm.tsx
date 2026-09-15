@@ -160,7 +160,7 @@ function EnvEditor({
             <Input
               className={cn(FIELD_INPUT_CLASS, "font-mono")}
               onChange={(e) => set(i, "key", e.target.value)}
-              placeholder="KEY"
+              placeholder="КЛЮЧ"
               value={pair.key}
             />
           </FieldShell>
@@ -168,7 +168,7 @@ function EnvEditor({
             <Input
               className={cn(FIELD_INPUT_CLASS, "font-mono")}
               onChange={(e) => set(i, "value", e.target.value)}
-              placeholder="value"
+              placeholder="значение"
               value={pair.value}
             />
           </FieldShell>
@@ -329,7 +329,7 @@ export function CustomHarnessForm({
                 className={FIELD_INPUT_CLASS}
                 id="ch-label"
                 onChange={field("label")}
-                placeholder="My Runtime"
+                placeholder="Моя среда выполнения"
                 required
                 value={form.label}
               />

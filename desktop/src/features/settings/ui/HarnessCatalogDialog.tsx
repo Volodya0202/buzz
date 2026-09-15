@@ -368,7 +368,7 @@ function CatalogListSkeleton() {
   const widths = ["w-24", "w-32", "w-20", "w-28", "w-24", "w-16"];
   return (
     <div
-      aria-label="Loading runtimes"
+      aria-label="Загрузка сред выполнения"
       className="space-y-1"
       data-testid="harness-catalog-list-skeleton"
       role="status"
@@ -392,7 +392,7 @@ function CatalogListSkeleton() {
 function CatalogDetailSkeleton() {
   return (
     <div
-      aria-label="Loading runtime details"
+      aria-label="Загрузка деталей среды выполнения"
       className="flex min-h-full flex-col gap-6"
       data-testid="harness-catalog-detail-skeleton"
       role="status"

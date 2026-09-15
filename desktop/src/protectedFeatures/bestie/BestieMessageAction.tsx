@@ -20,7 +20,7 @@ export function BestieMessageAction({
         <TooltipTrigger asChild>
           <PopoverTrigger asChild>
             <Button
-              aria-label="Ask Bestie about this message"
+              aria-label="Спросить Bestie об этом сообщении"
               className="h-8 w-8 rounded-full p-0"
               data-testid={`bestie-message-${message.id}`}
               size="sm"
@@ -31,7 +31,7 @@ export function BestieMessageAction({
             </Button>
           </PopoverTrigger>
         </TooltipTrigger>
-        <TooltipContent>Ask Bestie</TooltipContent>
+        <TooltipContent>Спросить Bestie</TooltipContent>
       </Tooltip>
       <PopoverContent align="end" className="w-80" side="top" sideOffset={10}>
         <BestiePopover

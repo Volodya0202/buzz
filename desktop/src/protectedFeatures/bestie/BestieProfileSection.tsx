@@ -31,7 +31,7 @@ export function BestieProfileAction({ agent }: { agent: ManagedAgent }) {
     }
     void bestie.clearAssignment().catch((error) => {
       toast.error(
-        error instanceof Error ? error.message : "Couldn’t update Bestie",
+        error instanceof Error ? error.message : "Не удалось обновить Bestie",
       );
     });
   };
@@ -44,22 +44,22 @@ export function BestieProfileAction({ agent }: { agent: ManagedAgent }) {
         iconClassName={
           isBestie ? "h-4 w-4 shrink-0 fill-current text-foreground" : undefined
         }
-        label={isBestie ? "Remove Bestie" : "Make Bestie"}
+        label={isBestie ? "Удалить Bestie" : "Назначить Bestie"}
         onClick={handleClick}
         testId="user-profile-bestie-action"
       />
       <AlertDialog onOpenChange={setConfirmOpen} open={confirmOpen}>
         <AlertDialogContent data-testid="bestie-confirm-dialog">
           <AlertDialogHeader>
-            <AlertDialogTitle>Make {agent.name} your Bestie?</AlertDialogTitle>
+            <AlertDialogTitle>Сделать {agent.name} вашим Bestie?</AlertDialogTitle>
             <AlertDialogDescription>
               {bestie.assignedAgent && !isBestie
-                ? `${agent.name} will replace ${bestie.assignedAgent.name} in the floating shortcut and message actions.`
-                : `${agent.name} will appear in the floating shortcut and message actions.`}
+                ? `${agent.name} заменит ${bestie.assignedAgent.name} в плавающем ярлыке и быстрых действиях к сообщениям.`
+                : `${agent.name} появится в плавающем ярлыке и быстрых действиях к сообщениям.`}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel disabled={isPending}>Cancel</AlertDialogCancel>
+            <AlertDialogCancel disabled={isPending}>Отмена</AlertDialogCancel>
             <AlertDialogAction
               disabled={isPending}
               onClick={(event) => {
@@ -71,12 +71,12 @@ export function BestieProfileAction({ agent }: { agent: ManagedAgent }) {
                     toast.error(
                       error instanceof Error
                         ? error.message
-                        : "Couldn’t update Bestie",
+                        : "Не удалось обновить Bestie",
                     );
                   });
               }}
             >
-              {isPending ? "Saving…" : "Make Bestie"}
+              {isPending ? "Сохранение…" : "Назначить Bestie"}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

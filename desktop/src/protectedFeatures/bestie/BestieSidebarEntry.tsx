@@ -19,7 +19,7 @@ export function BestieSidebarEntry() {
       toast.error(
         error instanceof Error
           ? error.message
-          : "Couldn’t open Bestie conversation",
+          : "Не удалось открыть беседу с Bestie",
       );
     });
   };

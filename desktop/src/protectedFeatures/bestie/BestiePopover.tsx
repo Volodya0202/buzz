@@ -120,9 +120,9 @@ function EmptyBestie() {
         <Plus aria-hidden="true" className="h-5 w-5" />
       </div>
       <div>
-        <h2 className="text-sm font-semibold">Choose a Bestie</h2>
+        <h2 className="text-sm font-semibold">Выберите Bestie</h2>
         <p className="mt-1 text-xs text-muted-foreground">
-          Open one of your local agents and turn on Bestie.
+          Откройте одного из локальных агентов и включите Bestie.
         </p>
       </div>
     </div>
@@ -274,7 +274,7 @@ export function BestiePopover({
     if (currentPubkey) {
       profiles[normalizePubkey(currentPubkey)] = {
         avatarUrl: currentProfile?.avatarUrl ?? null,
-        displayName: "You",
+        displayName: "Вы",
         isAgent: false,
         name: null,
         nip05Handle: currentProfile?.nip05Handle ?? null,
@@ -346,7 +346,7 @@ export function BestiePopover({
     [],
   );
   if (bestie.isLoading) {
-    return <p className="text-sm text-muted-foreground">Loading Bestie…</p>;
+    return <p className="text-sm text-muted-foreground">Загрузка Bestie…</p>;
   }
   if (!agent) return <EmptyBestie />;
 
@@ -387,7 +387,7 @@ export function BestiePopover({
       if (startError) throw startError;
     })().catch((error) => {
       toast.error(
-        error instanceof Error ? error.message : "Couldn’t message Bestie",
+        error instanceof Error ? error.message : "Не удалось отправить сообщение Bestie",
       );
     });
   };
@@ -405,7 +405,7 @@ export function BestiePopover({
         />
         <div className="flex-1" />
         <Button
-          aria-label="Close Bestie"
+          aria-label="Закрыть Bestie"
           onClick={onRequestClose}
           size="icon-xs"
           variant="ghost"
@@ -452,14 +452,14 @@ export function BestiePopover({
             </p>
           </div>
           <div className="w-fit rounded-2xl bg-muted px-3 py-2 text-sm">
-            How can I help?
+            Чем я могу помочь?
           </div>
         </div>
       ) : null}
 
       <div className="relative shrink-0">
         <Textarea
-          aria-label={`Message ${agent.name}`}
+          aria-label={`Сообщение для ${agent.name}`}
           className="min-h-24 resize-none rounded-2xl pb-11"
           data-bloom-autofocus
           data-testid="bestie-composer"
@@ -478,11 +478,11 @@ export function BestiePopover({
             event.preventDefault();
             sendMessage();
           }}
-          placeholder={`Message ${agent.name}`}
+          placeholder={`Сообщение для ${agent.name}`}
           value={draft}
         />
         <Button
-          aria-label="Send in Bestie conversation"
+          aria-label="Отправить в беседу Bestie"
           className="absolute bottom-2 right-2 rounded-full"
           disabled={!draft.trim() || bestie.isOpening || sendMutation.isPending}
           onClick={sendMessage}
