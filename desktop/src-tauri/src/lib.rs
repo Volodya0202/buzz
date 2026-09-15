@@ -518,6 +518,13 @@ pub fn run() {
                     }
                 });
             }
+
+            #[cfg(not(target_os = "macos"))]
+            if let Some(w) = app_handle.get_webview_window("main") {
+                let _ = w.show();
+                let _ = w.set_focus();
+            }
+
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![

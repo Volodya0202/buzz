@@ -16,19 +16,17 @@
   "app": {
     "windows": [
       {
-        "title": "",
-        "width": 800,
-        "height": 600,
-        "maximized": true,
-        "visible": false,
+        "label": "main",
+        "title": "Buzz",
+        "width": 1280,
+        "height": 800,
+        "maximized": false,
+        "visible": true,
         "transparent": false,
-        "titleBarStyle": "Overlay",
-        "hiddenTitle": true,
+        "decorations": true,
+        "titleBarStyle": "Visible",
+        "hiddenTitle": false,
         "dragDropEnabled": false,
-        "trafficLightPosition": {
-          "x": 16,
-          "y": 25
-        },
         "backgroundThrottling": "disabled",
         "minWidth": 800,
         "minHeight": 500

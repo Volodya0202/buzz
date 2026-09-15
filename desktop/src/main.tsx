@@ -134,6 +134,15 @@ async function bootstrap() {
   await installE2eBridgeIfConfigured();
   await migrateLegacyCommunityStorageBeforeRender();
   renderApp();
+  try {
+    const { getCurrentWindow } = await import("@tauri-apps/api/window");
+    const win = getCurrentWindow();
+    await win.show();
+    await win.setFocus();
+  } catch (e) {
+    console.warn("Failed to reveal window from bootstrap", e);
+  }
 }
 
 void bootstrap();
+
