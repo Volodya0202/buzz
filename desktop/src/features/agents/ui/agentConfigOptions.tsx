@@ -499,6 +499,7 @@ export function getProviderApiKeyEnvVar(providerId: string): string | null {
   if (custom) {
     if (custom.type === "anthropic") return "ANTHROPIC_API_KEY";
     if (custom.type === "openrouter") return "OPENROUTER_API_KEY";
+    if (custom.type === "gemini-web") return "GEMINI_SESSION_COOKIE";
     return "OPENAI_COMPAT_API_KEY";
   }
 
@@ -526,6 +527,9 @@ export function getProviderApiKeyLabel(providerId: string): string | null {
     (p) => p.id === providerId || p.id.toLowerCase() === norm,
   );
   if (custom) {
+    if (custom.type === "gemini-web") {
+      return "Google Session Cookie (__Secure-1PSID)";
+    }
     return `${custom.name} API Key`;
   }
 

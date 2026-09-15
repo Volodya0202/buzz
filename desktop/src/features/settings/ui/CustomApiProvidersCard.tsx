@@ -58,11 +58,13 @@ export function CustomApiProvidersCard() {
                       <span className="text-xs px-2 py-0.5 rounded-full bg-muted text-muted-foreground border">
                         {provider.type === "gemini"
                           ? "Google Gemini"
-                          : provider.type === "anthropic"
-                            ? "Anthropic"
-                            : provider.type === "openrouter"
-                              ? "OpenRouter"
-                              : "OpenAI-совместимый"}
+                          : provider.type === "gemini-web"
+                            ? "Gemini Web (Подписка)"
+                            : provider.type === "anthropic"
+                              ? "Anthropic"
+                              : provider.type === "openrouter"
+                                ? "OpenRouter"
+                                : "OpenAI-совместимый"}
                       </span>
                     </div>
                     <div className="flex items-center gap-2 text-xs text-muted-foreground font-mono">

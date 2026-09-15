@@ -43,6 +43,7 @@ import {
 import { Switch } from "@/shared/ui/switch";
 import { SettingsOptionRow } from "./SettingsOptionGroup";
 import { SegmentedControl } from "@/shared/ui/segmented-control";
+import { useTranslation } from "@/shared/i18n";
 
 /** Buzz navigation can use either its production tint or a stronger tab. */
 export function ProminentActiveTabSetting() {
@@ -647,6 +648,36 @@ export function ThreadLayoutSetting() {
       </SettingsOptionRow>
       <ThreadLayoutPreview mode={displayedMode} />
     </div>
+  );
+}
+
+/** Language selector — allows user to switch between Russian and English. */
+export function LanguageSelectorSetting() {
+  const { locale, setLocale, dict } = useTranslation();
+
+  return (
+    <SettingsOptionRow data-testid="language-setting-row">
+      <div className="min-w-0">
+        <p className="text-sm font-medium">{dict.settings.language}</p>
+        <p
+          className="text-sm font-normal text-muted-foreground/70"
+          data-settings-subcopy
+        >
+          {dict.settings.languageDesc}
+        </p>
+      </div>
+      <SegmentedControl
+        legend={dict.settings.language}
+        onValueChange={(val) => setLocale(val as "ru" | "en")}
+        optionTestIdPrefix="language-option"
+        options={[
+          { label: dict.settings.langRu, value: "ru" },
+          { label: dict.settings.langEn, value: "en" },
+        ]}
+        testId="language-segmented-control"
+        value={locale}
+      />
+    </SettingsOptionRow>
   );
 }
 

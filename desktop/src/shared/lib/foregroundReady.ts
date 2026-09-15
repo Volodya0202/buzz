@@ -25,11 +25,11 @@ export function scheduleAfterForegroundReady(callback: () => void): () => void {
       }, 0);
     };
 
-    if (typeof window.requestAnimationFrame === "function") {
+    if (typeof window !== "undefined" && typeof window.requestAnimationFrame === "function") {
       frameId = window.requestAnimationFrame(afterFrame);
-    } else {
+    } else if (typeof window !== "undefined") {
       trailingTaskId = window.setTimeout(() => {
-        if (!cancelled) callback();
+        if (!cancelled && typeof window !== "undefined") callback();
       }, 0);
     }
   }, 0);

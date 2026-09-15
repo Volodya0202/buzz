@@ -167,6 +167,13 @@ export function selectionOnProviderDropdownChange(
           [baseUrlKey]: custom.baseUrl,
         };
       }
+      if (custom.type === "gemini-web") {
+        next.envVars = {
+          ...next.envVars,
+          GEMINI_SESSION_COOKIE: custom.apiKey,
+          OPENAI_COMPAT_API_KEY: custom.apiKey,
+        };
+      }
       if (custom.defaultModel) {
         next.model = custom.defaultModel;
       }

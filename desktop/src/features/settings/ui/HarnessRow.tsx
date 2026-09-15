@@ -16,6 +16,7 @@ import type { AcpAuthMethod, AcpRuntimeCatalogEntry } from "@/shared/api/types";
 import { getInstallErrorMessage } from "@/shared/lib/installError";
 import { cn } from "@/shared/lib/cn";
 import { Button } from "@/shared/ui/button";
+import { useTranslation } from "@/shared/i18n";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -249,10 +250,7 @@ function RuntimeActions({
 }
 
 function RuntimeStatusChip({ runtime }: { runtime: AcpRuntimeCatalogEntry }) {
-  // Single availability→label source: entryStatusLabel drives this row chip
-  // AND the catalog detail chip, so the two surfaces cannot drift. That
-  // includes "Sign-in needed" for installed-but-signed-out runtimes — an
-  // explicit auth-required state on the row face, not just a ••• menu item.
+  const { dict } = useTranslation();
   const label = entryStatusLabel(runtime);
 
   if (!label) {
@@ -264,6 +262,15 @@ function RuntimeStatusChip({ runtime }: { runtime: AcpRuntimeCatalogEntry }) {
     !isConfigError &&
     runtime.availability === "available" &&
     runtime.authStatus.status === "logged_out";
+
+  const statusMap: Record<string, string> = {
+    "Config error": dict.common.configError,
+    "Adapter needed": dict.common.adapterNeeded,
+    "Update needed": dict.common.updateNeeded,
+    "CLI needed": dict.common.cliNeeded,
+    "Sign-in needed": dict.common.signInNeeded,
+  };
+  const displayLabel = statusMap[label] ?? label;
 
   return (
     <>
@@ -281,7 +288,7 @@ function RuntimeStatusChip({ runtime }: { runtime: AcpRuntimeCatalogEntry }) {
         )}
         data-testid={`doctor-runtime-status-${runtime.id}`}
       >
-        {label}
+        {displayLabel}
       </span>
     </>
   );

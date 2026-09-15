@@ -189,7 +189,27 @@ export function CreateCustomProviderDialog({
               >
                 <ExternalLink className="h-3 w-3" /> Groq
               </button>
+              <span>·</span>
+              <button
+                type="button"
+                className="inline-flex items-center gap-1 text-primary hover:underline"
+                onClick={() =>
+                  void openUrl("https://gemini.google.com")
+                }
+              >
+                <ExternalLink className="h-3 w-3" /> Gemini Web (Подписка)
+              </button>
             </div>
+            <details className="mt-2 text-xs text-muted-foreground/90 cursor-pointer select-none">
+              <summary className="font-medium hover:text-foreground">
+                Как подключить подписку Gemini Advanced (без API)?
+              </summary>
+              <div className="mt-1.5 leading-relaxed bg-background/70 p-2 rounded border border-border/50 text-2xs space-y-1">
+                <p>1. Откройте <strong>gemini.google.com</strong> в браузере со своей учетной записью.</p>
+                <p>2. Нажмите <strong>F12</strong> → вкладка <strong>Application</strong> (или «Хранилище») → <strong>Cookies</strong> → <code>https://gemini.google.com</code>.</p>
+                <p>3. Скопируйте значение куки <strong>__Secure-1PSID</strong> (начинается с <code>g.a000...</code>) и вставьте его в поле ключа выше.</p>
+              </div>
+            </details>
           </div>
 
           {/* Detected badge & name */}

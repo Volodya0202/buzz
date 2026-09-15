@@ -4,7 +4,8 @@ export type CustomProviderType =
   | "openai-compat"
   | "anthropic"
   | "openrouter"
-  | "gemini";
+  | "gemini"
+  | "gemini-web";
 
 export interface CustomApiProvider {
   id: string;
@@ -107,7 +108,7 @@ export function detectProviderFromApiKey(rawKey: string): DetectedProviderInfo {
   if (key.startsWith("AIza")) {
     return {
       type: "gemini",
-      name: "Google Gemini",
+      name: "Google Gemini (API Studio)",
       envVar: "OPENAI_COMPAT_API_KEY",
       baseUrl: "https://generativelanguage.googleapis.com/v1beta/openai/",
       models: [
@@ -118,6 +119,28 @@ export function detectProviderFromApiKey(rawKey: string): DetectedProviderInfo {
       ],
       defaultModel: "gemini-2.0-flash",
       hint: "Распознан ключ Google Gemini (AI Studio)",
+    };
+  }
+
+  // Google Gemini Web Session Cookie (Google One / Gemini Advanced subscription)
+  if (
+    key.startsWith("g.a000") ||
+    key.includes("__Secure-1PSID") ||
+    key.startsWith("gemini-session:")
+  ) {
+    return {
+      type: "gemini-web",
+      name: "Gemini Advanced (Подписка Web)",
+      envVar: "GEMINI_SESSION_COOKIE",
+      baseUrl: "https://gemini.google.com",
+      models: [
+        "gemini-advanced",
+        "gemini-2.0-pro-exp",
+        "gemini-1.5-pro",
+        "gemini-1.5-flash",
+      ],
+      defaultModel: "gemini-advanced",
+      hint: "Распознана сессия подписки Gemini Advanced (Web)",
     };
   }
 

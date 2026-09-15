@@ -577,6 +577,10 @@ export function AgentConfigFields({
                 : "OPENAI_COMPAT_BASE_URL";
           nextEnvVars[baseUrlKey] = custom.baseUrl;
         }
+        if (custom.type === "gemini-web") {
+          nextEnvVars["GEMINI_SESSION_COOKIE"] = custom.apiKey;
+          nextEnvVars["OPENAI_COMPAT_API_KEY"] = custom.apiKey;
+        }
       } else if (nextProvider === "gemini") {
         nextEnvVars["OPENAI_COMPAT_BASE_URL"] =
           "https://generativelanguage.googleapis.com/v1beta/openai/";

@@ -20,6 +20,7 @@ import {
 import { deriveShellRoute } from "@/app/AppShell.helpers";
 import { ThemeGrainientBackground } from "@/app/ThemeGrainientBackground";
 import { CommunityThemeController } from "@/shared/theme/CommunityThemeController";
+import { I18nProvider } from "@/shared/i18n";
 import { useReloadShortcut } from "@/app/useReloadShortcut";
 import { useCloseWindowShortcut } from "@/app/useCloseWindowShortcut";
 import { KnownAgentPubkeysProvider } from "@/features/agents/useKnownAgentPubkeys";
@@ -817,7 +818,9 @@ export function App() {
 
   return (
     <QueryClientProvider client={queryClient}>
-      <MachineBootstrap sharedIdentity={sharedIdentity} />
+      <I18nProvider>
+        <MachineBootstrap sharedIdentity={sharedIdentity} />
+      </I18nProvider>
     </QueryClientProvider>
   );
 }

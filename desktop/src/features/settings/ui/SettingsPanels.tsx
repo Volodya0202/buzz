@@ -57,6 +57,7 @@ import {
   AccentPickerContent,
   ConversationDisplaySettings,
   GlassBackgroundSetting,
+  LanguageSelectorSetting,
   LinkPreviewStyleSetting,
   ProminentActiveTabSetting,
   ThreadLayoutSetting,
@@ -790,6 +791,7 @@ function ThemeSettingsCard() {
           data-testid="appearance-preferences-card"
           title="Предпочтения"
         >
+          <LanguageSelectorSetting />
           <ConversationDisplaySettings />
           <LinkPreviewStyleSetting />
           <ThreadLayoutSetting />
