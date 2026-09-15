@@ -60,8 +60,8 @@ export function TeamsSection({
     <section className="relative space-y-4" data-testid="agents-library-teams">
       <div className={TEAM_CARD_COLUMN_CLASS}>
         <SectionHeader
-          title="Agent teams"
-          description="Group agents that you can add to a channel together."
+          title="Команды агентов"
+          description="Группы агентов, которых можно добавить в канал вместе."
         />
       </div>
 
@@ -104,7 +104,7 @@ export function TeamsSection({
                   <DropdownMenu modal={false}>
                     <DropdownMenuTrigger asChild>
                       <button
-                        aria-label={`${team.name} team actions`}
+                        aria-label={`Действия с командой ${team.name}`}
                         className="flex h-7 w-7 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
                         type="button"
                       >
@@ -120,7 +120,7 @@ export function TeamsSection({
                         onClick={() => onAddToChannel(team)}
                       >
                         <Rocket className="h-4 w-4" />
-                        Deploy to channel
+                        Добавить в канал
                       </DropdownMenuItem>
                       <DropdownMenuSeparator />
                       <DropdownMenuItem
@@ -128,21 +128,21 @@ export function TeamsSection({
                         onClick={() => onEdit(team)}
                       >
                         <Pencil className="h-4 w-4" />
-                        Edit
+                        Редактировать
                       </DropdownMenuItem>
                       <DropdownMenuItem
                         disabled={isPending || hasMissingPersonas}
                         onClick={() => onDuplicate(team)}
                       >
                         <CopyPlus className="h-4 w-4" />
-                        Duplicate
+                        Дублировать
                       </DropdownMenuItem>
                       <DropdownMenuItem
                         disabled={isPending || hasMissingPersonas}
                         onClick={() => onShare(team)}
                       >
                         <Share2 className="h-4 w-4" />
-                        Share
+                        Поделиться
                       </DropdownMenuItem>
                       <DropdownMenuSeparator />
                       <DropdownMenuItem
@@ -151,7 +151,7 @@ export function TeamsSection({
                         onClick={() => onDelete(team)}
                       >
                         <Trash2 className="h-4 w-4" />
-                        Delete
+                        Удалить
                       </DropdownMenuItem>
                     </DropdownMenuContent>
                   </DropdownMenu>
@@ -169,10 +169,8 @@ export function TeamsSection({
               >
                 {hasMissingPersonas ? (
                   <p className="border-t border-destructive/20 bg-destructive/10 px-3 py-2 text-xs text-destructive">
-                    {missingPersonaCount} agent
-                    {missingPersonaCount === 1 ? "" : "s"} in this team{" "}
-                    {missingPersonaCount === 1 ? "is" : "are"} no longer in your
-                    agents. Edit the team to fix it before deploying or sharing.
+                    {missingPersonaCount} агент(ов) из этой команды больше не найдены
+                    среди ваших агентов. Отредактируйте команду перед развертыванием или отправкой.
                   </p>
                 ) : null}
               </TeamIdentityCard>
@@ -206,14 +204,14 @@ function NewTeamCard({
   return (
     <DropdownMenu modal={false}>
       <DropdownMenuTrigger asChild>
-        <CreateIdentityCard ariaLabel="New team" dataTestId="new-team-card" />
+        <CreateIdentityCard ariaLabel="Новая команда" dataTestId="new-team-card" />
       </DropdownMenuTrigger>
       <DropdownMenuContent
         align="start"
         onCloseAutoFocus={(event) => event.preventDefault()}
       >
         <DropdownMenuItem disabled={isPending} onClick={onCreate}>
-          Create team
+          Создать команду
         </DropdownMenuItem>
         <DropdownMenuItem
           data-testid="team-catalog-open"
@@ -223,7 +221,7 @@ function NewTeamCard({
           {teamCatalogCopy.chooseFromCatalog}
         </DropdownMenuItem>
         <DropdownMenuItem disabled={isPending} onClick={onImport}>
-          Import
+          Импорт
         </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>

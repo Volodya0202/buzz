@@ -82,13 +82,13 @@ export function EditAgentProviderModelFields({
             className="text-sm font-medium text-foreground"
             htmlFor="edit-agent-llm-provider"
           >
-            LLM provider
+            Провайдер LLM
             {providerRequired ? (
               <span className="ml-1 text-destructive" aria-hidden="true">
                 *
               </span>
             ) : (
-              <span className={PERSONA_LABEL_OPTIONAL_CLASS}>Optional</span>
+              <span className={PERSONA_LABEL_OPTIONAL_CLASS}>Необязательно</span>
             )}
           </label>
           <PersonaDropdownField
@@ -96,7 +96,7 @@ export function EditAgentProviderModelFields({
             id="edit-agent-llm-provider"
             onValueChange={onProviderDropdownChange}
             options={providerDropdownOptions}
-            placeholder="Default (auto)"
+            placeholder="По умолчанию (авто)"
             value={providerSelectValue}
           />
           {isCustomProviderEditing ? (
@@ -107,7 +107,7 @@ export function EditAgentProviderModelFields({
               )}
             >
               <Input
-                aria-label="Custom provider ID"
+                aria-label="ID кастомного провайдера"
                 autoCorrect="off"
                 className={cn(
                   "h-8 px-0 py-0 leading-6",
@@ -116,7 +116,7 @@ export function EditAgentProviderModelFields({
                 disabled={disabled}
                 id="edit-agent-custom-provider"
                 onChange={(event) => onProviderChange(event.target.value)}
-                placeholder="Custom provider ID"
+                placeholder="ID кастомного провайдера"
                 value={provider}
               />
             </div>
@@ -131,7 +131,7 @@ export function EditAgentProviderModelFields({
           isInherited={apiKeyIsInherited}
           inheritedLabel={apiKeyInheritedLabel}
           isRequired={apiKeyIsRequired}
-          label={getProviderApiKeyLabel(effectiveProvider) ?? "API Key"}
+          label={getProviderApiKeyLabel(effectiveProvider) ?? "API-ключ"}
           onValueChange={onApiKeyChange}
           value={apiKeyValue}
         />
@@ -143,13 +143,13 @@ export function EditAgentProviderModelFields({
           className="text-sm font-medium text-foreground"
           htmlFor="edit-agent-model"
         >
-          Model
+          Модель
           {modelRequired ? (
             <span className="ml-1 text-destructive" aria-hidden="true">
               *
             </span>
           ) : (
-            <span className={PERSONA_LABEL_OPTIONAL_CLASS}>Optional</span>
+            <span className={PERSONA_LABEL_OPTIONAL_CLASS}>Необязательно</span>
           )}
         </label>
         <PersonaDropdownField
@@ -157,7 +157,7 @@ export function EditAgentProviderModelFields({
           id="edit-agent-model"
           onValueChange={onModelDropdownChange}
           options={modelDropdownOptions}
-          placeholder="Default model"
+          placeholder="Модель по умолчанию"
           value={modelSelectValue}
         />
         {showCustomModelInput ? (
@@ -168,7 +168,7 @@ export function EditAgentProviderModelFields({
             )}
           >
             <Input
-              aria-label="Custom model ID"
+              aria-label="ID кастомной модели"
               autoCorrect="off"
               className={cn(
                 "h-8 px-0 py-0 leading-6",
@@ -177,7 +177,7 @@ export function EditAgentProviderModelFields({
               disabled={disabled}
               id="edit-agent-custom-model"
               onChange={(event) => onModelChange(event.target.value)}
-              placeholder="Custom model ID"
+              placeholder="ID кастомной модели"
               value={model}
             />
           </div>

@@ -218,17 +218,17 @@ function getResultSectionKey(result: SearchResult): SearchResultSectionKey {
 function getSectionTitle(sectionKey: SearchResultSectionKey) {
   switch (sectionKey) {
     case "channels":
-      return "Channels";
+      return "Каналы";
     case "direct-messages":
-      return "Direct messages";
+      return "Личные сообщения";
     case "people":
-      return "People";
+      return "Люди";
     case "agents":
-      return "Agents";
+      return "Агенты";
     case "messages":
-      return "Most relevant";
+      return "Наиболее подходящие";
     case "actions":
-      return "Actions";
+      return "Действия";
   }
 }
 
@@ -898,12 +898,12 @@ export function TopbarSearch({
           currentChannelSearchAction ? "pb-5" : "py-5",
         )}
       >
-        No {scopeChannel ? "messages" : "matches"} for{" "}
+        Нет {scopeChannel ? "сообщений" : "совпадений"} для{" "}
         <span className="font-semibold">{trimmedQuery}</span>
         {scopeLabel ? (
           <>
             {" "}
-            in <span className="font-semibold">{scopeLabel}</span>
+            в <span className="font-semibold">{scopeLabel}</span>
           </>
         ) : null}
         .
@@ -925,7 +925,7 @@ export function TopbarSearch({
     <div className={cn("relative", className)}>
       <Dialog open={isOpen} onOpenChange={handleSearchOpenChange}>
         <button
-          aria-label="Search everything"
+          aria-label="Поиск везде"
           className={
             isIconVariant
               ? "group/search flex size-6 items-center justify-center rounded p-1 text-sidebar-foreground/50 transition-colors hover:bg-sidebar-border/35 hover:text-sidebar-foreground focus-visible:bg-sidebar-border/35 focus-visible:text-sidebar-foreground focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-sidebar-ring"
@@ -934,7 +934,7 @@ export function TopbarSearch({
           data-testid="open-search"
           onClick={() => openSearchDialog(null)}
           ref={triggerRef}
-          title="Search everything"
+          title="Поиск везде"
           type="button"
         >
           <Search
@@ -954,7 +954,7 @@ export function TopbarSearch({
                     : "text-sidebar-foreground/55",
                 )}
               >
-                {query || "Search everything"}
+                {query || "Поиск везде"}
               </span>
               <kbd className="shrink-0 text-2xs text-sidebar-foreground/45">
                 &#x2318;K
@@ -977,7 +977,7 @@ export function TopbarSearch({
           showCloseButton={false}
         >
           <DialogTitle className="sr-only">
-            {scopeLabel ? `Search in ${scopeLabel}` : "Search everything"}
+            {scopeLabel ? `Поиск в ${scopeLabel}` : "Поиск везде"}
           </DialogTitle>
           <SearchDialogInputRow
             inputRef={dialogInputRef}

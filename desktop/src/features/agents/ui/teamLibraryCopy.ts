@@ -1,15 +1,15 @@
 export const teamCatalogCopy = {
-  chooseFromCatalog: "Choose from catalog",
-  dialogTitle: "Team Catalog",
-  dialogDescription: "Browse teams shared to this relay.",
-  emptyCatalogTitle: "No teams are being shared",
-  emptyCatalogDescription: "Shared teams will appear here.",
-  addAction: "Add team",
-  addedAction: "Added to my teams",
-  addingAction: "Adding…",
-  shareTitle: "Share to catalog",
+  chooseFromCatalog: "Выбрать из каталога",
+  dialogTitle: "Каталог команд",
+  dialogDescription: "Просмотр команд, опубликованных на этом реле.",
+  emptyCatalogTitle: "Нет опубликованных команд",
+  emptyCatalogDescription: "Опубликованные команды появятся здесь.",
+  addAction: "Добавить команду",
+  addedAction: "Добавлено в мои команды",
+  addingAction: "Добавление…",
+  shareTitle: "Опубликовать в каталоге",
   shareDescription:
-    "Anyone in this community can find and add a copy of this team. Both the team instructions and every member’s instructions are shared as plaintext. Memories and secrets aren’t included.",
+    "Любой участник этого сообщества сможет найти и добавить копию этой команды. Инструкции команды и всех её участников публикуются в открытом виде. Память и секреты не включаются.",
 } as const;
 
 /**

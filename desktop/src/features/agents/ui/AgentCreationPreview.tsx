@@ -457,13 +457,13 @@ export function AgentCreationPreview({
               className="relative z-10 h-full rounded-md bg-transparent text-xs font-medium shadow-none transition-colors data-[state=active]:bg-transparent data-[state=active]:shadow-none"
               value="image"
             >
-              Image
+              Изображение
             </TabsTrigger>
             <TabsTrigger
               className="relative z-10 h-full rounded-md bg-transparent text-xs font-medium shadow-none transition-colors data-[state=active]:bg-transparent data-[state=active]:shadow-none"
               value="emoji"
             >
-              Emoji
+              Эмодзи
             </TabsTrigger>
           </TabsList>
         </Tabs>
@@ -489,7 +489,7 @@ export function AgentCreationPreview({
                 <UploadCloud className="h-5 w-5 text-muted-foreground" />
               )}
               <span className="text-xs font-medium text-muted-foreground">
-                {isUploading ? "Uploading..." : "Drop or browse"}
+                {isUploading ? "Загрузка..." : "Перетащите или выберите файл"}
               </span>
             </button>
 
@@ -508,7 +508,7 @@ export function AgentCreationPreview({
                     applyAvatarUrl();
                   }
                 }}
-                placeholder="Paste a URL"
+                placeholder="Вставьте ссылку на изображение"
                 spellCheck={false}
                 type="url"
                 value={avatarUrlDraft}
@@ -530,7 +530,7 @@ export function AgentCreationPreview({
                       size="xs"
                       type="button"
                     >
-                      Apply
+                      Применить
                     </Button>
                   </motion.div>
                 ) : null}
@@ -553,7 +553,7 @@ export function AgentCreationPreview({
                 }}
                 type="button"
               >
-                Remove {assetLabel}
+                Удалить {assetLabel === "avatar" ? "аватар" : assetLabel}
               </button>
             ) : null}
           </div>

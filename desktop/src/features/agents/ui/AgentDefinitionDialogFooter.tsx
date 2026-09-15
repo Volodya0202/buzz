@@ -9,6 +9,12 @@ type AgentDefinitionDialogFooterProps = {
   submitLabel: string;
 };
 
+function localizeSubmitLabel(label: string): string {
+  if (label === "Create agent") return "Создать агента";
+  if (label === "Save changes") return "Сохранить изменения";
+  return label;
+}
+
 export function AgentDefinitionDialogFooter({
   canSubmit,
   isAvatarUploadPending,
@@ -25,8 +31,8 @@ export function AgentDefinitionDialogFooter({
             className="max-w-sm text-xs text-muted-foreground"
             data-testid="persona-dialog-catalog-publish-notice"
           >
-            This agent is in the community catalog. Your changes will be
-            published when you save.
+            Этот агент находится в каталоге сообщества. Ваши изменения будут
+            опубликованы после сохранения.
           </p>
         ) : null}
       </div>
@@ -38,7 +44,7 @@ export function AgentDefinitionDialogFooter({
           type="button"
           variant="outline"
         >
-          Cancel
+          Отмена
         </Button>
         <Button
           data-testid="persona-dialog-submit"
@@ -47,12 +53,12 @@ export function AgentDefinitionDialogFooter({
           type="submit"
         >
           {isPending
-            ? "Saving..."
+            ? "Сохранение..."
             : isAvatarUploadPending
-              ? "Uploading..."
+              ? "Загрузка..."
               : publishesCatalogUpdates
-                ? "Save and publish"
-                : submitLabel}
+                ? "Сохранить и опубликовать"
+                : localizeSubmitLabel(submitLabel)}
         </Button>
       </div>
     </div>

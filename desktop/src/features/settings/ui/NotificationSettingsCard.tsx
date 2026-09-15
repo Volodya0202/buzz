@@ -66,8 +66,8 @@ export function NotificationSettingsCard({
   return (
     <section className="min-w-0" data-testid="settings-notifications">
       <SettingsSectionHeader
-        title="Notifications"
-        description="Desktop alerts are on by default. Fine-tune what gets through below."
+        title="Уведомления"
+        description="Оповещения на рабочем столе включены по умолчанию. Ниже вы можете настроить, какие из них получать."
       />
 
       <span className="sr-only" data-testid="notifications-desktop-state">
@@ -81,7 +81,7 @@ export function NotificationSettingsCard({
       </span>
 
       <SettingsOptionGroupList>
-        <SettingsOptionGroup title="Desktop">
+        <SettingsOptionGroup title="Рабочий стол">
           <SettingsOptionRow>
             <div className="min-w-0">
               <label
@@ -89,16 +89,16 @@ export function NotificationSettingsCard({
                 htmlFor="desktop-alerts-switch"
               >
                 {isUpdatingDesktopNotifications
-                  ? "Requesting..."
-                  : "Desktop alerts"}
+                  ? "Запрос разрешения..."
+                  : "Оповещения на рабочем столе"}
               </label>
               <p
                 className="text-sm font-normal text-muted-foreground/70"
                 data-settings-subcopy
               >
                 {notificationSettings.desktopEnabled
-                  ? "Native desktop alerts are enabled for the categories you have armed below."
-                  : "Request OS permission and surface new mentions or needs-action items outside the app."}
+                  ? "Нативные оповещения на рабочем столе включены для выбранных категорий ниже."
+                  : "Запросить разрешение операционной системы и показывать новые упоминания и требующие внимания действия вне приложения."}
               </p>
             </div>
             <Switch
@@ -118,14 +118,13 @@ export function NotificationSettingsCard({
                 className="text-sm font-medium"
                 htmlFor="notify-while-viewing-switch"
               >
-                Notify while viewing
+                Оповещать при просмотре
               </label>
               <p
                 className="text-sm font-normal text-muted-foreground/70"
                 data-settings-subcopy
               >
-                Also alert for direct messages in the conversation you have
-                open.
+                Также оповещать о личных сообщениях в открытой на данный момент беседе.
               </p>
             </div>
             <Switch
@@ -145,20 +144,20 @@ export function NotificationSettingsCard({
 
         {notificationSettings.desktopEnabled ? (
           <>
-            <SettingsOptionGroup title="Sound">
+            <SettingsOptionGroup title="Звук">
               <SettingsOptionRow>
                 <div className="min-w-0">
                   <label
                     className="text-sm font-medium"
                     htmlFor="notification-sound-switch"
                   >
-                    Sound
+                    Звук
                   </label>
                   <p
                     className="text-sm font-normal text-muted-foreground/70"
                     data-settings-subcopy
                   >
-                    Alert with a sound for the events below.
+                    Воспроизводить звук для указанных ниже событий.
                   </p>
                 </div>
                 <Switch
@@ -174,7 +173,7 @@ export function NotificationSettingsCard({
 
             {anyAlertsOn ? (
               <div className="space-y-4">
-                <SettingsOptionGroup title="Alert sounds">
+                <SettingsOptionGroup title="Звуки оповещений">
                   {visibleSlots.map((slot) => {
                     const comingSoon = COMING_SOON_SLOTS.has(slot);
                     const alertsOn =
@@ -192,7 +191,7 @@ export function NotificationSettingsCard({
                             {SLOT_LABELS[slot]}
                             {comingSoon ? (
                               <span className="rounded-full bg-muted/70 px-2 py-0.5 text-2xs font-normal uppercase tracking-wide text-muted-foreground">
-                                Coming soon
+                                Скоро
                               </span>
                             ) : null}
                           </span>
@@ -243,12 +242,12 @@ export function NotificationSettingsCard({
                     {showComingSoon ? (
                       <>
                         <ChevronUp className="h-4 w-4" />
-                        Show less
+                        Показать меньше
                       </>
                     ) : (
                       <>
                         <ChevronDown className="h-4 w-4" />
-                        View all
+                        Показать все
                       </>
                     )}
                   </Button>
@@ -258,21 +257,20 @@ export function NotificationSettingsCard({
           </>
         ) : null}
 
-        <SettingsOptionGroup title="Badges">
+        <SettingsOptionGroup title="Значки">
           <SettingsOptionRow>
             <div className="min-w-0">
               <label
                 className="text-sm font-medium"
                 htmlFor="home-badge-switch"
               >
-                Home badge
+                Значок на домашнем экране
               </label>
               <p
                 className="text-sm font-normal text-muted-foreground/70"
                 data-settings-subcopy
               >
-                Show a Home badge for mentions and needs-action items in the
-                sidebar.
+                Показывать значок на домашнем экране при упоминаниях и требующих действия событиях в боковой панели.
               </p>
             </div>
             <Switch
@@ -290,8 +288,8 @@ export function NotificationSettingsCard({
       {permissionBlocked && (
         <p className="mt-4 rounded-xl border border-destructive/30 bg-destructive/10 px-3 py-2 text-sm text-destructive">
           {notificationPermission === "unsupported"
-            ? "Desktop notifications are not supported in this environment."
-            : "Desktop notifications are blocked. Enable them in your system settings."}
+            ? "Уведомления на рабочем столе не поддерживаются в этой среде."
+            : "Уведомления на рабочем столе заблокированы. Включите их в системных настройках."}
         </p>
       )}
 

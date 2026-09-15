@@ -20,7 +20,7 @@ import { Skeleton } from "@/shared/ui/skeleton";
 /** Shared title row so the skeleton and loaded panel keep the same chrome. */
 export function MessageThreadPanelHeader({
   headerLeading,
-  headerTitle = "Thread",
+  headerTitle = "Ветка",
   headerTitleAriaLabel,
   isFocusMode,
   isSinglePanelView,
@@ -39,11 +39,11 @@ export function MessageThreadPanelHeader({
 }) {
   const title = onHeaderTitleClick ? (
     <button
-      aria-label={headerTitleAriaLabel ?? `Open ${headerTitle}`}
+      aria-label={headerTitleAriaLabel ?? `Открыть: ${headerTitle}`}
       className="min-w-0 max-w-full truncate text-left hover:underline"
       data-testid="message-thread-open-channel"
       onClick={onHeaderTitleClick}
-      title={headerTitleAriaLabel ?? `Open ${headerTitle}`}
+      title={headerTitleAriaLabel ?? `Открыть: ${headerTitle}`}
       type="button"
     >
       {headerTitle}
@@ -55,7 +55,7 @@ export function MessageThreadPanelHeader({
   return (
     <AuxiliaryPanelHeader backdrop>
       <AuxiliaryPanelHeaderGroup
-        backButtonAriaLabel="Back to conversation"
+        backButtonAriaLabel="Назад к переписке"
         backButtonTestId="message-thread-back"
         leading={headerLeading}
         // Focus drawers fill width via isSinglePanelView but use the scrim to go

@@ -27,7 +27,7 @@ export function AgentHarnessField({
         className="text-sm font-medium text-foreground"
         htmlFor="persona-runtime"
       >
-        Agent harness
+        Среда агента
       </label>
       <PersonaDropdownField
         disabled={disabled}

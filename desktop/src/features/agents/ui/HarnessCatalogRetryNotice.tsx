@@ -15,9 +15,9 @@ export function HarnessCatalogRetryNotice() {
   return (
     <div className="flex flex-wrap items-center gap-2 text-sm text-destructive">
       <AlertCircle className="size-4 shrink-0" />
-      <span>Couldn't detect agent harnesses.</span>
+      <span>Не удалось обнаружить среды агентов.</span>
       <Button onClick={retryBootWarm} size="sm" variant="outline">
-        Try again
+        Повторить попытку
       </Button>
     </div>
   );

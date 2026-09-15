@@ -36,7 +36,7 @@ export function AgentIdentityFields({
   onDescriptionChange,
   disabled,
 }: AgentIdentityFieldsProps) {
-  const placeholder = "What this agent does, in a sentence";
+  const placeholder = "Чем занимается этот агент, одним предложением";
   const descriptionLength = agentDescriptionCharacterCount(description);
   const showCounter =
     descriptionLength >= MAX_AGENT_DESCRIPTION_CHARS - COUNTER_VISIBLE_WITHIN;
@@ -48,7 +48,7 @@ export function AgentIdentityFields({
           className="text-sm font-medium text-foreground"
           htmlFor="persona-display-name"
         >
-          Agent name
+          Имя агента
         </label>
         <div
           className={cn(
@@ -76,8 +76,8 @@ export function AgentIdentityFields({
           className="text-sm font-medium text-foreground"
           htmlFor="persona-description"
         >
-          Description
-          <span className={PERSONA_LABEL_OPTIONAL_CLASS}>Optional</span>
+          Описание
+          <span className={PERSONA_LABEL_OPTIONAL_CLASS}>Необязательно</span>
         </label>
         <div
           className={cn(
@@ -101,7 +101,7 @@ export function AgentIdentityFields({
         </div>
         <div className="flex items-baseline justify-between gap-2">
           <p className="text-xs text-muted-foreground">
-            Shown publicly on the agent&apos;s card and profile.
+            Отображается публично в карточке и профиле агента.
           </p>
           {showCounter ? (
             <span className="shrink-0 text-2xs tabular-nums text-muted-foreground">

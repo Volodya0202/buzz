@@ -22,7 +22,7 @@ export function formatAiDefaultsSummary({
     model.value || null,
   ].filter((value): value is string => Boolean(value));
 
-  return parts.length > 0 ? parts.join(" · ") : "Not configured";
+  return parts.length > 0 ? parts.join(" · ") : "Не настроено";
 }
 
 export function AgentAiDefaultsNotice({
@@ -54,7 +54,7 @@ export function AgentAiDefaultsNotice({
         data-testid="agent-ai-defaults-notice"
       >
         <p className="text-sm font-medium text-foreground">
-          Global defaults not set
+          Глобальные настройки по умолчанию не заданы
         </p>
         <Button
           className="shrink-0"
@@ -65,7 +65,7 @@ export function AgentAiDefaultsNotice({
           type="button"
           variant="outline"
         >
-          Set
+          Настроить
         </Button>
       </div>
     );
@@ -76,19 +76,19 @@ export function AgentAiDefaultsNotice({
       <dl className="grid grid-cols-[auto_minmax(0,1fr)] gap-x-3 text-sm">
         {harness !== undefined ? (
           <>
-            <dt className="text-muted-foreground">Harness</dt>
+            <dt className="text-muted-foreground">Среда</dt>
             <dd className="truncate text-foreground">
-              {harness || "Not configured"}
+              {harness || "Не настроено"}
             </dd>
           </>
         ) : null}
-        <dt className="text-muted-foreground">Provider</dt>
+        <dt className="text-muted-foreground">Провайдер</dt>
         <dd className="truncate text-foreground">
-          {provider ? providerLabel(provider) : "Not configured"}
+          {provider ? providerLabel(provider) : "Не настроено"}
         </dd>
-        <dt className="text-muted-foreground">Model</dt>
+        <dt className="text-muted-foreground">Модель</dt>
         <dd className="truncate text-foreground">
-          {model || "Not configured"}
+          {model || "Не настроено"}
         </dd>
       </dl>
       <Button
@@ -100,7 +100,7 @@ export function AgentAiDefaultsNotice({
         type="button"
         variant="link"
       >
-        Edit global defaults
+        Изменить глобальные настройки
       </Button>
     </div>
   );

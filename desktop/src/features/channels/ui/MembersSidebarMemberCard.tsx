@@ -87,21 +87,46 @@ export type MemberModerationState = {
 
 /** Timeout durations offered in the member menu, in seconds. */
 const TIMEOUT_PRESETS: { label: string; seconds: number }[] = [
-  { label: "1 hour", seconds: 60 * 60 },
-  { label: "24 hours", seconds: 24 * 60 * 60 },
-  { label: "7 days", seconds: 7 * 24 * 60 * 60 },
+  { label: "1 час", seconds: 60 * 60 },
+  { label: "24 часа", seconds: 24 * 60 * 60 },
+  { label: "7 дней", seconds: 7 * 24 * 60 * 60 },
 ];
+
+const AVAILABILITY_LABELS: Record<string, string> = {
+  Here: "В сети",
+  Waking: "Пробуждается",
+  "Needs setup on this device": "Требуется настройка",
+  Unavailable: "Недоступен",
+};
+
+const ROLE_NAMES: Record<string, string> = {
+  admin: "Администратор",
+  member: "Участник",
+  guest: "Гость",
+};
+
+const ACTION_LABELS: Record<string, string> = {
+  Shutdown: "Отключить",
+  Deploy: "Развернуть",
+  Stop: "Остановить",
+  "Start Agent": "Запустить агента",
+  "Stop Agent": "Остановить агента",
+  "Restart Agent": "Перезапустить агента",
+};
 
 const MEMBER_ROW_INSET_DIVIDER_CLASS =
   "after:pointer-events-none after:absolute after:bottom-0 after:left-[3.75rem] after:right-0 after:h-px after:bg-border/60 after:content-[''] last:after:hidden";
 
 function formatRoleLabel(member: ChannelMember, memberIsBot: boolean) {
   if (memberIsBot) {
-    return "agent";
+    return "агент";
   }
 
-  if (member.role === "owner" || member.role === "admin") {
-    return member.role;
+  if (member.role === "owner") {
+    return "владелец";
+  }
+  if (member.role === "admin") {
+    return "админ";
   }
 
   return null;
@@ -110,11 +135,11 @@ function formatRoleLabel(member: ChannelMember, memberIsBot: boolean) {
 function formatRespondToLabel(agent: ManagedAgent) {
   switch (agent.respondTo) {
     case "anyone":
-      return "Anyone";
+      return "Все";
     case "allowlist":
-      return `Selected people (${agent.respondToAllowlist.length})`;
+      return `Выбранные (${agent.respondToAllowlist.length})`;
     default:
-      return "Only me";
+      return "Только я";
   }
 }
 
@@ -233,10 +258,10 @@ export function MembersSidebarMemberCard({
               }
             >
               {managedAgentRuntime
-                ? agentCommunityAvailability(managedAgentRuntime)
+                ? (AVAILABILITY_LABELS[agentCommunityAvailability(managedAgentRuntime)] ?? agentCommunityAvailability(managedAgentRuntime))
                 : managedAgent && isManagedAgentActive(managedAgent)
-                  ? "Running"
-                  : "Stopped"}
+                  ? "Работает"
+                  : "Остановлен"}
             </Badge>
             {managedAgent ? (
               <Badge
@@ -379,7 +404,7 @@ function MemberActionsMenu({
             onClick={() => onViewActivity?.(member.pubkey)}
           >
             <Activity className="h-4 w-4" />
-            View activity
+            Просмотр активности
           </DropdownMenuItem>
         ) : null}
         {memberIsBot && managedAgent ? (
@@ -397,8 +422,8 @@ function MemberActionsMenu({
                 ? getPairActionIcon(pairAction)
                 : getManagedAgentActionIcon(managedAgent)}
               {pairAction
-                ? MANAGED_AGENT_PAIR_ACTION_LABELS[pairAction]
-                : getManagedAgentPrimaryActionLabel(managedAgent)}
+                ? (MANAGED_AGENT_PAIR_ACTION_LABELS[pairAction] ?? pairAction)
+                : (ACTION_LABELS[getManagedAgentPrimaryActionLabel(managedAgent)] ?? getManagedAgentPrimaryActionLabel(managedAgent))}
             </DropdownMenuItem>
             {onEditRespondTo ? (
               <DropdownMenuItem
@@ -407,7 +432,7 @@ function MemberActionsMenu({
                 onClick={() => onEditRespondTo(managedAgent)}
               >
                 <Pencil className="h-4 w-4" />
-                Manage agent access...
+                Управление доступом агента...
               </DropdownMenuItem>
             ) : null}
             {canRemoveMember || showChangeRole ? (
@@ -422,7 +447,7 @@ function MemberActionsMenu({
               disabled={disabled}
             >
               <Shield className="h-4 w-4" />
-              Change role
+              Изменить роль
             </DropdownMenuSubTrigger>
             <DropdownMenuSubContent>
               {PEOPLE_ROLES.map((role) => (
@@ -432,9 +457,8 @@ function MemberActionsMenu({
                   key={role}
                   onClick={() => onChangeRole(member, role)}
                 >
-                  {role[0]?.toUpperCase()}
-                  {role.slice(1)}
-                  {member.role === role ? " (current)" : ""}
+                  {ROLE_NAMES[role] ?? role}
+                  {member.role === role ? " (текущая)" : ""}
                 </DropdownMenuItem>
               ))}
             </DropdownMenuSubContent>
@@ -450,7 +474,7 @@ function MemberActionsMenu({
               onClick={() => onRemoveMember(member)}
             >
               <Trash2 className="h-4 w-4" />
-              Remove from channel
+              Удалить из канала
             </DropdownMenuItem>
           </>
         ) : null}
@@ -466,7 +490,7 @@ function MemberActionsMenu({
                 onClick={() => onUntimeout(member)}
               >
                 <ShieldCheck className="h-4 w-4" />
-                Lift timeout
+                Снять тайм-аут
               </DropdownMenuItem>
             ) : (
               <DropdownMenuSub>
@@ -475,7 +499,7 @@ function MemberActionsMenu({
                   disabled={disabled}
                 >
                   <Clock className="h-4 w-4" />
-                  Time out
+                  Ограничить по времени
                 </DropdownMenuSubTrigger>
                 <DropdownMenuSubContent>
                   {TIMEOUT_PRESETS.map((preset) => (
@@ -503,7 +527,7 @@ function MemberActionsMenu({
                 onClick={() => onUnban(member)}
               >
                 <CircleSlash className="h-4 w-4" />
-                Lift ban
+                Разблокировать
               </DropdownMenuItem>
             ) : (
               <DropdownMenuItem
@@ -513,7 +537,7 @@ function MemberActionsMenu({
                 onClick={() => onBan(member)}
               >
                 <Ban className="h-4 w-4" />
-                Ban from community
+                Заблокировать в сообществе
               </DropdownMenuItem>
             )}
           </>

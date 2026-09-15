@@ -61,7 +61,7 @@ export function PersonaActionsMenu({
         {canEdit ? (
           <DropdownMenuItem disabled={disabled} onClick={() => onEdit(persona)}>
             <Pencil className="h-4 w-4" />
-            Edit
+            Редактировать
           </DropdownMenuItem>
         ) : null}
         <DropdownMenuItem
@@ -69,20 +69,20 @@ export function PersonaActionsMenu({
           onClick={() => onDuplicate(persona)}
         >
           <CopyPlus className="h-4 w-4" />
-          Duplicate
+          Дублировать
         </DropdownMenuItem>
         <DropdownMenuItem
           disabled={disabled}
           onClick={() => onShare(persona, linkedAgent)}
         >
           <Share2 className="h-4 w-4" />
-          Share
+          Поделиться
         </DropdownMenuItem>
         <DropdownMenuSeparator />
         {persona.sourceTeam ? (
           <DropdownMenuItem disabled>
             <Trash2 className="h-4 w-4" />
-            Managed by team
+            Управляется командой
           </DropdownMenuItem>
         ) : (
           <DropdownMenuItem
@@ -98,7 +98,7 @@ export function PersonaActionsMenu({
             }}
           >
             <Trash2 className="h-4 w-4" />
-            Delete
+            Удалить
           </DropdownMenuItem>
         )}
       </DropdownMenuContent>

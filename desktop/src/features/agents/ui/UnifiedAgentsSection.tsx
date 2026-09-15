@@ -134,7 +134,7 @@ export function UnifiedAgentsSection(props: UnifiedAgentsSectionProps) {
         <div className="space-y-3" data-testid="unified-agents-groups">
           <div className={IDENTITY_CARD_GRID_CLASS}>
             <CreateIdentityCard
-              ariaLabel="New agent"
+              ariaLabel="Новый агент"
               dataTestId="new-agent-card"
               disabled={isPersonasPending}
               onClick={onOpenCatalog}
@@ -187,7 +187,7 @@ export function UnifiedAgentsSection(props: UnifiedAgentsSectionProps) {
               defaultModel={defaultModel}
               groupKey="__unknown__"
               bestiePubkey={bestiePubkey}
-              label="Unknown agents"
+              label="Неизвестные агенты"
               restartingAgentPubkey={restartingAgentPubkey}
               startingAgentPubkey={startingAgentPubkey}
               onToggle={toggle}
@@ -204,7 +204,7 @@ export function UnifiedAgentsSection(props: UnifiedAgentsSectionProps) {
               defaultModel={defaultModel}
               groupKey="__ungrouped__"
               bestiePubkey={bestiePubkey}
-              label="Custom agents"
+              label="Свои агенты"
               restartingAgentPubkey={restartingAgentPubkey}
               startingAgentPubkey={startingAgentPubkey}
               onToggle={toggle}
@@ -359,7 +359,7 @@ function AgentPersonaCard({
         agent?.personaOrphaned ? (
           <Badge className="gap-1" variant="warning">
             <AlertTriangle className="h-3 w-3" />
-            Configuration missing
+            Конфигурация отсутствует
           </Badge>
         ) : null
       }

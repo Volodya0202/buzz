@@ -231,7 +231,7 @@ function SidebarProjectsSectionContent() {
           relayOrigin,
           currentPubkey,
         );
-        toast.success("Project deleted");
+        toast.success("Проект удалён");
         if (
           routeProjectId != null &&
           projectMatchesRouteId(project, routeProjectId)
@@ -240,7 +240,7 @@ function SidebarProjectsSectionContent() {
         }
       } catch (error) {
         toast.error(
-          error instanceof Error ? error.message : "Failed to delete project",
+          error instanceof Error ? error.message : "Не удалось удалить проект",
         );
       } finally {
         setProjectToDelete(null);
@@ -271,7 +271,7 @@ function SidebarProjectsSectionContent() {
             onClick={() => setCollapsed((current) => !current)}
             type="button"
           >
-            <span data-sidebar-section-title>Projects</span>
+            <span data-sidebar-section-title>Проекты</span>
             <span aria-hidden="true" className={SECTION_LABEL_CHEVRON_CLASS}>
               <ChevronDown
                 className={cn(
@@ -365,7 +365,7 @@ function SidebarProjectsSectionContent() {
             </SidebarMenu>
           ) : isPending ? null : (
             <p className="px-2 py-1 text-xs text-sidebar-foreground/50">
-              No projects yet
+              Проектов пока нет
             </p>
           )}
         </SidebarGroupContent>
@@ -375,11 +375,11 @@ function SidebarProjectsSectionContent() {
         onCreate={async (input) => {
           const result = await createProjectMutation.mutateAsync(input);
           if (result.compatibilityWarning) {
-            toast.warning("Created as a standalone project", {
+            toast.warning("Создан как отдельный проект", {
               description: result.compatibilityWarning,
             });
           } else {
-            toast.success(`Project "${result.project.name}" created.`);
+            toast.success(`Проект «${result.project.name}» создан.`);
           }
           await goProject(result.project.id);
         }}
@@ -406,10 +406,10 @@ function SidebarProjectsSectionContent() {
           }
         >
           <AlertDialogHeader>
-            <AlertDialogTitle>Delete project?</AlertDialogTitle>
+            <AlertDialogTitle>Удалить проект?</AlertDialogTitle>
             <AlertDialogDescription>
-              Delete {projectToDelete?.name} from Projects for everyone. This
-              can only be done for projects you own and cannot be undone.
+              Удалить «{projectToDelete?.name}» из проектов для всех участников. Это
+              действие доступно только владельцу проекта и не может быть отменено.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
@@ -419,7 +419,7 @@ function SidebarProjectsSectionContent() {
                 type="button"
                 variant="outline"
               >
-                Cancel
+                Отмена
               </Button>
             </AlertDialogCancel>
             <AlertDialogAction asChild>
@@ -438,8 +438,8 @@ function SidebarProjectsSectionContent() {
                 variant="destructive"
               >
                 {deleteProjectMutation.isPending
-                  ? "Deleting..."
-                  : "Delete project"}
+                  ? "Удаление..."
+                  : "Удалить проект"}
               </Button>
             </AlertDialogAction>
           </AlertDialogFooter>
@@ -471,7 +471,7 @@ function SidebarProjectsHeaderActions({
   return (
     <div className="absolute right-1 top-1/2 z-10 flex -translate-y-1/2 items-center gap-0.5">
       <button
-        aria-label="Add project"
+        aria-label="Добавить проект"
         className={cn(
           SECTION_ICON_BUTTON_CLASS,
           SECTION_ACTION_VISIBILITY_CLASS,
@@ -482,7 +482,7 @@ function SidebarProjectsHeaderActions({
           onCreate();
         }}
         onPointerDown={(event) => event.stopPropagation()}
-        title="Add project"
+        title="Добавить проект"
         type="button"
       >
         <Plus className="h-4 w-4" />
@@ -490,7 +490,7 @@ function SidebarProjectsHeaderActions({
       <DropdownMenu onOpenChange={onOpenChange}>
         <DropdownMenuTrigger asChild>
           <button
-            aria-label="More actions for Projects"
+            aria-label="Действия с проектами"
             className={cn(
               SECTION_ICON_BUTTON_CLASS,
               SECTION_ACTION_VISIBILITY_CLASS,
@@ -514,7 +514,7 @@ function SidebarProjectsHeaderActions({
           <DropdownMenuSub>
             <DropdownMenuSubTrigger>
               <Folders className="h-4 w-4" />
-              <span>Show</span>
+              <span>Показать</span>
             </DropdownMenuSubTrigger>
             <DropdownMenuSubContent>
               <DropdownMenuRadioGroup
@@ -524,10 +524,10 @@ function SidebarProjectsHeaderActions({
                 value={filter}
               >
                 <DropdownMenuRadioItem value="added">
-                  Added
+                  Добавленные
                 </DropdownMenuRadioItem>
                 <DropdownMenuRadioItem value="owned">
-                  Owned by me
+                  Мои проекты
                 </DropdownMenuRadioItem>
               </DropdownMenuRadioGroup>
             </DropdownMenuSubContent>
@@ -535,7 +535,7 @@ function SidebarProjectsHeaderActions({
           <DropdownMenuSub>
             <DropdownMenuSubTrigger>
               <ArrowUpDown className="h-4 w-4" />
-              <span>Sort</span>
+              <span>Сортировка</span>
             </DropdownMenuSubTrigger>
             <DropdownMenuSubContent>
               <DropdownMenuRadioGroup
@@ -544,9 +544,9 @@ function SidebarProjectsHeaderActions({
                 }
                 value={sort}
               >
-                <DropdownMenuRadioItem value="name">A–Z</DropdownMenuRadioItem>
+                <DropdownMenuRadioItem value="name">А–Я</DropdownMenuRadioItem>
                 <DropdownMenuRadioItem value="created">
-                  Newest
+                  Сначала новые
                 </DropdownMenuRadioItem>
               </DropdownMenuRadioGroup>
             </DropdownMenuSubContent>
@@ -554,7 +554,7 @@ function SidebarProjectsHeaderActions({
           <DropdownMenuSeparator />
           <DropdownMenuItem onSelect={() => deferMenuAction(onBrowseAll)}>
             <Folder className="h-4 w-4" />
-            <span>Browse all projects</span>
+            <span>Все проекты</span>
           </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>
@@ -653,7 +653,7 @@ function SidebarProjectRow({
           <ContextMenuIconSlot>
             <ListMinus className="h-4 w-4" />
           </ContextMenuIconSlot>
-          <span>Remove from sidebar</span>
+          <span>Убрать из боковой панели</span>
         </ContextMenuItem>
         {shareLink ? (
           <>
@@ -661,14 +661,14 @@ function SidebarProjectRow({
             <ContextMenuItem
               onSelect={() =>
                 deferMenuAction(() =>
-                  copyTextToClipboard(shareLink, "Link copied to clipboard"),
+                  copyTextToClipboard(shareLink, "Ссылка скопирована в буфер обмена"),
                 )
               }
             >
               <ContextMenuIconSlot>
                 <Link2 className="h-4 w-4" />
               </ContextMenuIconSlot>
-              <span>Copy link</span>
+              <span>Скопировать ссылку</span>
             </ContextMenuItem>
           </>
         ) : null}
@@ -684,7 +684,7 @@ function SidebarProjectRow({
               <ContextMenuIconSlot>
                 <Trash2 className="h-4 w-4" />
               </ContextMenuIconSlot>
-              <span>Delete project</span>
+              <span>Удалить проект</span>
             </ContextMenuItem>
           </>
         ) : null}

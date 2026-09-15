@@ -809,17 +809,17 @@ export function AgentInstanceEditDialog({
       // explicitly instead of relying on the user to know the policy.
       if (!isManagedAgentActive(result.agent)) {
         const startedName = result.agent.name;
-        toast(`${startedName} saved while stopped.`, {
+        toast(`Агент ${startedName} сохранён в остановленном состоянии.`, {
           action: {
-            label: "Start now",
+            label: "Запустить сейчас",
             onClick: () => {
               startMutation.mutate(result.agent.pubkey, {
-                onSuccess: () => toast.success(`${startedName} started.`),
+                onSuccess: () => toast.success(`Агент ${startedName} запущен.`),
                 onError: (error) =>
                   toast.error(
                     error instanceof Error
-                      ? `${startedName} failed to start: ${error.message}`
-                      : `${startedName} failed to start.`,
+                      ? `Не удалось запустить агента ${startedName}: ${error.message}`
+                      : `Не удалось запустить агента ${startedName}.`,
                   ),
               });
             },
@@ -914,7 +914,7 @@ export function AgentInstanceEditDialog({
     { label: "Кастомный провайдер (ID)...", value: CUSTOM_PROVIDER_DROPDOWN_VALUE },
   ];
 
-  const previewLabel = name.trim() || "Agent name";
+  const previewLabel = name.trim() || "Имя агента";
   const previewAvatarUrl = avatarUrl.trim() || null;
   const advancedFieldsTransition = shouldReduceMotion
     ? { duration: 0 }
@@ -934,24 +934,26 @@ export function AgentInstanceEditDialog({
         data-testid="edit-agent-dialog"
         footerClassName="border-t-0 pt-0"
         headerClassName="pb-2"
-        title={`Edit ${agent.name}`}
+        title={`Редактировать ${agent.name}`}
         footer={
           <div className="flex w-full items-center justify-end gap-2">
             <Button
+              aria-label="Cancel"
               disabled={isSaving || isAvatarUploadPending}
               onClick={() => handleOpenChange(false)}
               type="button"
               variant="outline"
             >
-              Cancel
+              Отмена
             </Button>
             <Button
+              aria-label={isSaving ? "Saving..." : "Save changes"}
               data-testid="edit-agent-dialog-submit"
               disabled={!canSubmit}
               onClick={() => void handleSubmit()}
               type="button"
             >
-              {isSaving ? "Saving..." : "Save changes"}
+              {isSaving ? "Сохранение..." : "Сохранить изменения"}
             </Button>
           </div>
         }
@@ -980,11 +982,11 @@ export function AgentInstanceEditDialog({
                 type="button"
                 variant="outline"
               >
-                Edit avatar
+                Изменить аватар
               </Button>
             ) : (
               <p className="text-center text-xs text-muted-foreground">
-                Avatar is shared identity
+                Аватар является общей идентификацией
               </p>
             )}
           </div>
@@ -994,7 +996,7 @@ export function AgentInstanceEditDialog({
                 className="text-sm font-medium text-foreground"
                 htmlFor="edit-agent-name"
               >
-                Agent name
+                Имя агента
               </label>
               <div
                 className={cn(
@@ -1011,7 +1013,7 @@ export function AgentInstanceEditDialog({
                   disabled={isSaving}
                   id="edit-agent-name"
                   onChange={(event) => setName(event.target.value)}
-                  placeholder="Agent name"
+                  placeholder="Имя агента"
                   value={name}
                 />
               </div>
@@ -1032,19 +1034,19 @@ export function AgentInstanceEditDialog({
                 className="text-sm font-medium text-foreground"
                 htmlFor="edit-agent-runtime"
               >
-                Provider
+                Провайдер
               </label>
               <PersonaDropdownField
                 disabled={isSaving}
                 id="edit-agent-runtime"
                 onValueChange={handleRuntimeDropdownChange}
                 options={runtimeDropdownOptions}
-                placeholder="Choose a provider"
+                placeholder="Выберите провайдера"
                 value={runtimeDropdownValue}
               />
               {selectedRuntime ? (
                 <p className="text-xs text-muted-foreground">
-                  Detected at{" "}
+                  Обнаружено:{" "}
                   <span className="font-medium">
                     {selectedRuntime.binaryPath ??
                       selectedRuntime.command ??
@@ -1064,7 +1066,7 @@ export function AgentInstanceEditDialog({
                   className="text-sm font-medium text-foreground"
                   htmlFor="edit-agent-command"
                 >
-                  Agent command
+                  Команда агента
                 </label>
                 <div
                   className={cn(
@@ -1081,7 +1083,7 @@ export function AgentInstanceEditDialog({
                     disabled={isSaving}
                     id="edit-agent-command"
                     onChange={(event) => setAgentCommand(event.target.value)}
-                    placeholder="Full path or shell command"
+                    placeholder="Полный путь или команда оболочки"
                     value={agentCommand}
                   />
                 </div>
@@ -1160,12 +1162,13 @@ export function AgentInstanceEditDialog({
             <div className="space-y-3">
               <button
                 aria-expanded={showAdvancedFields}
+                aria-label="Advanced"
                 className="inline-flex h-9 items-center gap-1.5 text-sm font-medium text-foreground transition-colors hover:text-foreground/80 focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50"
                 disabled={isSaving}
                 onClick={() => setShowAdvancedFields((current) => !current)}
                 type="button"
               >
-                <span>Advanced</span>
+                <span>Дополнительно</span>
                 <AdvancedRequiredBadge
                   envVars={inheritedSubmission.envVars}
                   requiredEnvKeys={advancedRequiredEnvKeys}

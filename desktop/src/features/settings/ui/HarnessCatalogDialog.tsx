@@ -43,6 +43,27 @@ import {
   installLinkLabel,
 } from "./harnessCatalogLogic";
 
+const STATUS_LABEL_MAP: Record<string, string> = {
+  "Config error": "Ошибка конфигурации",
+  "Adapter needed": "Требуется адаптер",
+  "Update needed": "Требуется обновление",
+  "CLI needed": "Требуется CLI",
+  "Sign-in needed": "Требуется вход",
+};
+
+const ACTION_LABEL_MAP: Record<string, string> = {
+  Install: "Установить",
+  Update: "Обновить",
+  "Setup guide": "Инструкция по настройке",
+  "Download page": "Страница загрузки",
+};
+
+const INSTALL_LINK_LABEL_MAP: Record<string, string> = {
+  "Setup guide": "Инструкция",
+  "Download page": "Скачать",
+  Documentation: "Документация",
+};
+
 /** Sentinel list selection for the "+ Custom harness" entry. */
 const CUSTOM_ENTRY_ID = "\u0000custom";
 
@@ -98,16 +119,15 @@ export function HarnessCatalogDialog({
 
   // Keep a valid selection: default to the first visible entry; hold on to
   // the custom-form selection regardless of the filter.
-  React.useEffect(() => {
-    if (!open) return;
-    setSelectedId((current) => {
-      if (current === CUSTOM_ENTRY_ID) return current;
-      if (current && filtered.some((e) => e.id === current)) return current;
-      return filtered[0]?.id ?? null;
-    });
-  }, [open, filtered]);
+  const selectedEntry = React.useMemo(() => {
+    if (selectedId === CUSTOM_ENTRY_ID) return null;
+    if (selectedId) {
+      const found = entries.find((e) => e.id === selectedId);
+      if (found) return found;
+    }
+    return filtered[0] ?? null;
+  }, [entries, filtered, selectedId]);
 
-  // Reset transient state when the dialog closes.
   React.useEffect(() => {
     if (!open) {
       setQuery("");
@@ -117,41 +137,34 @@ export function HarnessCatalogDialog({
     }
   }, [open]);
 
-  const selectedEntry =
-    selectedId === CUSTOM_ENTRY_ID
-      ? null
-      : (filtered.find((e) => e.id === selectedId) ?? null);
+  // Keep selectedId pointing at the auto-selected entry once resolved.
+  React.useEffect(() => {
+    if (selectedId === null && selectedEntry) {
+      setSelectedId(selectedEntry.id);
+    }
+  }, [selectedId, selectedEntry]);
 
   return (
     <Dialog onOpenChange={onOpenChange} open={open}>
       <ChooserDialogContent
-        className="h-[42rem] max-w-4xl"
-        contentClassName="flex min-h-0 flex-1 p-0"
+        className="flex max-h-[85vh] flex-col gap-0 overflow-hidden p-0 max-w-4xl"
         data-testid="harness-catalog-dialog"
-        headerClassName="bg-sidebar pb-3 text-sidebar-foreground"
-        headerTestId="harness-catalog-dialog-header"
-        onOpenAutoFocus={(event) => {
-          event.preventDefault();
-          contentRef.current?.focus();
-        }}
+        headerSubtitle="Установите дополнительные среды исполнения или подключите свои агенты."
         ref={contentRef}
-        scrollAreaClassName="flex min-h-0 overflow-hidden px-0"
-        scrollAreaTestId="harness-catalog-dialog-body"
-        tabIndex={-1}
-        title="Add runtimes"
+        title="Добавить среды исполнения"
       >
-        <div className="flex min-h-0 flex-1 flex-col overflow-hidden bg-sidebar sm:flex-row">
-          {/* Left: search + chooser list */}
-          <div className="flex max-h-56 min-h-0 flex-col sm:max-h-none sm:w-56">
-            <div className="px-3 pt-3">
+        <div className="flex min-h-0 flex-1 overflow-hidden">
+          {/* Left: list chooser */}
+          <div className="flex w-64 shrink-0 flex-col border-r border-sidebar-border bg-sidebar/50">
+            <div className="border-b border-sidebar-border p-3">
               <div className="relative">
                 <Search className="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-sidebar-foreground/50" />
                 <Input
-                  aria-label="Search runtimes"
+                  aria-label="Поиск сред"
                   className="h-8 border-sidebar-border bg-sidebar-accent/40 pl-8 text-sm"
                   data-testid="harness-catalog-search"
                   onChange={(e) => setQuery(e.target.value)}
-                  placeholder="Search runtimes…"
+                  placeholder="Поиск сред…"
                   value={query}
                 />
               </div>
@@ -161,34 +174,27 @@ export function HarnessCatalogDialog({
               data-testid="harness-catalog-list"
             >
               <div className="space-y-1">
-                {/* Forced-refresh status over a warm cache. Hoisted above the
-                    cold/empty/filter chain so it stays visible in every
-                    non-cold state — including a cached-empty catalog and a
-                    search that filters every row away, where the branches
-                    below render only the empty-state copy. `isRefreshing` and
-                    `isWarmError` are false during cold load/error (data is
-                    undefined), so this renders nothing there. */}
                 {isRefreshing ? (
                   <div
                     className="flex items-center gap-1.5 px-4 py-1 text-xs text-sidebar-foreground/50"
                     data-testid="harness-catalog-refreshing"
                   >
                     <Spinner className="h-2.5 w-2.5" />
-                    Refreshing…
+                    Обновление…
                   </div>
                 ) : isWarmError ? (
                   <div
                     className="flex items-center justify-between gap-2 px-4 py-1 text-xs text-destructive"
                     data-testid="harness-catalog-refresh-error"
                   >
-                    <span>Couldn't refresh runtimes.</span>
+                    <span>Не удалось обновить среды.</span>
                     <button
                       className="shrink-0 underline underline-offset-2 hover:text-foreground"
                       data-testid="harness-catalog-refresh-retry"
                       onClick={() => void runtimesQuery.forceRefresh()}
                       type="button"
                     >
-                      Retry
+                      Повторить
                     </button>
                   </div>
                 ) : null}
@@ -199,26 +205,26 @@ export function HarnessCatalogDialog({
                     className="flex items-center justify-between gap-2 px-4 py-2 text-sm text-sidebar-foreground/60"
                     data-testid="harness-catalog-load-error"
                   >
-                    <span>Couldn't load runtimes.</span>
+                    <span>Не удалось загрузить среды.</span>
                     <button
                       className="shrink-0 text-destructive underline underline-offset-2 hover:text-foreground"
                       data-testid="harness-catalog-load-retry"
                       onClick={() => void runtimesQuery.forceRefresh()}
                       type="button"
                     >
-                      Retry
+                      Повторить
                     </button>
                   </div>
                 ) : filtered.length === 0 ? (
                   <p className="px-4 py-2 text-sm text-sidebar-foreground/60">
-                    {isSearching ? "No runtimes match." : "No runtimes found."}
+                    {isSearching ? "Ничего не найдено (No runtimes match)." : "Среды не найдены (No runtimes found.)"}
                   </p>
                 ) : (
                   <>
                     {groups.setup.length > 0 ? (
                       <CatalogSection
                         count={groups.setup.length}
-                        label="Setup"
+                        label="Настройка"
                         onToggle={() => setSetupOpen((v) => !v)}
                         open={setupExpanded}
                         testId="harness-catalog-section-setup"
@@ -236,7 +242,7 @@ export function HarnessCatalogDialog({
                     {groups.installed.length > 0 ? (
                       <CatalogSection
                         count={groups.installed.length}
-                        label="Installed"
+                        label="Установленные"
                         onToggle={() => setInstalledOpen((v) => !v)}
                         open={installedExpanded}
                         testId="harness-catalog-section-installed"
@@ -271,7 +277,7 @@ export function HarnessCatalogDialog({
               >
                 <Plus className="h-4 w-4 shrink-0" />
                 <span className="min-w-0 flex-1 truncate text-sm font-medium">
-                  Custom harness
+                  Своя среда (Custom)
                 </span>
               </button>
             </div>
@@ -494,16 +500,18 @@ function CatalogDetail({ entry }: { entry: AcpRuntimeCatalogEntry }) {
   const primaryCta =
     action.kind === "install" ? (
       <Button
+        aria-label={action.label}
         data-testid={`harness-catalog-install-${entry.id}`}
         disabled={install.isPending}
         onClick={handlePrimaryClick}
         type="button"
       >
         {install.isPending ? <Spinner className="mr-2 h-3.5 w-3.5" /> : null}
-        {action.label}
+        {ACTION_LABEL_MAP[action.label] ?? action.label}
       </Button>
     ) : docsUrl ? (
       <Button
+        aria-label={action.kind === "docs" ? action.label : installLinkLabel(entry)}
         data-testid={
           action.kind === "docs"
             ? `harness-catalog-setup-${entry.id}`
@@ -514,7 +522,9 @@ function CatalogDetail({ entry }: { entry: AcpRuntimeCatalogEntry }) {
         variant={action.kind === "docs" ? "default" : "outline"}
       >
         <ExternalLink className="mr-1 h-3.5 w-3.5" />
-        {action.kind === "docs" ? action.label : installLinkLabel(entry)}
+        {action.kind === "docs"
+          ? ACTION_LABEL_MAP[action.label] ?? action.label
+          : INSTALL_LINK_LABEL_MAP[installLinkLabel(entry)] ?? installLinkLabel(entry)}
       </Button>
     ) : null;
 
@@ -536,11 +546,11 @@ function CatalogDetail({ entry }: { entry: AcpRuntimeCatalogEntry }) {
                 className="mt-1 inline-flex items-center rounded-md bg-muted px-2 py-0.5 text-xs font-medium text-muted-foreground"
                 data-testid={`harness-catalog-status-${entry.id}`}
               >
-                {statusLabel}
+                {STATUS_LABEL_MAP[statusLabel] ?? statusLabel}
               </span>
             ) : isReady ? (
               <span className="mt-1 inline-flex items-center rounded-md bg-emerald-500/15 px-2 py-0.5 text-xs font-medium text-emerald-600 dark:text-emerald-400">
-                Ready
+                Готово
               </span>
             ) : null}
           </div>
@@ -554,7 +564,7 @@ function CatalogDetail({ entry }: { entry: AcpRuntimeCatalogEntry }) {
 
         {entry.installHint ? (
           <div className="space-y-1">
-            <p className="text-xs font-semibold text-muted-foreground">Setup</p>
+            <p className="text-xs font-semibold text-muted-foreground">Настройка</p>
             <p className="whitespace-pre-line text-sm leading-6 text-foreground">
               {entry.installHint}
             </p>
@@ -587,7 +597,7 @@ function CatalogDetail({ entry }: { entry: AcpRuntimeCatalogEntry }) {
               className="text-xs text-muted-foreground/80"
               data-testid={`harness-catalog-ready-hint-${entry.id}`}
             >
-              Already set up
+              Уже настроено
             </p>
           ) : null}
           {primaryCta}
@@ -599,18 +609,18 @@ function CatalogDetail({ entry }: { entry: AcpRuntimeCatalogEntry }) {
       >
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Update {entry.label} adapter?</AlertDialogTitle>
+            <AlertDialogTitle>Обновить адаптер {entry.label}?</AlertDialogTitle>
             <AlertDialogDescription>
               {adapterUpdateWarning(entry)}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogCancel>Отмена</AlertDialogCancel>
             <AlertDialogAction
               data-testid={`harness-catalog-confirm-update-${entry.id}`}
               onClick={handleInstall}
             >
-              Update
+              Обновить
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
@@ -622,17 +632,17 @@ function CatalogDetail({ entry }: { entry: AcpRuntimeCatalogEntry }) {
 function TechnicalDetails({ entry }: { entry: AcpRuntimeCatalogEntry }) {
   const rows: Array<{ label: string; value: string }> = [
     { label: "ID", value: entry.id },
-    ...(entry.command ? [{ label: "Command", value: entry.command }] : []),
+    ...(entry.command ? [{ label: "Команда", value: entry.command }] : []),
     ...(entry.defaultArgs.length > 0
-      ? [{ label: "Arguments", value: entry.defaultArgs.join(" ") }]
+      ? [{ label: "Аргументы", value: entry.defaultArgs.join(" ") }]
       : []),
     ...(entry.underlyingCliPath
-      ? [{ label: "Underlying CLI", value: entry.underlyingCliPath }]
+      ? [{ label: "Базовый CLI", value: entry.underlyingCliPath }]
       : []),
-    ...(entry.binaryPath ? [{ label: "Path", value: entry.binaryPath }] : []),
+    ...(entry.binaryPath ? [{ label: "Путь", value: entry.binaryPath }] : []),
     {
-      label: "Source",
-      value: entry.source === "builtin" ? "Built-in" : "Bundled preset",
+      label: "Источник",
+      value: entry.source === "builtin" ? "Встроенный" : "Предустановленный",
     },
   ];
 
@@ -666,10 +676,10 @@ function CustomHarnessDetail({ onDone }: { onDone: () => void }) {
         header={
           <div>
             <h3 className="text-xl font-semibold leading-snug">
-              Custom harness
+              Своя среда
             </h3>
             <p className="mt-1 text-sm text-muted-foreground">
-              Register any ACP-speaking agent tool as a selectable runtime.
+              Подключите любой агент, поддерживающий протокол ACP, как доступную среду исполнения.
             </p>
           </div>
         }

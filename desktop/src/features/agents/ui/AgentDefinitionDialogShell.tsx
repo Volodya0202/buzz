@@ -13,6 +13,24 @@ type AgentDefinitionDialogShellProps = {
   title: string;
 };
 
+function localizeTitle(title: string): string {
+  if (title === "Create agent") return "Создать агента";
+  if (title === "Edit agent") return "Редактировать агента";
+  if (title.startsWith("Duplicate ")) return `Дублировать ${title.slice(10)}`;
+  return title;
+}
+
+function localizeDescription(desc: string): string {
+  if (desc === "Create an agent and start it immediately.")
+    return "Создайте агента и запустите его сразу.";
+  if (
+    desc ===
+    "Create a new agent by copying this profile and adjusting it as needed."
+  )
+    return "Создайте нового агента, скопировав этот профиль и настроив его.";
+  return desc;
+}
+
 export function AgentDefinitionDialogShell({
   children,
   description,
@@ -44,11 +62,11 @@ export function AgentDefinitionDialogShell({
         className="max-w-3xl border-0"
         contentClassName="pt-3"
         data-testid="persona-dialog"
-        description={description}
+        description={localizeDescription(description)}
         footer={footer}
         footerClassName="border-t-0 pt-0"
         headerClassName="pb-2"
-        title={title}
+        title={localizeTitle(title)}
       >
         {children}
       </ChooserDialogContent>

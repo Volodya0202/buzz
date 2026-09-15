@@ -124,7 +124,7 @@ export function PrivateKeyBackupRow() {
     <>
       <div className="px-4 py-3" data-testid="profile-private-key-row">
         <div className="flex items-center justify-between gap-4">
-          <p className="text-sm font-medium">Private key</p>
+          <p className="text-sm font-medium">Приватный ключ</p>
           <div className="flex shrink-0 items-center gap-2">
             {backupAvailable ? (
               <Button
@@ -137,11 +137,11 @@ export function PrivateKeyBackupRow() {
                 {availableUntil !== null ? (
                   <BackupAvailabilityFill availableUntil={availableUntil} />
                 ) : null}
-                <span className="relative z-10">Download backup</span>
+                <span className="relative z-10">Скачать резервную копию</span>
               </Button>
             ) : null}
             <Button
-              aria-label={isOpen ? "Hide private key" : "Reveal private key"}
+              aria-label={isOpen ? "Скрыть приватный ключ" : "Показать приватный ключ"}
               className="rounded-full"
               data-testid="profile-private-key-toggle"
               onClick={() => void handleReveal()}
@@ -151,12 +151,12 @@ export function PrivateKeyBackupRow() {
               {isOpen ? (
                 <>
                   <EyeOff className="h-4 w-4 shrink-0" />
-                  Hide
+                  Скрыть
                 </>
               ) : (
                 <>
                   <Eye className="h-4 w-4 shrink-0" />
-                  Reveal
+                  Показать
                 </>
               )}
             </Button>
@@ -165,7 +165,7 @@ export function PrivateKeyBackupRow() {
         {isOpen ? (
           <div className="mt-2">
             {isLoading ? (
-              <p className="text-sm text-muted-foreground">Loading…</p>
+              <p className="text-sm text-muted-foreground">Загрузка…</p>
             ) : loadError ? (
               <p className="text-sm text-destructive">{loadError}</p>
             ) : nsec ? (
@@ -173,13 +173,13 @@ export function PrivateKeyBackupRow() {
                 actions={[
                   {
                     icon: <Download aria-hidden="true" />,
-                    label: "Create backup",
+                    label: "Создать резервную копию",
                     onSelect: handleCreateBackup,
                     testId: "private-key-create-backup",
                   },
                   {
                     icon: <ShieldCheck aria-hidden="true" />,
-                    label: "Test backup",
+                    label: "Проверить копию",
                     onSelect: () => setTestOpen(true),
                     testId: "private-key-test-backup",
                   },
@@ -194,10 +194,10 @@ export function PrivateKeyBackupRow() {
       <Dialog onOpenChange={handleTestOpenChange} open={testOpen}>
         <DialogContent className="max-w-lg" data-testid="backup-test-dialog">
           <DialogHeader className="pr-8">
-            <DialogTitle>Test a key backup</DialogTitle>
+            <DialogTitle>Проверка резервной копии</DialogTitle>
             <DialogDescription>
-              Confirm that a backup file and its password can unlock an
-              identity.
+              Подтвердите, что файл резервной копии и пароль могут разблокировать
+              профиль.
             </DialogDescription>
           </DialogHeader>
           <BackupTestFlow
@@ -205,8 +205,8 @@ export function PrivateKeyBackupRow() {
             progress={testProgress}
           />
           <p className="text-xs leading-5 text-muted-foreground">
-            Backups use the standard NIP-49 format, so this works for backups
-            from compatible Nostr apps too.
+            Резервные копии используют стандартный формат NIP-49, совместимый с
+            другими приложениями Nostr.
           </p>
         </DialogContent>
       </Dialog>

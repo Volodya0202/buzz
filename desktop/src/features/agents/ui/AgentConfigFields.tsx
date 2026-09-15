@@ -660,7 +660,7 @@ export function AgentConfigFields({
         bakedProvider
       );
     }
-    return "Select a provider";
+    return "Выберите провайдера";
   }, [bakedProvider, providerOptions]);
 
   const implicitEffortProvider =
@@ -728,7 +728,7 @@ export function AgentConfigFields({
       options={providerDropdownOptions}
       placeholder={
         showProviderPlaceholderOption
-          ? "Select provider"
+          ? "Выберите провайдера"
           : compactProviderZeroLabel
       }
       placeholderClassName={placeholderClassName}
@@ -765,7 +765,7 @@ export function AgentConfigFields({
         className={cn("text-sm font-medium", fieldLabelClassName)}
         htmlFor="global-agent-provider"
       >
-        Provider
+        Провайдер
       </label>
       {!useCustomSelect && useChevronSelectIcon ? (
         <div className="relative">
@@ -780,10 +780,10 @@ export function AgentConfigFields({
       )}
       {isCustomProvider ? (
         <AgentConfigTextInput
-          aria-label="Custom global provider ID"
+          aria-label="ID кастомного глобального провайдера"
           autoCorrect="off"
           onChange={(e) => handleCustomProviderInput(e.target.value)}
-          placeholder="Custom provider ID"
+          placeholder="ID кастомного провайдера"
           usePersonaInputStyle={progressiveDefaults}
           value={providerValue}
         />
@@ -802,7 +802,7 @@ export function AgentConfigFields({
         inheritedRows={bakedGenericRows}
         inheritedRowsLabel="build"
         keyAnnotations={CARD_MINT_KEY_ANNOTATIONS}
-        label="Environment variables"
+        label="Переменные окружения"
         onChange={handleEnvVarsChange}
         requiredKeys={advancedRequiredEnvKeys}
         value={config.env_vars}
@@ -827,12 +827,12 @@ export function AgentConfigFields({
             envVarName={apiKeyEnvVar}
             inheritedLabel={
               apiKeyFileSatisfied
-                ? "Set in runtime config"
-                : "Provided by this build"
+                ? "Задано в конфигурации среды"
+                : "Предоставлено этой сборкой"
             }
             isInherited={apiKeyInherited}
             isRequired={!apiKeyInherited && apiKeyValue.length === 0}
-            label={getProviderApiKeyLabel(effectiveProvider) ?? "API Key"}
+            label={getProviderApiKeyLabel(effectiveProvider) ?? "API-ключ"}
             onValueChange={(value) =>
               onConfigChange({
                 ...config,
@@ -881,7 +881,7 @@ export function AgentConfigFields({
             onIsCustomModelEditingChange={onCustomModelEditingChange}
             onModelChange={handleModelChange}
             placeholderClassName={placeholderClassName}
-            placeholder="Select a model"
+            placeholder="Выберите модель"
             provider={providerForDiscovery}
             fieldClassName={unstyled ? fieldClassName : undefined}
             labelClassName={fieldLabelClassName}
@@ -910,7 +910,7 @@ export function AgentConfigFields({
               // placeholder. Full disclosure lets EffortSelectField compute
               // its own label ("Default (medium)", "Inherit (high)", …).
               disclosure === "onboarding-essential"
-                ? "Select effort level"
+                ? "Выберите уровень усилий"
                 : undefined
             }
             effortDefault={effortDefaultForRenderer}
@@ -923,7 +923,7 @@ export function AgentConfigFields({
                 : undefined
             }
             inheritedEffort={bakedEffort ?? undefined}
-            label="Effort"
+            label="Усилие"
             labelClassName={fieldLabelClassName}
             onChange={(value) => {
               const nextEnvVars = { ...config.env_vars };
@@ -958,7 +958,7 @@ export function AgentConfigFields({
             onClick={() => setAdvancedOpen((current) => !current)}
             type="button"
           >
-            <span>Advanced</span>
+            <span>Дополнительно</span>
             <AdvancedRequiredBadge
               show={advancedCredentialMissing}
               testId="global-agent-advanced-required-badge"

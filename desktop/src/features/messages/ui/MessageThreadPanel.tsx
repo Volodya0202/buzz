@@ -672,7 +672,7 @@ export function MessageThreadPanel({
                           channelId={channelId}
                           currentPubkey={currentPubkey}
                           collapseDepthGuideActions={collapseDepthGuideActions}
-                          collapseDescendantsLabel="Collapse replies"
+                          collapseDescendantsLabel="Свернуть ответы"
                           connectDescendants={
                             shouldShowThreadBranchGuides &&
                             connectsToVisibleChild
@@ -807,8 +807,8 @@ export function MessageThreadPanel({
           >
             <ArrowDown aria-hidden />
             {newMessageCount > 0
-              ? `${newMessageCount} new message${newMessageCount === 1 ? "" : "s"}`
-              : "Jump to latest"}
+              ? `${newMessageCount} новых сообщений`
+              : "К последним"}
           </Button>
         </div>
       ) : null}
@@ -858,8 +858,8 @@ export function MessageThreadPanel({
               onSend={onSend}
               placeholder={
                 isHuddleTranscript
-                  ? "Message the huddle"
-                  : `Reply in thread to ${threadHead.author}`
+                  ? "Сообщение в созвон"
+                  : `Ответить в ветку ${threadHead.author}`
               }
               profiles={profiles}
               recentMentionPubkeys={recentMentionPubkeys}

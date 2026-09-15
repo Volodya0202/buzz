@@ -168,7 +168,7 @@ export function PersonaAdvancedFields({
             className="text-sm font-medium text-foreground"
             htmlFor="persona-session-policy"
           >
-            Conversation context
+            Контекст беседы
           </label>
           <PersonaDropdownField
             ariaDescribedBy="persona-session-policy-description"
@@ -181,10 +181,10 @@ export function PersonaAdvancedFields({
               })
             }
             options={[
-              { label: "Entire channel", value: "channel" },
-              { label: "Each thread", value: "thread" },
+              { label: "Весь канал", value: "channel" },
+              { label: "Каждая ветка", value: "thread" },
             ]}
-            placeholder="Entire channel"
+            placeholder="Весь канал"
             value={behaviorDraft.sessionPolicy}
           />
           <p
@@ -192,8 +192,8 @@ export function PersonaAdvancedFields({
             id="persona-session-policy-description"
           >
             {behaviorDraft.sessionPolicy === "thread"
-              ? "Keeps a separate conversation for each channel thread. Direct messages remain shared."
-              : "Shares one conversation across every thread in a channel."}
+              ? "Создаёт отдельный контекст беседы для каждой ветки канала. Личные сообщения остаются общими."
+              : "Использует единый контекст беседы для всех веток канала."}
           </p>
         </div>
 
@@ -202,8 +202,8 @@ export function PersonaAdvancedFields({
             className="text-sm font-medium text-foreground"
             htmlFor="persona-parallelism"
           >
-            Parallelism
-            <span className={PERSONA_LABEL_OPTIONAL_CLASS}>Optional</span>
+            Параллелизм
+            <span className={PERSONA_LABEL_OPTIONAL_CLASS}>Необязательно</span>
           </label>
           <div
             className={cn(
@@ -248,8 +248,8 @@ export function PersonaAdvancedFields({
           className="text-sm font-medium text-foreground"
           htmlFor="persona-name-pool"
         >
-          Instance name pool
-          <span className={PERSONA_LABEL_OPTIONAL_CLASS}>Optional</span>
+          Пул имён экземпляров
+          <span className={PERSONA_LABEL_OPTIONAL_CLASS}>Необязательно</span>
         </label>
         <div
           className={cn(

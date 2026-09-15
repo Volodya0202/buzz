@@ -277,7 +277,7 @@ export function HuddleIndicator({
           onSelect={() => onStart()}
         >
           <Headphones />
-          <span>Start huddle</span>
+          <span>Начать созвон</span>
         </DropdownMenuItem>
       );
     }
@@ -290,7 +290,7 @@ export function HuddleIndicator({
             data-testid="channel-huddle-tooltip-trigger"
           >
             <Button
-              aria-label="Start huddle"
+              aria-label="Начать созвон"
               className={className}
               data-testid="channel-start-huddle-trigger"
               disabled={startDisabled || isStarting}
@@ -303,7 +303,7 @@ export function HuddleIndicator({
             </Button>
           </span>
         </TooltipTrigger>
-        <TooltipContent>Huddle</TooltipContent>
+        <TooltipContent>Созвон</TooltipContent>
       </Tooltip>
     );
   }
@@ -341,7 +341,7 @@ export function HuddleIndicator({
         onSelect={() => void doJoin()}
       >
         <Headphones />
-        <span>Join huddle</span>
+        <span>Присоединиться к созвону</span>
         <span className="ml-auto text-xs text-muted-foreground">
           {participantCount}
         </span>
@@ -353,7 +353,7 @@ export function HuddleIndicator({
     <Tooltip>
       <TooltipTrigger asChild>
         <Button
-          aria-label={`Join active huddle (${participantCount} participant${participantCount !== 1 ? "s" : ""})`}
+          aria-label={`Присоединиться к созвону (${participantCount} участн.)`}
           className={cn("relative", className)}
           disabled={isJoining || isStarting}
           onClick={() => void doJoin()}
@@ -372,7 +372,7 @@ export function HuddleIndicator({
         </Button>
       </TooltipTrigger>
       <TooltipContent>
-        {`Huddle active — ${participantCount} participant${participantCount !== 1 ? "s" : ""}`}
+        {`Активный созвон — ${participantCount} участн.`}
       </TooltipContent>
     </Tooltip>
   );

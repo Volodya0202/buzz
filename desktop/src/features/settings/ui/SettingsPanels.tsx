@@ -401,9 +401,9 @@ function SingleThemeTile({
 type AppearanceMode = "system" | "light" | "dark";
 
 const APPEARANCE_MODE_OPTIONS = [
-  { mode: "system" as const, label: "System", Icon: SunMoon },
-  { mode: "light" as const, label: "Light", Icon: Sun },
-  { mode: "dark" as const, label: "Dark", Icon: Moon },
+  { mode: "system" as const, label: "Системный", Icon: SunMoon },
+  { mode: "light" as const, label: "Светлый", Icon: Sun },
+  { mode: "dark" as const, label: "Тёмный", Icon: Moon },
 ] as const;
 
 // Reveal/hide motion for the accent picker: a small translate + opacity fade.
@@ -637,8 +637,8 @@ function ThemeSettingsCard() {
       data-testid="settings-theme"
     >
       <SettingsSectionHeader
-        title="Appearance"
-        description="Choose how Buzz looks and feels."
+        title="Внешний вид"
+        description="Настройте внешний вид и стиль интерфейса Buzz."
       />
 
       <SettingsOptionGroupList>
@@ -657,10 +657,10 @@ function ThemeSettingsCard() {
           }
           title={
             <>
-              Theme
+              Тема
               {showCommunityScope ? (
                 <span className="ml-1 font-normal text-muted-foreground">
-                  (per community)
+                  (для сообщества)
                 </span>
               ) : null}
             </>
@@ -668,17 +668,17 @@ function ThemeSettingsCard() {
         >
           <SettingsOptionRow data-testid="appearance-color-mode-row">
             <div className="min-w-0">
-              <p className="text-sm font-medium">Color mode</p>
+              <p className="text-sm font-medium">Режим оформления</p>
               <p
                 className="text-sm font-normal text-muted-foreground/70"
                 data-settings-subcopy
               >
-                Follow your system or choose a light or dark appearance.
+                Следовать настройкам системы или выбрать светлую/тёмную тему.
               </p>
             </div>
             <SegmentedControl
               indicatorTestId="appearance-color-mode-indicator"
-              legend="Color mode"
+              legend="Режим оформления"
               onValueChange={handleModeSelect}
               optionTestIdPrefix="appearance-mode"
               options={APPEARANCE_MODE_OPTIONS.map(({ mode, label, Icon }) => ({
@@ -693,12 +693,12 @@ function ThemeSettingsCard() {
 
           <SettingsOptionRow data-testid="theme-style-row">
             <div className="min-w-0">
-              <p className="text-sm font-medium">Theme style</p>
+              <p className="text-sm font-medium">Стиль темы</p>
               <p
                 className="text-sm font-normal text-muted-foreground/70"
                 data-settings-subcopy
               >
-                Choose the colors used throughout Buzz.
+                Выберите цветовую схему для интерфейса Buzz.
               </p>
             </div>
             <button
@@ -788,7 +788,7 @@ function ThemeSettingsCard() {
 
         <SettingsOptionGroup
           data-testid="appearance-preferences-card"
-          title="Preferences"
+          title="Предпочтения"
         >
           <ConversationDisplaySettings />
           <LinkPreviewStyleSetting />

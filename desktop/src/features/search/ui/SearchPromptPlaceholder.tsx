@@ -2,11 +2,11 @@ import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import * as React from "react";
 
 const SEARCH_PROMPT_WORDS = [
-  "everything",
-  "a channel",
-  "a message",
-  "a thread",
-  "an agent",
+  "всему",
+  "каналам",
+  "сообщениям",
+  "веткам",
+  "агентам",
 ] as const;
 const SEARCH_PROMPT_ROTATION_MS = 3200;
 const SEARCH_PROMPT_EASE = [0.22, 1, 0.36, 1] as const;
@@ -142,7 +142,7 @@ export function SearchPromptPlaceholder() {
         className="text-muted-foreground"
         data-testid="search-placeholder"
       >
-        Search for {activeWord}
+        Искать по {activeWord}
       </span>
     );
   }
@@ -155,7 +155,7 @@ export function SearchPromptPlaceholder() {
       data-search-prompt-options={SEARCH_PROMPT_WORDS.join(",")}
       data-testid="search-placeholder"
     >
-      <span>Search for&nbsp;</span>
+      <span>Искать по&nbsp;</span>
       <span
         className="relative inline-block overflow-visible whitespace-nowrap align-baseline leading-[inherit] motion-safe:transition-[width] motion-safe:ease-[cubic-bezier(0.22,1,0.36,1)] motion-reduce:transition-none"
         data-width-animation-duration-ms={Math.round(
@@ -166,7 +166,7 @@ export function SearchPromptPlaceholder() {
           ...(wordWidth === null ? {} : { width: wordWidth }),
         }}
       >
-        <span className="sr-only">everything</span>
+        <span className="sr-only">всему</span>
         <span
           aria-hidden="true"
           className="pointer-events-none invisible inline-block whitespace-nowrap leading-[inherit]"

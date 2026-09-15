@@ -15,19 +15,19 @@ export function AgentDefinitionMetadata({
 }) {
   const items = [
     {
-      label: "Type",
-      value: isBuiltIn ? "Built-in agent" : "Custom agent",
+      label: "Тип",
+      value: isBuiltIn ? "Встроенный агент" : "Пользовательский агент",
     },
     {
-      label: "Preferred model",
-      value: model ?? "Use app default",
+      label: "Предпочитаемая модель",
+      value: model ?? "По умолчанию",
     },
     {
-      label: "Preferred runtime",
-      value: runtime ?? "Use app default",
+      label: "Предпочитаемая среда",
+      value: runtime ?? "По умолчанию",
     },
     ...(provider !== undefined
-      ? [{ label: "Preferred provider", value: provider ?? "Use app default" }]
+      ? [{ label: "Предпочитаемый провайдер", value: provider ?? "По умолчанию" }]
       : []),
   ];
 

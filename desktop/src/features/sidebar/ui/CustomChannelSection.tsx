@@ -10,8 +10,8 @@ import {
   Trash2,
 } from "lucide-react";
 
-import { useRef, useState } from "react";
-import type * as React from "react";
+import * as React from "react";
+import { useState } from "react";
 
 import type { ChannelSortMode } from "@/features/sidebar/lib/channelSortPreference";
 import {
@@ -70,8 +70,8 @@ const SECTION_LABEL_CHEVRON_ICON_CLASS =
   "absolute left-1/2 top-1/2 size-2.5 -translate-x-1/2 -translate-y-1/2";
 
 const SORT_OPTIONS: { value: ChannelSortMode; label: string }[] = [
-  { value: "recent", label: "Recent" },
-  { value: "alpha", label: "A–Z" },
+  { value: "recent", label: "Недавние" },
+  { value: "alpha", label: "А–Я" },
 ];
 
 /**
@@ -120,16 +120,16 @@ export function SectionQuickAction({
 export function SectionActionsMenu({
   sectionLabel,
   testId,
-  visibilityClassName = SECTION_ACTION_VISIBILITY_CLASS,
   onOpenChange,
   hasUnread,
   onMarkAllRead,
+  onNewMessage,
+  newMessageLabel,
   onBrowse,
   browseLabel,
   onCreate,
   createLabel,
-  onNewMessage,
-  newMessageLabel,
+  showSectionManagement,
   onRenameSection,
   onMoveSectionUp,
   onMoveSectionDown,
@@ -141,16 +141,16 @@ export function SectionActionsMenu({
 }: {
   sectionLabel: string;
   testId?: string;
-  visibilityClassName?: string;
   onOpenChange?: (open: boolean) => void;
   hasUnread?: boolean;
   onMarkAllRead?: () => void;
+  onNewMessage?: () => void;
+  newMessageLabel?: string;
   onBrowse?: () => void;
   browseLabel?: string;
   onCreate?: () => void;
   createLabel?: string;
-  onNewMessage?: () => void;
-  newMessageLabel?: string;
+  showSectionManagement?: boolean;
   onRenameSection?: () => void;
   onMoveSectionUp?: () => void;
   onMoveSectionDown?: () => void;
@@ -160,16 +160,18 @@ export function SectionActionsMenu({
   sortMode?: ChannelSortMode;
   onSortModeChange?: (mode: ChannelSortMode) => void;
 }) {
-  const triggerRef = useRef<HTMLButtonElement>(null);
-  const showSectionManagement = Boolean(onRenameSection || onDeleteSection);
-  const showSort = Boolean(sortMode && onSortModeChange);
+  const triggerRef = React.useRef<HTMLButtonElement>(null);
+  const showSort = sortMode !== undefined && onSortModeChange !== undefined;
 
   return (
     <DropdownMenu onOpenChange={onOpenChange}>
       <DropdownMenuTrigger asChild>
         <button
-          aria-label={`More actions for ${sectionLabel}`}
-          className={cn(SECTION_ICON_BUTTON_CLASS, visibilityClassName)}
+          aria-label={`Действия с разделом ${sectionLabel}`}
+          className={cn(
+            SECTION_ICON_BUTTON_CLASS,
+            SECTION_ACTION_VISIBILITY_CLASS,
+          )}
           data-testid={testId}
           onClick={(event) => event.stopPropagation()}
           onPointerDown={(event) => event.stopPropagation()}
@@ -189,19 +191,19 @@ export function SectionActionsMenu({
         {hasUnread && onMarkAllRead ? (
           <DropdownMenuItem onSelect={() => deferMenuAction(onMarkAllRead)}>
             <CheckCheck className="h-4 w-4" />
-            <span>Mark all as read</span>
+            <span>Отметить всё как прочитанное</span>
           </DropdownMenuItem>
         ) : null}
         {onNewMessage ? (
           <DropdownMenuItem onSelect={() => deferMenuAction(onNewMessage)}>
             <Plus className="h-4 w-4" />
-            <span>{newMessageLabel ?? "New message"}</span>
+            <span>{newMessageLabel ?? "Новое сообщение"}</span>
           </DropdownMenuItem>
         ) : null}
         {onBrowse ? (
           <DropdownMenuItem onSelect={() => deferMenuAction(onBrowse)}>
             <HashSearch className="h-4 w-4" />
-            <span>{browseLabel ?? "Browse channels"}</span>
+            <span>{browseLabel ?? "Обзор каналов"}</span>
             <DropdownMenuShortcut>
               {getPlatformKeysById("browse-channels")}
             </DropdownMenuShortcut>
@@ -210,7 +212,7 @@ export function SectionActionsMenu({
         {onCreate ? (
           <DropdownMenuItem onSelect={() => deferMenuAction(onCreate)}>
             <Plus className="h-4 w-4" />
-            <span>{createLabel ?? "Create channel"}</span>
+            <span>{createLabel ?? "Создать канал"}</span>
           </DropdownMenuItem>
         ) : null}
         {showSectionManagement ? (
@@ -220,7 +222,7 @@ export function SectionActionsMenu({
                 onSelect={() => deferMenuAction(onRenameSection)}
               >
                 <Pencil className="h-4 w-4" />
-                <span>Rename section</span>
+                <span>Переименовать раздел</span>
               </DropdownMenuItem>
             ) : null}
             {onMoveSectionUp ? (
@@ -229,7 +231,7 @@ export function SectionActionsMenu({
                 onSelect={() => deferMenuAction(onMoveSectionUp)}
               >
                 <ArrowUp className="h-4 w-4" />
-                <span>Move up</span>
+                <span>Переместить выше</span>
               </DropdownMenuItem>
             ) : null}
             {onMoveSectionDown ? (
@@ -238,7 +240,7 @@ export function SectionActionsMenu({
                 onSelect={() => deferMenuAction(onMoveSectionDown)}
               >
                 <ArrowDown className="h-4 w-4" />
-                <span>Move down</span>
+                <span>Переместить ниже</span>
               </DropdownMenuItem>
             ) : null}
           </>
@@ -249,7 +251,7 @@ export function SectionActionsMenu({
             <DropdownMenuSub>
               <DropdownMenuSubTrigger>
                 <ArrowUpDown className="h-4 w-4" />
-                <span>Sort</span>
+                <span>Сортировка</span>
               </DropdownMenuSubTrigger>
               <DropdownMenuSubContent>
                 <DropdownMenuRadioGroup
@@ -279,7 +281,7 @@ export function SectionActionsMenu({
               onSelect={() => deferMenuAction(onDeleteSection)}
             >
               <Trash2 className="h-4 w-4" />
-              <span>Delete section</span>
+              <span>Удалить раздел</span>
             </DropdownMenuItem>
           </>
         ) : null}
@@ -678,7 +680,7 @@ export function CustomChannelSection({
                   </SidebarGroupLabel>
                   <div className="absolute right-1 top-1/2 z-10 flex -translate-y-1/2 items-center gap-0.5">
                     <SectionQuickAction
-                      label={`Add channel to ${section.name}`}
+                      label={`Добавить канал в «${section.name}»`}
                       onClick={onCreateChannel}
                       testId={`section-actions-${section.id}-quick-create`}
                     />
@@ -703,15 +705,15 @@ export function CustomChannelSection({
               <ContextMenuContent>
                 <ContextMenuItem onClick={onRenameSection}>
                   <Pencil className="h-4 w-4" />
-                  Rename section
+                  Переименовать раздел
                 </ContextMenuItem>
                 <ContextMenuItem disabled={isFirst} onClick={onMoveSectionUp}>
                   <ArrowUp className="h-4 w-4" />
-                  Move up
+                  Переместить выше
                 </ContextMenuItem>
                 <ContextMenuItem disabled={isLast} onClick={onMoveSectionDown}>
                   <ArrowDown className="h-4 w-4" />
-                  Move down
+                  Переместить ниже
                 </ContextMenuItem>
                 <ContextMenuSeparator />
                 <ContextMenuItem
@@ -719,7 +721,7 @@ export function CustomChannelSection({
                   onClick={onDeleteSection}
                 >
                   <Trash2 className="h-4 w-4" />
-                  Delete section
+                  Удалить раздел
                 </ContextMenuItem>
               </ContextMenuContent>
             </ContextMenu>

@@ -156,8 +156,8 @@ export function AgentsView() {
                   >
                     <Settings2 />
                     {hasSavedAgentDefaults
-                      ? "Agent defaults"
-                      : "Set agent defaults"}
+                      ? "Настройки по умолчанию"
+                      : "Задать настройки агентов"}
                   </Button>
                   {runningAgentCount > 0 ? (
                     <Button
@@ -169,7 +169,7 @@ export function AgentsView() {
                       variant="outline"
                     >
                       <OctagonX />
-                      Stop running agents
+                      Остановить запущенных агентов
                     </Button>
                   ) : null}
                 </div>
@@ -177,7 +177,7 @@ export function AgentsView() {
                 <DropdownMenu modal={false}>
                   <DropdownMenuTrigger asChild>
                     <Button
-                      aria-label="Agent actions"
+                      aria-label="Действия с агентами"
                       className="hidden [@container(max-width:40rem)]:inline-flex"
                       data-testid="agent-actions-menu-trigger"
                       ref={compactActionsTriggerRef}
@@ -196,8 +196,8 @@ export function AgentsView() {
                     >
                       <Settings2 />
                       {hasSavedAgentDefaults
-                        ? "Agent defaults"
-                        : "Set agent defaults"}
+                        ? "Настройки по умолчанию"
+                        : "Задать настройки агентов"}
                     </DropdownMenuItem>
                     {runningAgentCount > 0 ? (
                       <DropdownMenuItem
@@ -207,15 +207,15 @@ export function AgentsView() {
                         }}
                       >
                         <OctagonX />
-                        Stop running agents
+                        Остановить запущенных агентов
                       </DropdownMenuItem>
                     ) : null}
                   </DropdownMenuContent>
                 </DropdownMenu>
               </>
             }
-            description="Set up and manage your agents."
-            title="Agents"
+            description="Настройка и управление вашими агентами."
+            title="Агенты"
           />
           <div className="flex flex-col gap-8">
             <UnifiedAgentsSection

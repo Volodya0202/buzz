@@ -163,14 +163,14 @@ export function EditAgentAdvancedFields({
               onChange={(event) => onInheritHarnessChange(event.target.checked)}
               type="checkbox"
             />
-            Inherit runtime from template
+            Наследовать среду из шаблона
           </label>
           <p className="text-xs text-muted-foreground">
             {inheritHarness
-              ? `Uses the ${linkedPersona.displayName} template's runtime${
+              ? `Использует среду шаблона «${linkedPersona.displayName}»${
                   linkedPersona.runtime ? ` (${linkedPersona.runtime})` : ""
-                }. Editing the template and respawning propagates the new runtime.`
-              : "Pins this agent to a specific runtime command, overriding the template's runtime."}
+                }. Изменение шаблона и перезапуск применят новую среду.`
+              : "Закрепляет за этим агентом определенную команду среды, переопределяя среду шаблона."}
           </p>
         </div>
       ) : null}
@@ -188,12 +188,12 @@ export function EditAgentAdvancedFields({
             onChange={(event) => onAutoRestartChange(event.target.checked)}
             type="checkbox"
           />
-          Auto-restart on config change
+          Автоматический перезапуск при изменении конфигурации
         </label>
         <p className="text-xs text-muted-foreground">
           {autoRestartOnConfigChange
-            ? "Restarts this agent automatically when its configuration changes, once it is idle and connected."
-            : "Configuration changes only show the restart badge; restart manually to apply them."}
+            ? "Автоматически перезапускает этого агента при изменении его конфигурации, как только он свободен и подключен."
+            : "При изменениях конфигурации отображается только значок перезапуска; перезапустите вручную, чтобы применить их."}
         </p>
       </div>
 
@@ -203,8 +203,8 @@ export function EditAgentAdvancedFields({
           className="text-sm font-medium text-foreground"
           htmlFor="edit-agent-args"
         >
-          Agent runtime args
-          <span className={PERSONA_LABEL_OPTIONAL_CLASS}>Optional</span>
+          Аргументы среды агента
+          <span className={PERSONA_LABEL_OPTIONAL_CLASS}>Необязательно</span>
         </label>
         <div
           className={cn(
@@ -221,7 +221,7 @@ export function EditAgentAdvancedFields({
             disabled={disabled}
             id="edit-agent-args"
             onChange={(event) => onAgentArgsChange(event.target.value)}
-            placeholder="Comma-separated"
+            placeholder="Через запятую"
             value={agentArgs}
           />
         </div>
@@ -233,7 +233,7 @@ export function EditAgentAdvancedFields({
           className="text-sm font-medium text-foreground"
           htmlFor="edit-agent-parallelism"
         >
-          Parallelism
+          Параллелизм
         </label>
         <div
           className={cn(
@@ -251,7 +251,7 @@ export function EditAgentAdvancedFields({
             id="edit-agent-parallelism"
             inputMode="numeric"
             onChange={(event) => onParallelismChange(event.target.value)}
-            placeholder="Current value"
+            placeholder="Текущее значение"
             type="text"
             value={parallelism}
           />
@@ -277,7 +277,7 @@ export function EditAgentAdvancedFields({
           className="text-sm font-medium text-foreground"
           htmlFor="edit-agent-acp-command"
         >
-          ACP command
+          Команда ACP
         </label>
         <div
           className={cn(
@@ -307,8 +307,8 @@ export function EditAgentAdvancedFields({
             className="text-sm font-medium text-foreground"
             htmlFor="edit-agent-system-prompt"
           >
-            System prompt override
-            <span className={PERSONA_LABEL_OPTIONAL_CLASS}>Optional</span>
+            Переопределение системного промпта
+            <span className={PERSONA_LABEL_OPTIONAL_CLASS}>Необязательно</span>
           </label>
           <div className={PERSONA_FIELD_SHELL_CLASS}>
             <Textarea
@@ -319,7 +319,7 @@ export function EditAgentAdvancedFields({
               disabled={disabled}
               id="edit-agent-system-prompt"
               onChange={(event) => onSystemPromptChange(event.target.value)}
-              placeholder="Leave blank to send no ACP system prompt"
+              placeholder="Оставьте пустым, чтобы не отправлять системный промпт ACP"
               value={systemPrompt}
             />
           </div>
@@ -332,9 +332,9 @@ export function EditAgentAdvancedFields({
         fileSatisfiedKeys={fileSatisfiedEnvKeys}
         hiddenKeys={effectiveHiddenKeys}
         focusKey={focusKey}
-        helperText="Per-agent env vars. Override the template's vars on collision."
+        helperText="Переменные окружения агента. При совпадении переопределяют переменные шаблона."
         inheritedFrom={inheritedEnvVars}
-        inheritedLabel="template / global defaults"
+        inheritedLabel="шаблон / глобальные настройки"
         keyAnnotations={CARD_MINT_KEY_ANNOTATIONS}
         onChange={onEnvVarsChange}
         requiredKeys={requiredEnvKeys}

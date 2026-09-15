@@ -53,9 +53,9 @@ export function PersonaModelField({
           className="text-sm font-medium text-foreground"
           htmlFor="persona-model"
         >
-          Model
+          Модель
           {!isExplicitModelRequired ? (
-            <span className={PERSONA_LABEL_OPTIONAL_CLASS}>Optional</span>
+            <span className={PERSONA_LABEL_OPTIONAL_CLASS}>Необязательно</span>
           ) : null}
         </label>
         <PersonaModelCombobox
@@ -64,7 +64,7 @@ export function PersonaModelField({
           onValueChange={onModelValueChange}
           options={modelDropdownOptions}
           placeholder={
-            isExplicitModelRequired ? "Choose a model" : "Default model"
+            isExplicitModelRequired ? "Выберите модель" : "Модель по умолчанию"
           }
           value={modelSelectValue}
         />
@@ -76,7 +76,7 @@ export function PersonaModelField({
             )}
           >
             <Input
-              aria-label="Custom model ID"
+              aria-label="ID кастомной модели"
               autoCorrect="off"
               className={cn(
                 "h-8 px-0 py-0 leading-6",
@@ -85,15 +85,14 @@ export function PersonaModelField({
               disabled={disabled}
               id="persona-custom-model"
               onChange={(event) => onCustomModelChange(event.target.value)}
-              placeholder="Custom model ID"
+              placeholder="ID кастомной модели"
               value={model}
             />
           </div>
         ) : null}
         {showSharedComputeAutoHint ? (
           <p className="text-xs text-muted-foreground">
-            Auto uses Mesh collective intelligence when two or more models stay
-            available, otherwise it chooses one available model.
+            Автоматический режим использует коллективный интеллект Mesh, когда доступны две или более моделей, иначе выбирает одну доступную модель.
           </p>
         ) : null}
         {modelDiscoveryStatus ? (

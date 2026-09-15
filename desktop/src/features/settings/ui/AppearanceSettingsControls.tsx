@@ -55,13 +55,13 @@ export function ProminentActiveTabSetting() {
           className="text-sm font-medium"
           htmlFor="prominent-active-tab-switch"
         >
-          Prominent active tab
+          Контрастная активная вкладка
         </label>
         <p
           className="text-sm font-normal text-muted-foreground/70"
           data-settings-subcopy
         >
-          Give the selected navigation item a higher-contrast background.
+          Выделять выбранный пункт навигации более контрастным фоном.
         </p>
       </div>
       <Switch
@@ -81,13 +81,13 @@ const LINK_PREVIEW_STYLE_OPTIONS: {
 }[] = [
   {
     value: "compact",
-    label: "Compact",
-    description: "Small cards with a thumbnail",
+    label: "Компактный",
+    description: "Небольшие карточки с миниатюрой",
   },
   {
     value: "rich",
-    label: "Rich",
-    description: "Large previews with images and descriptions",
+    label: "Подробный",
+    description: "Крупные карточки с изображениями и описанием",
   },
 ];
 
@@ -97,15 +97,15 @@ const CONVERSATION_DENSITY_OPTIONS: readonly {
 }[] = [
   {
     value: "compact",
-    label: "Compact",
+    label: "Компактная",
   },
   {
     value: "comfortable",
-    label: "Comfy",
+    label: "Удобная",
   },
   {
     value: "spacious",
-    label: "Spacious",
+    label: "Просторная",
   },
 ];
 
@@ -115,15 +115,15 @@ const FONT_SIZE_OPTIONS: readonly {
 }[] = [
   {
     value: "smaller",
-    label: "Smaller",
+    label: "Меньше",
   },
   {
     value: "default",
-    label: "Default",
+    label: "По умолчанию",
   },
   {
     value: "larger",
-    label: "Larger",
+    label: "Больше",
   },
 ];
 
@@ -170,7 +170,7 @@ function ConversationPreview() {
       >
         <span className="absolute right-3.5 top-3 inline-flex items-center gap-1 text-2xs font-medium text-muted-foreground/55">
           <Eye aria-hidden="true" className="size-3" />
-          Preview
+          Предпросмотр
         </span>
         <div className="p-4" data-testid="conversation-preview-content">
           <ConversationDensityPreviewMessage
@@ -208,17 +208,17 @@ export function ConversationDisplaySettings() {
     <div data-testid="conversation-display-group">
       <SettingsOptionRow data-testid="font-size-row">
         <div className="min-w-0">
-          <p className="text-sm font-medium">Font size</p>
+          <p className="text-sm font-medium">Размер шрифта</p>
           <p
             className="text-sm font-normal text-muted-foreground/70"
             data-settings-subcopy
           >
-            Applies across conversations and interface text
+            Применяется к переписке и тексту интерфейса
           </p>
         </div>
         <SegmentedControl
           size="wide"
-          legend="Font size"
+          legend="Размер шрифта"
           onPreviewChange={previewFontSize}
           onValueChange={setFontSize}
           optionTestIdPrefix="font-size"
@@ -229,17 +229,17 @@ export function ConversationDisplaySettings() {
       </SettingsOptionRow>
       <SettingsOptionRow data-testid="conversation-density-row">
         <div className="min-w-0">
-          <p className="text-sm font-medium">Conversation density</p>
+          <p className="text-sm font-medium">Плотность сообщений</p>
           <p
             className="text-sm font-normal text-muted-foreground/70"
             data-settings-subcopy
           >
-            Spacing in conversations and Markdown content across Buzz
+            Интервалы в переписке и форматировании текста в Buzz
           </p>
         </div>
         <SegmentedControl
           size="wide"
-          legend="Conversation density"
+          legend="Плотность сообщений"
           onPreviewChange={previewConversationDensity}
           onValueChange={setConversationDensity}
           optionTestIdPrefix="conversation-density"
@@ -322,7 +322,7 @@ function LinkPreviewSample({ style }: { style: LinkPreviewStyle }) {
       >
         <span className="absolute right-3.5 top-3 inline-flex items-center gap-1 text-2xs font-medium text-muted-foreground/55">
           <Eye aria-hidden="true" className="size-3" />
-          Preview
+          Предпросмотр
         </span>
         <div className="p-4 pr-24">
           <LinkPreviewAttachmentPresentation
@@ -351,7 +351,7 @@ export function LinkPreviewStyleSetting() {
     <div data-testid="link-preview-style-group">
       <SettingsOptionRow>
         <div className="min-w-0">
-          <p className="text-sm font-medium">Link previews</p>
+          <p className="text-sm font-medium">Предпросмотр ссылок</p>
           <p
             className="text-sm font-normal text-muted-foreground/70"
             data-settings-subcopy
@@ -361,7 +361,7 @@ export function LinkPreviewStyleSetting() {
         </div>
         <SegmentedControl
           size="compact"
-          legend="Link previews"
+          legend="Предпросмотр ссылок"
           onPreviewChange={setPreviewStyle}
           onValueChange={setLinkPreviewStyle}
           optionTestIdPrefix="link-preview-style"
@@ -382,13 +382,13 @@ const THREAD_VIEW_MODE_OPTIONS: {
 }[] = [
   {
     value: "focus",
-    label: "Focus",
-    description: "Threads open over the channel",
+    label: "Фокус",
+    description: "Ветки открываются поверх канала",
   },
   {
     value: "split",
-    label: "Split",
-    description: "Threads open in a side panel next to the channel",
+    label: "Раздельно",
+    description: "Ветки открываются в боковой панели рядом с каналом",
   },
 ];
 
@@ -409,27 +409,27 @@ export function GlassBackgroundSetting() {
   const opacityRow = (
     <SettingsOptionRow data-testid="glass-opacity-row">
       <div className="min-w-0">
-        <p className="text-sm font-medium">Glass opacity</p>
+        <p className="text-sm font-medium">Прозрачность стекла</p>
         <p
           className="text-sm font-normal text-muted-foreground/70"
           data-settings-subcopy
           id="glass-opacity-description"
         >
-          Lower values reveal more of the desktop blur.
+          Меньшие значения делают размытие рабочего стола заметнее.
         </p>
       </div>
       <div className="flex w-64 shrink-0 items-center">
         <AvatarFramingSlider
           ariaDescribedBy="glass-opacity-description"
-          ariaLabel="Glass opacity"
-          ariaValueText={`${glassOpacity}% opacity`}
+          ariaLabel="Прозрачность стекла"
+          ariaValueText={`${glassOpacity}%`}
           compact
           handleAlwaysVisible
           max={GLASS_OPACITY_MAX}
           min={GLASS_OPACITY_MIN}
           onChange={setGlassOpacity}
           onReset={() => setGlassOpacity(DEFAULT_GLASS_OPACITY)}
-          resetLabel="Reset glass opacity"
+          resetLabel="Сбросить прозрачность"
           resetTestId="glass-opacity-reset"
           resetValue={DEFAULT_GLASS_OPACITY}
           testId="glass-opacity-slider"
@@ -447,15 +447,15 @@ export function GlassBackgroundSetting() {
             className="text-sm font-medium"
             htmlFor="glass-background-switch"
           >
-            Glass background
+            Стеклянный фон
           </label>
           <p
             className="text-sm font-normal text-muted-foreground/70"
             data-settings-subcopy
           >
             {glassBackgroundSupported
-              ? "Blur the desktop behind navigation while keeping content solid."
-              : "Available in the macOS desktop app."}
+              ? "Размывать рабочий стол за панелью навигации, сохраняя контент чётким."
+              : "Доступно в приложении для macOS."}
           </p>
         </div>
         <Switch
@@ -619,11 +619,11 @@ export function ThreadLayoutSetting() {
       <SettingsOptionRow>
         <div className="min-w-0">
           <p className="text-sm font-medium">
-            Thread layout
+            Расположение веток
             {showCommunityScope ? (
               <span className="font-normal text-muted-foreground">
                 {" "}
-                (all communities)
+                (все сообщества)
               </span>
             ) : null}
           </p>
@@ -636,7 +636,7 @@ export function ThreadLayoutSetting() {
         </div>
         <SegmentedControl
           size="compact"
-          legend="Thread layout"
+          legend="Расположение веток"
           onPreviewChange={setPreviewMode}
           onValueChange={setThreadViewMode}
           optionTestIdPrefix="thread-layout"
@@ -663,12 +663,12 @@ export function AccentPickerContent({
   return (
     <SettingsOptionRow className="items-start">
       <div className="min-w-0">
-        <p className="text-sm font-medium">Accent color</p>
+        <p className="text-sm font-medium">Цвет акцента</p>
         <p
           className="text-sm font-normal text-muted-foreground/70"
           data-settings-subcopy
         >
-          Choose the highlight color used throughout Buzz.
+          Выберите цвет выделения элементов в интерфейсе Buzz.
         </p>
       </div>
       <div

@@ -187,25 +187,25 @@ export function VoiceSettingsCard() {
   return (
     <section className="min-w-0" data-testid="settings-voice">
       <SettingsSectionHeader
-        title="Voice"
-        description="Choose whether Buzz reads new agent responses aloud during an active huddle."
+        title="Голос"
+        description="Выберите, воспроизводить ли ответы агентов голосом во время активного созвона."
       />
 
       <SettingsOptionGroupList>
-        <SettingsOptionGroup title="Playback">
+        <SettingsOptionGroup title="Воспроизведение">
           <SettingsOptionRow>
             <div className="min-w-0">
               <label
                 className="text-sm font-medium"
                 htmlFor="agent-text-to-speech-switch"
               >
-                Agent text to speech
+                Озвучивание текста агентов
               </label>
               <p
                 className="text-sm text-muted-foreground/70"
                 data-settings-subcopy
               >
-                Read new agent messages aloud in the order they arrive.
+                Озвучивать новые сообщения агентов в порядке их поступления.
               </p>
             </div>
             <Switch
@@ -228,15 +228,15 @@ export function VoiceSettingsCard() {
           )}
           data-testid="pocket-voice-controls"
         >
-          <SettingsOptionGroup title="Voice">
+          <SettingsOptionGroup title="Голос">
             <SettingsOptionRow>
               <div className="min-w-0">
-                <p className="text-sm font-medium">Pocket TTS voice</p>
+                <p className="text-sm font-medium">Голос Pocket TTS</p>
                 <p
                   className="text-sm text-muted-foreground/70"
                   data-settings-subcopy
                 >
-                  Voice files stay private on this device.
+                  Голосовые файлы хранятся локально на этом устройстве.
                 </p>
               </div>
 
@@ -305,7 +305,7 @@ export function VoiceSettingsCard() {
                   ) : (
                     <Play className="h-4 w-4" />
                   )}
-                  Preview
+                  Прослушать
                 </Button>
                 <Button
                   data-testid="pocket-voice-import"
@@ -315,11 +315,11 @@ export function VoiceSettingsCard() {
                   variant="outline"
                 >
                   <Upload className="h-4 w-4" />
-                  Add voice
+                  Добавить голос
                 </Button>
                 {selectedVoice?.key.startsWith("pocket:imported:") && (
                   <Button
-                    aria-label={`Delete ${selectedVoice.displayName}`}
+                    aria-label={`Удалить ${selectedVoice.displayName}`}
                     data-testid="pocket-voice-delete"
                     disabled={controlsDisabled}
                     onClick={() => setDeleteCandidate(selectedVoice)}
@@ -351,17 +351,17 @@ export function VoiceSettingsCard() {
       >
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Delete imported voice?</AlertDialogTitle>
+            <AlertDialogTitle>Удалить импортированный голос?</AlertDialogTitle>
             <AlertDialogDescription>
               {deleteCandidate
-                ? `${deleteCandidate.displayName} and its local audio file will be removed.`
-                : "This imported voice and its local audio file will be removed."}
+                ? `${deleteCandidate.displayName} и его локальный аудиофайл будут удалены.`
+                : "Этот импортированный голос и его локальный аудиофайл будут удалены."}
               {selectedVoice?.key === deleteCandidate?.key &&
-                " Mary will be selected instead."}
+                " Вместо него будет выбран голос Mary."}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel disabled={busy}>Cancel</AlertDialogCancel>
+            <AlertDialogCancel disabled={busy}>Отмена</AlertDialogCancel>
             <AlertDialogAction
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
               data-testid="confirm-pocket-voice-delete"
@@ -373,7 +373,7 @@ export function VoiceSettingsCard() {
                 }
               }}
             >
-              Delete voice
+              Удалить голос
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

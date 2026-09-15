@@ -122,16 +122,16 @@ export function SignOutSection() {
 
   return (
     <div className="mt-12 pb-6" data-testid="settings-signout">
-      <SettingsOptionGroup title="Sign out">
+      <SettingsOptionGroup title="Выход из аккаунта">
         <SettingsOptionRow>
           <div className="min-w-0">
             <p
               className="text-sm font-normal text-muted-foreground/70"
               data-settings-subcopy
             >
-              Removes your identity key and all local app data from this device.
-              Before signing out, create and test a password-protected key
-              backup above — this cannot be undone.
+              Удаляет ваш приватный ключ и все локальные данные приложения с этого устройства.
+              Перед выходом создайте и проверьте защищённую паролем резервную копию
+              выше — это действие нельзя отменить.
             </p>
           </div>
           <Button
@@ -142,9 +142,9 @@ export function SignOutSection() {
             variant="destructive"
           >
             {isPending ? (
-              <Spinner aria-label="Signing out" className="h-4 w-4 border-2" />
+              <Spinner aria-label="Выход из аккаунта" className="h-4 w-4 border-2" />
             ) : null}
-            {isPending ? "Signing out…" : "Delete my data"}
+            {isPending ? "Удаление…" : "Удалить мои данные"}
           </Button>
         </SettingsOptionRow>
       </SettingsOptionGroup>
@@ -159,20 +159,20 @@ export function SignOutSection() {
       >
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Sign out and wipe all data?</AlertDialogTitle>
+            <AlertDialogTitle>Выйти и удалить все данные?</AlertDialogTitle>
             <AlertDialogDescription>
-              This will delete your identity key, all agent settings, and cached
-              data from this device, then relaunch Buzz into first-run setup.
-              This cannot be undone.
+              Это действие удалит ваш приватный ключ, все настройки агентов и кэш
+              с этого устройства, после чего перезапустит Buzz в режим начальной
+              настройки. Это действие необратимо.
             </AlertDialogDescription>
           </AlertDialogHeader>
 
           <div className="space-y-3">
             <p className="text-sm font-medium">
-              1. Confirm you can restore your identity
+              1. Подтвердите возможность восстановления профиля
             </p>
             {isNsecLoading ? (
-              <p className="text-sm text-muted-foreground">Loading…</p>
+              <p className="text-sm text-muted-foreground">Загрузка…</p>
             ) : nsecError ? (
               <p
                 className="text-sm text-destructive"
@@ -199,8 +199,8 @@ export function SignOutSection() {
                 }
               />
               <span>
-                I have tested a key backup or saved this private key somewhere
-                safe.
+                Я проверил(а) резервную копию или сохранил(а) приватный ключ в
+                надёжном месте.
               </span>
             </label>
           </div>
@@ -210,9 +210,9 @@ export function SignOutSection() {
               className="text-sm font-medium"
               htmlFor="signout-confirm-phrase"
             >
-              2. Type{" "}
+              2. Введите{" "}
               <span className="font-semibold">"{SIGNOUT_CONFIRM_PHRASE}"</span>{" "}
-              to confirm
+              для подтверждения
             </label>
             <Input
               autoComplete="off"
@@ -227,7 +227,7 @@ export function SignOutSection() {
           </div>
 
           <AlertDialogFooter>
-            <AlertDialogCancel disabled={isPending}>Cancel</AlertDialogCancel>
+            <AlertDialogCancel disabled={isPending}>Отмена</AlertDialogCancel>
             {/* A plain Button, not AlertDialogAction: Radix's Action closes
                 the dialog on click, which would drop the pending state while
                 the wipe + restart is still in flight. */}
@@ -240,11 +240,11 @@ export function SignOutSection() {
             >
               {isPending ? (
                 <Spinner
-                  aria-label="Signing out"
+                  aria-label="Выход из аккаунта"
                   className="h-4 w-4 border-2"
                 />
               ) : null}
-              {isPending ? "Signing out…" : "Delete my data"}
+              {isPending ? "Удаление…" : "Удалить мои данные"}
             </Button>
           </AlertDialogFooter>
         </AlertDialogContent>

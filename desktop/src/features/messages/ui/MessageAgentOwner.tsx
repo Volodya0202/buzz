@@ -15,7 +15,7 @@ export function MessageAgentOwner({
       data-testid="message-agent-owner"
     >
       <span className="sr-only">
-        {ownerLabel ? "Agent managed by" : "Agent; owner unavailable"}
+        {ownerLabel ? "Агент управляется" : "Агент; владелец недоступен"}
       </span>
       {/*
        * Icon and label sit directly in this baseline row rather than in a nested
@@ -38,7 +38,7 @@ export function MessageAgentOwner({
       {ownerPubkey && ownerLabel ? (
         <>
           <span aria-hidden="true" className="shrink-0">
-            managed by
+            управляется
           </span>
           <UserProfilePopover
             pubkey={ownerPubkey}
@@ -52,7 +52,7 @@ export function MessageAgentOwner({
         </>
       ) : (
         <span aria-hidden="true" className="min-w-0 truncate">
-          owner unavailable
+          владелец недоступен
         </span>
       )}
     </span>

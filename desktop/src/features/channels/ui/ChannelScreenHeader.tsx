@@ -87,7 +87,7 @@ export function ChannelScreenHeader({
   const terminalButton = activeChannel ? (
     <Button
       aria-label={
-        terminalPanel.mode === "closed" ? "Open Buzz Term" : "Hide Buzz Term"
+        terminalPanel.mode === "closed" ? "Открыть Buzz Term" : "Скрыть Buzz Term"
       }
       onClick={toggleTerminalPanel}
       size="icon"
@@ -108,7 +108,7 @@ export function ChannelScreenHeader({
           variant="default"
         >
           <LogIn className="mr-1.5 h-4 w-4" />
-          {isJoining ? "Joining…" : "Join"}
+          {isJoining ? "Вход…" : "Присоединиться"}
         </Button>
         {headerEndActions}
       </div>
@@ -156,7 +156,7 @@ export function ChannelScreenHeader({
             <UserProfilePopover
               pubkey={activeDmParticipant.pubkey}
               role={activeDmParticipant.isAgent ? "bot" : undefined}
-              triggerAriaLabel={`Open profile for ${activeChannelTitle}`}
+              triggerAriaLabel={`Открыть профиль: ${activeChannelTitle}`}
               triggerElement="span"
             >
               <ProfileAvatarWithStatus

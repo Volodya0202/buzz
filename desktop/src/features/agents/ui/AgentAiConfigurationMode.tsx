@@ -18,13 +18,13 @@ export function HarnessModelDefaultNotice({
       className="grid grid-cols-[auto_minmax(0,1fr)] gap-x-3 text-sm"
       data-testid="agent-harness-defaults-notice"
     >
-      <dt className="text-muted-foreground">Harness</dt>
+      <dt className="text-muted-foreground">Среда</dt>
       <dd className="truncate text-foreground">
-        {harness || "Not configured"}
+        {harness || "Не настроено"}
       </dd>
-      <dt className="text-muted-foreground">Model</dt>
+      <dt className="text-muted-foreground">Модель</dt>
       <dd className="truncate text-foreground">
-        {model?.trim() || "Harness default"}
+        {model?.trim() || "По умолчанию для среды"}
       </dd>
     </dl>
   );
@@ -76,7 +76,7 @@ export function AgentAiConfigurationModeField({
 }) {
   return (
     <div className="space-y-1.5">
-      <p className="text-sm font-medium text-foreground">AI configuration</p>
+      <p className="text-sm font-medium text-foreground">Конфигурация ИИ</p>
       <Tabs
         onValueChange={(value) =>
           onModeChange(value as AgentAiConfigurationMode)
@@ -97,14 +97,14 @@ export function AgentAiConfigurationModeField({
             value="defaults"
           >
             {needsProviderSelection
-              ? "Use agent defaults"
-              : "Use harness defaults"}
+              ? "Использовать настройки агентов по умолчанию"
+              : "Использовать настройки среды по умолчанию"}
           </TabsTrigger>
           <TabsTrigger
             className="relative z-10 h-full rounded-md bg-transparent text-xs font-medium shadow-none transition-colors data-[state=active]:bg-transparent data-[state=active]:shadow-none"
             value="custom"
           >
-            Customize for this agent
+            Настроить для этого агента
           </TabsTrigger>
         </TabsList>
       </Tabs>

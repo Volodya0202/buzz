@@ -86,11 +86,11 @@ export function AgentDefaultsDialog({
           }}
         >
           <DialogHeader>
-            <DialogTitle>Agent defaults</DialogTitle>
+            <DialogTitle>Настройки агентов по умолчанию</DialogTitle>
             <DialogDescription>
-              These settings apply to all agents unless you override them.
-              Agent-specific settings always take priority. Changes may restart
-              running agents.
+              Эти настройки применяются ко всем агентам, если они не переопределены отдельно.
+              Индивидуальные настройки агента имеют приоритет. Изменения могут перезапустить
+              активных агентов.
             </DialogDescription>
           </DialogHeader>
           <AgentDefaultsEditor
@@ -109,7 +109,7 @@ export function AgentDefaultsDialog({
                 type="button"
                 variant="outline"
               >
-                {restartFailures > 0 ? "Done" : "Cancel"}
+                {restartFailures > 0 ? "Готово" : "Отмена"}
               </Button>
             }
           />
@@ -128,10 +128,10 @@ export function AgentDefaultsDialog({
         >
           <AlertDialogHeader>
             <AlertDialogTitle>
-              Discard changes to agent defaults?
+              Сбросить изменения в настройках по умолчанию?
             </AlertDialogTitle>
             <AlertDialogDescription>
-              Unsaved changes made to agent defaults will be lost.
+              Несохранённые изменения настроек по умолчанию будут потеряны.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
@@ -140,7 +140,7 @@ export function AgentDefaultsDialog({
                 restoreDefaultsFocusRef.current = true;
               }}
             >
-              Keep editing
+              Продолжить редактирование
             </AlertDialogCancel>
             <AlertDialogAction asChild>
               <Button
@@ -150,7 +150,7 @@ export function AgentDefaultsDialog({
                 }}
                 variant="destructive"
               >
-                Discard changes
+                Сбросить изменения
               </Button>
             </AlertDialogAction>
           </AlertDialogFooter>
