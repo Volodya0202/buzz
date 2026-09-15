@@ -137,17 +137,17 @@ export function stableRowOrder(
 
 /** Human status label for a catalog entry; null when nothing needs saying. */
 export function entryStatusLabel(entry: AcpRuntimeCatalogEntry): string | null {
-  if (entry.authStatus.status === "config_invalid") return "Config error";
+  if (entry.authStatus.status === "config_invalid") return "Ошибка конфигурации";
   switch (entry.availability) {
     case "adapter_missing":
-      return "Adapter needed";
+      return "Требуется адаптер";
     case "adapter_outdated":
-      return "Update needed";
+      return "Требуется обновление";
     case "cli_missing":
     case "not_installed":
-      return "CLI needed";
+      return "Требуется CLI";
     case "available":
-      return entry.authStatus.status === "logged_out" ? "Sign-in needed" : null;
+      return entry.authStatus.status === "logged_out" ? "Требуется вход" : null;
     default:
       return null;
   }
