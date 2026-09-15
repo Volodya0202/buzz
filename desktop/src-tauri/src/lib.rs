@@ -890,7 +890,20 @@ pub fn run() {
 
     let run_shutdown_done = Arc::clone(&shutdown_done);
     let restart_requested = Arc::new(AtomicBool::new(false));
-    app.run(move |app_handle, event| match event {
+    app.run(move |app_handle, event| {
+        match &event {
+            RunEvent::ExitRequested { code, .. } => {
+                eprintln!("buzz-desktop: RunEvent::ExitRequested code={code:?}");
+            }
+            RunEvent::Exit => {
+                eprintln!("buzz-desktop: RunEvent::Exit");
+            }
+            RunEvent::WindowEvent { label, event, .. } => {
+                eprintln!("buzz-desktop: WindowEvent label={label} event={event:?}");
+            }
+            _ => {}
+        }
+        match event {
         #[cfg(target_os = "macos")]
         RunEvent::Reopen { .. } => show_main_window(app_handle),
         #[cfg(target_os = "macos")]
@@ -913,6 +926,7 @@ pub fn run() {
             event: WindowEvent::CloseRequested { .. },
             ..
         } if label == "main" => {
+            eprintln!("buzz-desktop: main window CloseRequested, shutting down");
             shut_down_app(app_handle, &run_shutdown_done);
             std::process::exit(0);
         }
@@ -962,9 +976,8 @@ pub fn run() {
             // deliberately skipping those native global destructors.
             #[cfg(all(feature = "mesh-llm", target_os = "macos"))]
             hard_exit_after_mesh_shutdown();
-            #[cfg(not(target_os = "macos"))]
-            std::process::exit(0);
         }
         _ => {}
+        }
     });
 }
