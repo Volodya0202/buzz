@@ -20,29 +20,38 @@ test("TIME_PRESETS_every_preset_returns_strictly_future_timestamp", () => {
 });
 
 test("TIME_PRESETS_relative_offsets_match_their_labels", () => {
-  const before = nowSeconds();
+  const before = Date.now() / 1000;
+  const presets = TIME_PRESETS;
   const byLabel = Object.fromEntries(
-    TIME_PRESETS.map((p) => [p.label, p.getTimestamp()]),
+    presets.map((p) => [p.label, p.getTimestamp()]),
   );
-  // Allow a 2s window for clock drift across the getTimestamp calls.
-  assert.ok(Math.abs(byLabel["In 30 minutes"] - (before + 30 * 60)) <= 2);
-  assert.ok(Math.abs(byLabel["In 1 hour"] - (before + 60 * 60)) <= 2);
-  assert.ok(Math.abs(byLabel["In 3 hours"] - (before + 3 * 60 * 60)) <= 2);
+
+  assert.ok(Math.abs(byLabel["Через 30 минут"] - (before + 30 * 60)) <= 2);
+  assert.ok(Math.abs(byLabel["Через 1 час"] - (before + 60 * 60)) <= 2);
+  assert.ok(Math.abs(byLabel["Через 3 часа"] - (before + 3 * 60 * 60)) <= 2);
 });
 
 test("TIME_PRESETS_9am_presets_land_on_a_9am_boundary", () => {
-  for (const label of ["Tomorrow at 9am", "Next Monday at 9am"]) {
-    const preset = TIME_PRESETS.find((p) => p.label === label);
-    const d = new Date(preset.getTimestamp() * 1_000);
-    assert.equal(d.getHours(), 9);
-    assert.equal(d.getMinutes(), 0);
-  }
+  const presets = TIME_PRESETS;
+  const byLabel = Object.fromEntries(
+    presets.map((p) => [p.label, p.getTimestamp()]),
+  );
+
+  const tomorrow = new Date(byLabel["Завтра в 09:00"] * 1000);
+  assert.equal(tomorrow.getHours(), 9);
+  assert.equal(tomorrow.getMinutes(), 0);
 });
 
 test("TIME_PRESETS_next_monday_lands_on_a_monday", () => {
-  const preset = TIME_PRESETS.find((p) => p.label === "Next Monday at 9am");
-  const d = new Date(preset.getTimestamp() * 1_000);
-  assert.equal(d.getDay(), 1); // Monday
+  const presets = TIME_PRESETS;
+  const byLabel = Object.fromEntries(
+    presets.map((p) => [p.label, p.getTimestamp()]),
+  );
+
+  const nextMonday = new Date(byLabel["В следующий понедельник в 09:00"] * 1000);
+  assert.equal(nextMonday.getHours(), 9);
+  assert.equal(nextMonday.getMinutes(), 0);
+  assert.equal(nextMonday.getDay(), 1); // 0 is Sunday, 1 is Monday
 });
 
 test("parseCustomDateTime_future_datetime_returns_timestamp", () => {

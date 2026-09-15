@@ -82,7 +82,7 @@ test("compact PubKey renders the truncated npub, never the hex", async () => {
     upper.getByRole("button", { name: "Show full public key" }).textContent,
     COMPACT_NPUB,
   );
-  assert.equal(upper.queryByText("Unavailable"), null);
+  assert.equal(upper.queryByText("Недоступно"), null);
 });
 
 test("full PubKey renders the complete npub with a copy affordance", async () => {
@@ -96,11 +96,6 @@ test("full PubKey renders the complete npub with a copy affordance", async () =>
 });
 
 test("unencodable keys render Unavailable with no copy affordance", async () => {
-  // "zz" cannot decode; "deadbeef" is a degenerate-length hex that npubEncode
-  // would happily turn into a checksum-valid fake npub; npub1m6kmamcvty5gd
-  // and npub106246s decode fine but are checksum-valid short-payload npubs
-  // (8-char and empty identity payloads). All four would masquerade as
-  // displayable identities — the gate refuses every one.
   for (const pubkey of [
     "zz",
     "deadbeef",
@@ -110,7 +105,7 @@ test("unencodable keys render Unavailable with no copy affordance", async () => 
     for (const variant of [undefined, "full"]) {
       const view = await renderPubKey({ pubkey, variant });
       const label = `${pubkey} ${variant ?? "compact"}`;
-      assert.equal(view.getByText("Unavailable").tagName, "SPAN", label);
+      assert.equal(view.getByText("Недоступно").tagName, "SPAN", label);
       assert.equal(view.queryByRole("button"), null, label);
       assert.equal(view.container.textContent?.includes("npub1"), false, label);
     }

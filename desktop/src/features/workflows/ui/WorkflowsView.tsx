@@ -90,7 +90,7 @@ function WorkflowsListSkeleton() {
 function CreateWorkflowCard({ onClick }: { onClick: () => void }) {
   return (
     <button
-      aria-label="Create Workflow"
+      aria-label="Создать рабочий процесс"
       className="group relative flex min-h-60 w-full min-w-0 items-center justify-center overflow-hidden rounded-2xl border border-dashed border-border/80 bg-transparent text-muted-foreground shadow-xs transition-colors hover:border-border hover:bg-muted/70 hover:text-foreground focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring"
       data-testid="new-workflow-card"
       onClick={onClick}
@@ -185,11 +185,11 @@ export function WorkflowsView({
         workflow.revision,
       ),
     onError: (error) => {
-      toast.error("Couldn’t change workflow status", {
+      toast.error("Не удалось изменить статус рабочего процесса", {
         description:
           error instanceof Error
             ? error.message
-            : "The workflow was not changed. Try again.",
+            : "Рабочий процесс не был изменен. Попробуйте еще раз.",
       });
     },
     onSuccess: (_data, workflow) => {
@@ -282,7 +282,7 @@ export function WorkflowsView({
           <PageHeader
             action={
               <Button
-                aria-label="Refresh workflows"
+                aria-label="Обновить рабочие процессы"
                 disabled={allWorkflowsQuery.isFetching}
                 onClick={() => void allWorkflowsQuery.refetch()}
                 size="icon"
@@ -293,21 +293,21 @@ export function WorkflowsView({
                 />
               </Button>
             }
-            description="Automations that keep your community moving."
-            title="Workflows"
+            description="Автоматизация для вашего сообщества."
+            title="Рабочие процессы"
           />
 
           {allWorkflowsQuery.isLoading ? (
             <WorkflowsListSkeleton />
           ) : allWorkflowsQuery.isError ? (
             <div className="flex flex-col items-center justify-center gap-2 py-16 text-muted-foreground">
-              <p className="text-sm text-red-400">Failed to load workflows</p>
+              <p className="text-sm text-red-400">Не удалось загрузить рабочие процессы</p>
               <Button
                 onClick={() => void allWorkflowsQuery.refetch()}
                 size="sm"
                 variant="outline"
               >
-                Retry
+                Повторить
               </Button>
             </div>
           ) : (
@@ -360,15 +360,15 @@ export function WorkflowsView({
         <AlertDialogContent data-testid="workflow-activation-confirmation">
           <AlertDialogHeader>
             <AlertDialogTitle>
-              {activationWarning?.title ?? "Turn on this workflow?"}
+              {activationWarning?.title ?? "Включить этот рабочий процесс?"}
             </AlertDialogTitle>
             <AlertDialogDescription>
               {activationWarning?.description ??
-                "Turn it on to let it run immediately, or keep it off until you’re ready."}
+                "Включите его для немедленного запуска или оставьте выключенным, пока не будете готовы."}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Keep off</AlertDialogCancel>
+            <AlertDialogCancel>Не включать</AlertDialogCancel>
             <AlertDialogAction
               disabled={toggleEnabledMutation.isPending}
               onClick={(event) => {
@@ -377,7 +377,7 @@ export function WorkflowsView({
                 toggleEnabled(activationTarget);
               }}
             >
-              Turn on
+              Включить
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

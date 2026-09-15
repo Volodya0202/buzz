@@ -555,7 +555,7 @@ function VolumeControl({
   return (
     <div className="group/volume flex shrink-0 items-center">
       <button
-        aria-label={isSilent ? "Unmute" : "Mute"}
+        aria-label={isSilent ? "Включить звук" : "Выключить звук"}
         className="flex h-7 w-7 items-center justify-center rounded-md text-white transition-colors hover:bg-white/15 focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-primary"
         type="button"
         onClick={(event) => {
@@ -570,7 +570,7 @@ function VolumeControl({
         )}
       </button>
       <input
-        aria-label="Volume"
+        aria-label="Громкость"
         className={cn(
           "video-volume-slider h-3 cursor-pointer transition-all duration-200",
           expanded
@@ -617,7 +617,7 @@ function PlaybackSpeedControl({
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger asChild>
         <button
-          aria-label={`Playback speed: ${label}`}
+          aria-label={`Скорость воспроизведения: ${label}`}
           className={cn(
             "flex shrink-0 items-center justify-center font-semibold tabular-nums text-white transition-colors hover:bg-white/15 focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-white/60",
             triggerSizeClass,
@@ -639,7 +639,7 @@ function PlaybackSpeedControl({
         onClick={(event) => event.stopPropagation()}
       >
         <div className="px-2 pb-1 pt-1 text-2xs font-medium text-white/55">
-          Speed
+          Скорость
         </div>
         <div className="grid gap-0.5">
           {PLAYBACK_SPEEDS.map((speed) => {
@@ -1055,7 +1055,7 @@ export function VideoPlayer({
           />
           {!hasError && !isBuffering ? (
             <button
-              aria-label={isPlaying ? "Pause video" : "Play video"}
+              aria-label={isPlaying ? "Приостановить видео" : "Воспроизвести видео"}
               className={cn(
                 "absolute inset-0 flex cursor-pointer items-center justify-center opacity-100 outline-hidden transition-opacity duration-150 ease-[cubic-bezier(0.23,1,0.32,1)] focus-visible:ring-2 focus-visible:ring-white/60 motion-reduce:transition-none",
                 started &&
@@ -1090,7 +1090,7 @@ export function VideoPlayer({
           {hasError ? (
             <button
               type="button"
-              aria-label="Retry loading video"
+              aria-label="Повторить загрузку видео"
               className="group absolute inset-0 flex cursor-pointer flex-col items-center justify-center gap-2"
               onClick={handleTogglePlay}
             >
@@ -1099,7 +1099,7 @@ export function VideoPlayer({
                 <AlertCircle className="h-6 w-6 text-white" />
               </span>
               <span className="rounded-md bg-black/50 px-2 py-1 text-xs text-white backdrop-blur-sm">
-                Failed to load — tap to retry
+                Не удалось загрузить — нажмите, чтобы повторить
               </span>
             </button>
           ) : null}
@@ -1126,7 +1126,7 @@ export function VideoPlayer({
                   {formatTimecode(currentTime)}
                 </span>
                 <VideoScrubber
-                  ariaLabel="Video progress"
+                  ariaLabel="Прогресс видео"
                   className="group h-7 min-w-0 flex-1"
                   currentTime={currentTime}
                   duration={duration}
@@ -1159,9 +1159,9 @@ export function VideoPlayer({
         {!hasError ? (
           <button
             type="button"
-            aria-label="Open video review"
+            aria-label="Открыть видео"
             data-video-review-launcher=""
-            title="Open video review"
+            title="Открыть видео"
             className="group absolute right-2 top-2 z-10 flex h-8 w-8 items-center justify-center rounded-full text-white shadow-sm outline-hidden focus-visible:ring-2 focus-visible:ring-white/60"
             onClick={handleOpenReview}
           >
@@ -1265,11 +1265,11 @@ function VideoReviewDialog({
   const isPostingReviewItem = Boolean(reviewContext?.isSending) || isPosting;
   const canPost = canComment && !isPostingReviewItem;
   const postDisabledReason = !reviewContext?.onSendComment
-    ? "Commenting is unavailable for this video."
+    ? "Комментирование недоступно для этого видео."
     : reviewContext.disabled
-      ? "Wait for the video message to finish sending."
+      ? "Подождите завершения отправки видеосообщения."
       : isPostingReviewItem
-        ? "Posting..."
+        ? "Отправка..."
         : null;
   const visibleDuration = duration > 0 ? duration : 0;
   const displayComments = React.useMemo(() => {
@@ -1505,7 +1505,7 @@ function VideoReviewDialog({
         id: `optimistic-video-review-${Date.now()}-${Math.random()
           .toString(36)
           .slice(2)}`,
-        author: "You",
+        author: "Вы",
         avatarUrl: null,
         body,
         createdAt: Math.floor(Date.now() / 1000),
@@ -1531,7 +1531,7 @@ function VideoReviewDialog({
           current.filter((comment) => comment.id !== optimisticComment.id),
         );
         setErrorMessage(
-          error instanceof Error ? error.message : "Failed to post comment.",
+          error instanceof Error ? error.message : "Не удалось опубликовать комментарий.",
         );
         // Rethrow so the composer restores the draft it cleared on submit.
         throw error;
@@ -1626,7 +1626,7 @@ function VideoReviewDialog({
       )}
     >
       <button
-        aria-label="Close video review"
+        aria-label="Закрыть видео"
         className="absolute inset-0 cursor-default"
         data-testid="video-review-backdrop"
         type="button"
@@ -1641,10 +1641,10 @@ function VideoReviewDialog({
         role="dialog"
       >
         <h2 className="sr-only" id="video-review-title">
-          Video review
+          Видеоотзыв
         </h2>
         <p className="sr-only" id="video-review-description">
-          Review video comments and timecoded replies.
+          Просматривайте комментарии к видео и ответы с тайм-кодами.
         </p>
 
         <header className="flex h-12 shrink-0 items-center gap-3 border-b border-border bg-background px-4">
@@ -1655,7 +1655,7 @@ function VideoReviewDialog({
           </div>
           {showCommentsPanel ? (
             <Button
-              aria-label={isPanelOpen ? "Hide comments" : "Show comments"}
+              aria-label={isPanelOpen ? "Скрыть комментарии" : "Показать комментарии"}
               aria-pressed={isPanelOpen}
               className={cn(
                 "h-8 w-8 rounded-lg border border-border bg-muted/40 text-foreground hover:bg-muted",
@@ -1671,7 +1671,7 @@ function VideoReviewDialog({
             </Button>
           ) : null}
           <Button
-            aria-label="Close video review"
+            aria-label="Закрыть видео"
             className="h-8 w-8 rounded-lg border border-border bg-muted/40 text-foreground hover:bg-muted"
             size="icon"
             type="button"
@@ -1761,7 +1761,7 @@ function VideoReviewDialog({
                     <GlassSurface />
                     <button
                       aria-label={
-                        isPlaying ? "Pause review video" : "Play review video"
+                        isPlaying ? "Приостановить видео" : "Воспроизвести видео"
                       }
                       className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-white transition-colors hover:bg-white/15 outline-hidden focus-visible:ring-2 focus-visible:ring-white/60"
                       type="button"
@@ -1780,7 +1780,7 @@ function VideoReviewDialog({
                       {formatTimecode(currentTime)}
                     </span>
                     <VideoScrubber
-                      ariaLabel="Video timeline"
+                      ariaLabel="Временная шкала видео"
                       className="group h-8 min-w-0 flex-1"
                       currentTime={currentTime}
                       duration={visibleDuration}
@@ -1794,7 +1794,7 @@ function VideoReviewDialog({
                           <Tooltip key={item.comment.id}>
                             <TooltipTrigger asChild>
                               <button
-                                aria-label={`Seek to ${item.timecode}`}
+                                aria-label={`Перейти к ${item.timecode}`}
                                 className="absolute top-1/2 z-20 flex h-5 w-5 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full border border-white/40 bg-black/60 shadow-md transition-transform hover:scale-110 outline-hidden focus-visible:ring-2 focus-visible:ring-white/60"
                                 data-video-review-marker=""
                                 style={{ left }}
@@ -1869,21 +1869,21 @@ function VideoReviewDialog({
                     <Tooltip>
                       <TooltipTrigger asChild>
                         <button
-                          aria-label="More reactions"
+                          aria-label="Больше реакций"
                           aria-pressed={isEmojiPickerOpen}
                           className={cn(
                             "flex h-8 w-8 items-center justify-center rounded-full text-white/80 transition-colors hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-35",
                             isEmojiPickerOpen && "bg-white/15 text-white",
                           )}
                           disabled={!canPost}
-                          title={postDisabledReason ?? "More reactions"}
+                          title={postDisabledReason ?? "Больше реакций"}
                           type="button"
                           onClick={() => setIsEmojiPickerOpen((open) => !open)}
                         >
                           <SmilePlus className="pointer-events-none h-4 w-4" />
                         </button>
                       </TooltipTrigger>
-                      <TooltipContent>More reactions</TooltipContent>
+                      <TooltipContent>Больше реакций</TooltipContent>
                     </Tooltip>
                     {isEmojiPickerOpen ? (
                       <div
@@ -1914,7 +1914,7 @@ function VideoReviewDialog({
                   <div className="flex min-w-0 items-center gap-2">
                     <MessageCircle className="h-4 w-4 text-muted-foreground" />
                     <h3 className="text-sm font-semibold text-foreground">
-                      Comments
+                      Комментарии
                     </h3>
                   </div>
                   <span className="ml-auto rounded-full bg-muted px-2 py-0.5 text-xs text-muted-foreground">
@@ -1949,7 +1949,7 @@ function VideoReviewDialog({
                   ) : (
                     <div className="rounded-lg border border-dashed border-border px-4 py-6 text-center">
                       <p className="text-sm font-medium text-muted-foreground">
-                        No comments yet
+                        Пока нет комментариев
                       </p>
                     </div>
                   )}
@@ -1970,7 +1970,7 @@ function VideoReviewDialog({
                     </span>
                     {replyTarget ? (
                       <span className="text-2xs text-muted-foreground">
-                        Replying to {replyTarget.comment.author}
+                        Ответ {replyTarget.comment.author}
                       </span>
                     ) : (
                       <label
@@ -1986,7 +1986,7 @@ function VideoReviewDialog({
                             setPostAtCurrentFrame(checked === true)
                           }
                         />
-                        Comment at current frame
+                        Прокомментировать текущий кадр
                       </label>
                     )}
                   </div>
@@ -2020,7 +2020,7 @@ function VideoReviewDialog({
                         }
                         onSend={handleComposerSend}
                         placeholder={
-                          replyTarget ? undefined : "Leave your comment..."
+                          replyTarget ? undefined : "Оставьте свой комментарий..."
                         }
                         profiles={reviewContext?.profiles}
                         replyTarget={
@@ -2162,7 +2162,7 @@ function VideoReviewCommentBody({
         <div className="mt-2 flex flex-wrap gap-1.5">
           {reactions.map((reaction) => (
             <button
-              aria-label={`Toggle ${reaction.emoji} reaction`}
+              aria-label={`Переключить реакцию ${reaction.emoji}`}
               aria-pressed={reaction.reactedByCurrentUser}
               className={cn(
                 "flex h-7 items-center gap-1 rounded-full border px-2 text-xs transition-colors",
@@ -2198,7 +2198,7 @@ function VideoReviewCommentBody({
           type="button"
           onClick={() => onReply(item)}
         >
-          Reply
+          Ответить
         </button>
       ) : null}
     </div>

@@ -29,12 +29,12 @@ function nextDayAt9am(dayOffset: number): number {
 }
 
 export const TIME_PRESETS: TimePreset[] = [
-  { label: "In 30 minutes", getTimestamp: () => nowSeconds() + 30 * 60 },
-  { label: "In 1 hour", getTimestamp: () => nowSeconds() + 60 * 60 },
-  { label: "In 3 hours", getTimestamp: () => nowSeconds() + 3 * 60 * 60 },
-  { label: "Tomorrow at 9am", getTimestamp: () => nextDayAt9am(1) },
+  { label: "Через 30 минут", getTimestamp: () => nowSeconds() + 30 * 60 },
+  { label: "Через 1 час", getTimestamp: () => nowSeconds() + 60 * 60 },
+  { label: "Через 3 часа", getTimestamp: () => nowSeconds() + 3 * 60 * 60 },
+  { label: "Завтра в 09:00", getTimestamp: () => nextDayAt9am(1) },
   {
-    label: "Next Monday at 9am",
+    label: "В следующий понедельник в 09:00",
     getTimestamp: () => {
       const daysUntilMonday = (8 - new Date().getDay()) % 7 || 7;
       return nextDayAt9am(daysUntilMonday);

@@ -681,7 +681,7 @@ function ImageZoomOverlay({
     : isFading
       ? IMAGE_LIGHTBOX_FADE_EXIT_MS
       : IMAGE_LIGHTBOX_FADE_ENTER_MS;
-  const label = currentItem.alt?.trim() || "Image preview";
+  const label = currentItem.alt?.trim() || "Предпросмотр изображения";
   const handleImageClick = React.useCallback(
     (event: React.MouseEvent<HTMLImageElement>) => {
       event.preventDefault();
@@ -774,8 +774,7 @@ function ImageZoomOverlay({
       tabIndex={-1}
     >
       <p className="sr-only" id={descriptionId}>
-        Full-size image preview. Press Escape or click outside the image to
-        close. Click the image to zoom.
+        Полноразмерный предпросмотр изображения. Нажмите Escape или кликните вне изображения, чтобы закрыть. Кликните на изображение, чтобы увеличить.
       </p>
       <div
         className={cn(

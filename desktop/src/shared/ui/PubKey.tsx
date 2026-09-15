@@ -54,7 +54,7 @@ function CopyRow({ label, value }: { label: string; value: string }) {
       <Button
         aria-label={`Copy ${label}`}
         onClick={() => {
-          copyTextToClipboard(value, `${label} copied`);
+          copyTextToClipboard(value, `${label} скопирован(о)`);
           setCopied(true);
           window.clearTimeout(resetTimer.current);
           resetTimer.current = window.setTimeout(() => setCopied(false), 1500);
@@ -124,6 +124,7 @@ export function PubKey({
   // payloads (e.g. an 8-char hex) as a fake npub, so the widget validates
   // through `canonicalNpub` and renders Unavailable for anything else.
   const npub = canonicalNpub(pubkey);
+  const displayUnavailable = UNAVAILABLE_KEY_LABEL === "Unavailable" ? "Недоступно" : UNAVAILABLE_KEY_LABEL;
 
   if (variant === "full") {
     return (
@@ -132,7 +133,7 @@ export function PubKey({
         data-testid={testId}
       >
         <span className="break-all font-mono text-xs">
-          {npub ?? UNAVAILABLE_KEY_LABEL}
+          {npub ?? displayUnavailable}
         </span>
         {npub ? (
           <Popover>
@@ -160,7 +161,7 @@ export function PubKey({
   if (npub === null) {
     return (
       <span className={cn("font-mono", className)} data-testid={testId}>
-        {UNAVAILABLE_KEY_LABEL}
+        {displayUnavailable}
       </span>
     );
   }
@@ -168,7 +169,7 @@ export function PubKey({
   if (!interactive) {
     return (
       <span className={cn("font-mono", className)} data-testid={testId}>
-        {truncateNpub(pubkey)}
+        {truncateNpub(pubkey) === UNAVAILABLE_KEY_LABEL ? displayUnavailable : truncateNpub(pubkey)}
       </span>
     );
   }
@@ -187,7 +188,7 @@ export function PubKey({
           onMouseLeave={handleMouseLeave}
           type="button"
         >
-          {truncateNpub(pubkey)}
+          {truncateNpub(pubkey) === UNAVAILABLE_KEY_LABEL ? displayUnavailable : truncateNpub(pubkey)}
         </button>
       </PopoverTrigger>
       <PopoverContent

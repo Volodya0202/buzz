@@ -92,7 +92,7 @@ export function AgentSnapshotCard({
         message:
           err instanceof Error
             ? err.message
-            : `Couldn’t load this ${snapshotKind}. Try again.`,
+            : `Не удалось загрузить эт${snapshotKind === "team" ? "у команду" : "ого агента"}. Попробуйте еще раз.`,
       });
     } finally {
       inFlightRef.current = false;
@@ -116,7 +116,7 @@ export function AgentSnapshotCard({
         : size < 1024 * 1024
           ? `${(size / 1024).toFixed(1)} KB`
           : `${(size / (1024 * 1024)).toFixed(1)} MB`;
-  const metadata = [sharedBy ? `Shared by ${sharedBy}` : null, formattedSize]
+  const metadata = [sharedBy ? `Поделился ${sharedBy}` : null, formattedSize]
     .filter(Boolean)
     .join(" · ");
 
@@ -177,16 +177,16 @@ export function AgentSnapshotCard({
         ) : null}
       </AttachmentContent>
       <AttachmentActions
-        aria-label={`Actions for ${displayName}`}
+        aria-label={`Действия для ${displayName}`}
         className="ml-4 gap-2"
         role="group"
       >
         <AttachmentAction
-          aria-label={`Download ${displayName}`}
+          aria-label={`Скачать ${displayName}`}
           data-testid="agent-snapshot-card-download"
           onClick={handleDownload}
           size="icon"
-          title="Download"
+          title="Скачать"
           type="button"
           variant="ghost"
         >
@@ -203,10 +203,10 @@ export function AgentSnapshotCard({
         >
           {isFetching ? <Loader2 className="animate-spin" /> : <SnapshotIcon />}
           {isFetching
-            ? "Loading…"
+            ? "Загрузка…"
             : snapshotKind === "team"
-              ? "Add team"
-              : "Add agent"}
+              ? "Добавить команду"
+              : "Добавить агента"}
         </AttachmentAction>
       </AttachmentActions>
     </Attachment>

@@ -91,21 +91,21 @@ function getInitialEditorMode(yaml: string): WorkflowEditorMode {
 }
 
 const TITLES: Record<DialogMode, string> = {
-  create: "Create workflow",
-  edit: "Edit workflow",
-  duplicate: "Duplicate workflow",
+  create: "Создать рабочий процесс",
+  edit: "Редактировать рабочий процесс",
+  duplicate: "Дублировать рабочий процесс",
 };
 
 const SUBMIT_LABELS: Record<DialogMode, string> = {
-  create: "Create workflow",
-  edit: "Save changes",
-  duplicate: "Create copy",
+  create: "Создать",
+  edit: "Сохранить изменения",
+  duplicate: "Создать копию",
 };
 
 const PENDING_LABELS: Record<DialogMode, string> = {
-  create: "Creating…",
-  edit: "Saving…",
-  duplicate: "Creating…",
+  create: "Создание…",
+  edit: "Сохранение…",
+  duplicate: "Создание…",
 };
 
 function WorkflowNameEditor({
@@ -151,7 +151,7 @@ function WorkflowNameEditor({
     return (
       <div className="flex h-6 items-center gap-1.5">
         <Input
-          aria-label="Workflow name"
+          aria-label="Имя рабочего процесса"
           autoCapitalize="off"
           autoCorrect="off"
           className="h-6 w-72 px-2 font-mono text-sm"
@@ -171,7 +171,7 @@ function WorkflowNameEditor({
           defaultValue={name}
         />
         <Button
-          aria-label="Save workflow name"
+          aria-label="Сохранить имя рабочего процесса"
           className="text-muted-foreground"
           disabled={disabled || !draft.trim()}
           onClick={commit}
@@ -182,7 +182,7 @@ function WorkflowNameEditor({
             commit();
           }}
           size="icon-xs"
-          title="Save workflow name"
+          title="Сохранить имя рабочего процесса"
           type="button"
           variant="ghost"
         >
@@ -195,15 +195,15 @@ function WorkflowNameEditor({
   return (
     <div className="inline-flex h-6 max-w-full min-w-0 items-center gap-1.5 font-mono text-sm text-muted-foreground">
       <span className="min-w-0 truncate">
-        {generating ? "Generating name…" : name || "Untitled workflow"}
+        {generating ? "Создание имени…" : name || "Безымянный рабочий процесс"}
       </span>
       <Button
-        aria-label="Edit workflow name"
+        aria-label="Изменить имя рабочего процесса"
         className="text-muted-foreground [&_svg]:size-3"
         disabled={disabled || generating}
         onClick={() => changeEditing(true)}
         size="icon-xs"
-        title="Edit workflow name"
+        title="Изменить имя рабочего процесса"
         type="button"
         variant="ghost"
       >
@@ -437,7 +437,7 @@ export function WorkflowDialog({
             relayUrlError:
               error instanceof Error
                 ? error.message
-                : "Could not load the webhook URL",
+                : "Не удалось загрузить URL-адрес вебхука",
           });
         }
       } else {
@@ -578,10 +578,10 @@ export function WorkflowDialog({
               </DialogTitle>
               <DialogDescription className="sr-only">
                 {mode === "edit"
-                  ? "Update when this workflow runs and what it does."
+                  ? "Обновите, когда запускается этот рабочий процесс и что он делает."
                   : mode === "duplicate"
-                    ? "Copy this workflow and adjust its details."
-                    : "Automate actions when something happens in a channel."}
+                    ? "Скопируйте этот рабочий процесс и измените его детали."
+                    : "Автоматизируйте действия, когда что-то происходит в канале."}
               </DialogDescription>
               <div className="flex items-center gap-2">
                 <WorkflowNameEditor
@@ -613,16 +613,16 @@ export function WorkflowDialog({
                     */}
                     <PopoverContent
                       align="end"
-                      aria-label="Run history"
+                      aria-label="История запусков"
                       className="flex max-h-[min(32rem,var(--radix-popover-content-available-height))] w-96 max-w-[calc(100vw-2rem)] flex-col overflow-hidden p-0"
                       data-testid="workflow-history-dropdown"
                       sideOffset={8}
                     >
                       <div className="flex-shrink-0 border-b px-5 py-3">
                         <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-                          Workflow
+                          Рабочий процесс
                         </p>
-                        <h3 className="text-base font-semibold">Run history</h3>
+                        <h3 className="text-base font-semibold">История запусков</h3>
                       </div>
                       <div className="min-h-0 flex-1">
                         <WorkflowDetailPanel
@@ -656,7 +656,7 @@ export function WorkflowDialog({
               ) : null}
               <DialogClose asChild>
                 <Button
-                  aria-label="Close"
+                  aria-label="Закрыть"
                   className="h-8 w-8 text-muted-foreground"
                   size="icon"
                   type="button"
@@ -685,7 +685,7 @@ export function WorkflowDialog({
               ref={formBuilderRef}
               scopeField={
                 showChannelSelector ? (
-                  <div className="space-y-1">
+                      <div className="space-y-1">
                     <ChannelCombobox
                       channels={channels}
                       defaultOpen={
@@ -707,7 +707,7 @@ export function WorkflowDialog({
                     />
                     {channels.length === 0 ? (
                       <p className="text-center text-xs text-muted-foreground">
-                        Join or create a channel before adding a workflow.
+                        Присоединитесь или создайте канал перед добавлением рабочего процесса.
                       </p>
                     ) : null}
                   </div>
@@ -742,13 +742,13 @@ export function WorkflowDialog({
 
           <div className="flex flex-shrink-0 items-center justify-between gap-4 px-6 pt-2 pb-4">
             <Tabs onValueChange={handleEditorModeChange} value={editorMode}>
-              <TabsList aria-label="Workflow editor mode" className="h-8 p-0.5">
+              <TabsList aria-label="Режим редактора рабочего процесса" className="h-8 p-0.5">
                 <TabsTrigger
                   className="h-7 px-3 text-xs"
                   disabled={mutation.isPending}
                   value="form"
                 >
-                  Form
+                  Форма
                 </TabsTrigger>
                 <TabsTrigger
                   className="h-7 gap-1.5 px-3 text-xs"
@@ -766,17 +766,17 @@ export function WorkflowDialog({
                 type="button"
                 variant="outline"
               >
-                Cancel
+                Отмена
               </Button>
               {isAddingFirstStep ? (
                 <Button
-                  aria-label="Add first step"
+                  aria-label="Добавить первый шаг"
                   data-testid="workflow-dialog-primary-action"
                   disabled={!selectedChannelId || mutation.isPending}
                   onClick={() => formBuilderRef.current?.addFirstStep()}
                   type="button"
                 >
-                  Add step
+                  Добавить шаг
                 </Button>
               ) : (
                 <Button
@@ -810,17 +810,17 @@ export function WorkflowDialog({
         <AlertDialogContent data-testid="workflow-activation-confirmation">
           <AlertDialogHeader>
             <AlertDialogTitle>
-              {activationWarning?.title ?? "Turn on this workflow?"}
+              {activationWarning?.title ?? "Включить этот рабочий процесс?"}
             </AlertDialogTitle>
             <AlertDialogDescription>
               {activationWarning?.description ??
-                "Turn it on to let it run immediately, or keep it off until you’re ready."}
+                "Включите его, чтобы он запустился немедленно, или оставьте выключенным, пока не будете готовы."}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel asChild>
               <Button type="button" variant="ghost">
-                Back
+                Назад
               </Button>
             </AlertDialogCancel>
             <Button
@@ -828,14 +828,14 @@ export function WorkflowDialog({
               type="button"
               variant="outline"
             >
-              Keep off
+              Оставить выключенным
             </Button>
             <AlertDialogAction asChild>
               <Button
                 onClick={() => handleCreateActivation(true)}
                 type="button"
               >
-                Turn on
+                Включить
               </Button>
             </AlertDialogAction>
           </AlertDialogFooter>
@@ -860,15 +860,15 @@ export function WorkflowDialog({
       >
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Discard changes?</AlertDialogTitle>
+            <AlertDialogTitle>Отменить изменения?</AlertDialogTitle>
             <AlertDialogDescription>
-              Your unsaved workflow changes will be lost.
+              Несохраненные изменения в рабочем процессе будут потеряны.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel asChild>
               <Button type="button" variant="outline">
-                Keep editing
+                Продолжить редактирование
               </Button>
             </AlertDialogCancel>
             <AlertDialogAction asChild>
@@ -894,7 +894,7 @@ export function WorkflowDialog({
                 type="button"
                 variant="destructive"
               >
-                Discard changes
+                Отменить изменения
               </Button>
             </AlertDialogAction>
           </AlertDialogFooter>
@@ -916,16 +916,15 @@ export function WorkflowDialog({
       >
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Continue without this secret?</AlertDialogTitle>
+            <AlertDialogTitle>Продолжить без этого секрета?</AlertDialogTitle>
             <AlertDialogDescription>
-              This private webhook secret cannot be recovered. Copy and store it
-              before continuing, or explicitly leave it behind.
+              Этот секрет вебхука невозможно восстановить. Скопируйте и сохраните его перед продолжением или осознанно оставьте.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel asChild>
               <Button type="button" variant="outline">
-                Go back
+                Назад
               </Button>
             </AlertDialogCancel>
             <AlertDialogAction asChild>
@@ -943,7 +942,7 @@ export function WorkflowDialog({
                 type="button"
                 variant="destructive"
               >
-                Continue
+                Продолжить
               </Button>
             </AlertDialogAction>
           </AlertDialogFooter>

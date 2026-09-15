@@ -640,7 +640,7 @@ export function TerminalSubstrate({
                   )}
                 </span>
                 {session.closing ? (
-                  <span className="buzz-terminal-tab-title">Closing…</span>
+                  <span className="buzz-terminal-tab-title">Закрывается…</span>
                 ) : null}
               </button>
             </div>

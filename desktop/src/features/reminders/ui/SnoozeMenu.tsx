@@ -43,7 +43,7 @@ export function SnoozeMenu({
           className="h-7 w-7 p-0"
           disabled={disabled}
           size="sm"
-          title="Snooze"
+          title="Отложить"
           type="button"
           variant="ghost"
         >
@@ -69,14 +69,14 @@ export function SnoozeMenu({
                 setCustomOpen(true);
               }}
             >
-              Custom…
+              Другое…
             </DropdownMenuItem>
           </PopoverTrigger>
           <PopoverContent align="end" className="w-auto space-y-3">
-            <p className="text-sm font-medium">Snooze until</p>
+            <p className="text-sm font-medium">Отложить до</p>
             <div className="flex gap-2">
               <Input
-                aria-label="Snooze date"
+                aria-label="Дата"
                 className="flex-1"
                 min={todayDateString()}
                 onChange={(event) => setCustomDate(event.target.value)}
@@ -84,7 +84,7 @@ export function SnoozeMenu({
                 value={customDate}
               />
               <Input
-                aria-label="Snooze time"
+                aria-label="Время"
                 className="w-[120px]"
                 onChange={(event) => setCustomTime(event.target.value)}
                 type="time"
@@ -101,7 +101,7 @@ export function SnoozeMenu({
               }}
               type="button"
             >
-              Snooze
+              Отложить
             </Button>
           </PopoverContent>
         </Popover>

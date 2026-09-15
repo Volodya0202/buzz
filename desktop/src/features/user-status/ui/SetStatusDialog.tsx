@@ -366,33 +366,33 @@ export function SetStatusDialog({
                 type="button"
                 variant="ghost"
               >
-                Clear status
+                Очистить статус
               </Button>
             ) : (
               <span />
             )}
             <Button
-              aria-label="Save status"
+              aria-label="Сохранить статус"
               data-testid="set-status-save"
               disabled={!canSave}
               onClick={handleSave}
               type="button"
             >
-              Save status
+              Сохранить статус
             </Button>
           </div>
         }
         footerClassName="border-t-0 pt-0"
         headerClassName="pb-2"
-        headerSubtitle="Let others know what you're up to."
-        title="Set a status"
+        headerSubtitle="Пусть другие знают, чем вы занимаетесь."
+        title="Установить статус"
       >
         <div className="flex min-h-12 items-stretch rounded-xl border border-input focus-within:ring-1 focus-within:ring-ring">
           <Popover onOpenChange={setPickerOpen} open={pickerOpen}>
             <div className="shrink-0">
               <PopoverTrigger asChild>
                 <button
-                  aria-label="Choose a status emoji"
+                  aria-label="Выберите эмодзи статуса"
                   className="flex h-12 w-12 items-center justify-center rounded-xl transition-colors hover:bg-accent"
                   type="button"
                 >
@@ -417,12 +417,12 @@ export function SetStatusDialog({
             data-testid="set-status-input"
             onChange={(event) => setText(event.target.value)}
             onKeyDown={handleKeyDown}
-            placeholder="What’s your status?"
+            placeholder="Какой у вас статус?"
             value={text}
           />
         </div>
 
-        <StatusSection label="Duration">
+        <StatusSection label="Продолжительность">
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <button
@@ -431,7 +431,7 @@ export function SetStatusDialog({
                 type="button"
               >
                 <Clock3 className="h-5 w-5 text-muted-foreground" />
-                <span className="flex-1">Duration</span>
+                <span className="flex-1">Продолжительность</span>
                 <span className="text-muted-foreground">{DURATION_LABELS[duration]}</span>
                 <ChevronDown className="h-4 w-4 text-muted-foreground" />
               </button>
@@ -456,11 +456,11 @@ export function SetStatusDialog({
           {duration === "Custom" ? (
             <div className={ROW_CLASS}>
               <CalendarClock className="h-5 w-5 text-muted-foreground" />
-              <span>Until</span>
+              <span>До</span>
               <Popover onOpenChange={setCalendarOpen} open={calendarOpen}>
                 <PopoverTrigger asChild>
                   <button
-                    aria-label="Status expiration date"
+                    aria-label="Дата истечения статуса"
                     className="flex h-9 min-w-0 flex-1 items-center rounded-md border border-input bg-background px-2 text-sm outline-none focus:ring-1 focus:ring-ring"
                     type="button"
                   >
@@ -490,7 +490,7 @@ export function SetStatusDialog({
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <button
-                    aria-label="Status expiration time"
+                    aria-label="Время истечения статуса"
                     className="flex h-9 w-28 shrink-0 items-center rounded-md border border-input bg-background px-2 text-sm outline-none focus:ring-1 focus:ring-ring"
                     type="button"
                   >
@@ -534,13 +534,13 @@ export function SetStatusDialog({
           ) : null}
           {saveError || (!expirationIsFuture && isDirty) ? (
             <p className="px-3 py-2 text-xs text-destructive" role="alert">
-              {saveError || "Choose a duration in the future."}
+              {saveError || "Выберите время в будущем."}
             </p>
           ) : null}
         </StatusSection>
 
         {!baseline.hasExistingStatus ? (
-          <StatusSection label="Quick statuses">
+          <StatusSection label="Быстрые статусы">
             {PRESETS.map((preset) => (
               <button
                 className={ROW_CLASS}

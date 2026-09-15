@@ -447,7 +447,7 @@ export function TopbarSearch({
         kind: "action",
         action: {
           id: "browse-channels",
-          title: "Browse channels",
+          title: "Просмотр каналов",
         },
       });
     }
@@ -457,7 +457,7 @@ export function TopbarSearch({
         kind: "action",
         action: {
           id: "create-channel",
-          title: "Create a new channel",
+          title: "Создать новый канал",
         },
       });
     }
@@ -467,7 +467,7 @@ export function TopbarSearch({
         kind: "action",
         action: {
           id: "create-agent",
-          title: "Create a new agent",
+          title: "Создать нового агента",
         },
       });
     }
@@ -831,12 +831,12 @@ export function TopbarSearch({
             currentChannelSearchAction ? "pb-5" : "py-5",
           )}
         >
-          <p>No recent activity yet.</p>
+          <p>Пока нет недавней активности.</p>
         </div>
       </div>
     ) : (
       <div
-        aria-label="Recent activity"
+        aria-label="Недавняя активность"
         className="max-h-96 overflow-y-auto"
         role="listbox"
       >
@@ -850,7 +850,7 @@ export function TopbarSearch({
                 {suggestedResults.length > 0 ? (
                   <div>
                     <div className={SEARCH_SECTION_TITLE_CLASS}>
-                      Recent activity
+                      Недавняя активность
                     </div>
                     {suggestedResults.map((result) =>
                       renderSearchResultRow(result, resultIndex++),
@@ -859,7 +859,7 @@ export function TopbarSearch({
                 ) : null}
                 {suggestionActionResults.length > 0 ? (
                   <div>
-                    <div className={SEARCH_SECTION_TITLE_CLASS}>Actions</div>
+                    <div className={SEARCH_SECTION_TITLE_CLASS}>Действия</div>
                     {suggestionActionResults.map((result) =>
                       renderSearchResultRow(result, resultIndex++),
                     )}

@@ -27,7 +27,7 @@ const PAGE_SIZE = 25;
 
 function truncateContent(content: string | null): string {
   const normalized = content?.trim().replaceAll(/\s+/g, " ") ?? "";
-  if (!normalized) return "No message body";
+  if (!normalized) return "Нет тела сообщения";
   return normalized.length > 120
     ? `${normalized.slice(0, 117)}...`
     : normalized;
@@ -73,7 +73,7 @@ export function WorkflowMessagePicker({
     initialPageParam: null as ChannelPageCursor | null,
     queryKey: ["workflow-message-picker", channelId],
     queryFn: async ({ pageParam }) => {
-      if (!channelId) throw new Error("Choose a channel first.");
+      if (!channelId) throw new Error("Сначала выберите канал.");
       return parseChannelWindowResponse(
         await getChannelWindowEvents(channelId, pageParam, PAGE_SIZE),
         channelId,
@@ -235,7 +235,7 @@ export function WorkflowMessagePicker({
               : undefined
           }
           aria-controls={listId}
-          aria-label="Search messages or paste a message ID"
+          aria-label="Искать сообщения или вставить ID сообщения"
           aria-expanded="true"
           autoCapitalize="none"
           autoComplete="off"
@@ -286,8 +286,8 @@ export function WorkflowMessagePicker({
           }}
           placeholder={
             channelId
-              ? "Search messages or paste a message ID…"
-              : "Choose a channel first"
+              ? "Искать сообщения или вставить ID сообщения…"
+              : "Сначала выберите канал"
           }
           role="combobox"
           spellCheck={false}
@@ -298,18 +298,18 @@ export function WorkflowMessagePicker({
         searchEventsFetching ||
         exactQuery.isFetching ? (
           <LoaderCircle
-            aria-label="Loading messages"
+            aria-label="Загрузка сообщений"
             className="absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 animate-spin text-muted-foreground"
           />
         ) : null}
       </div>
       {invalidDirectResult ? (
         <p className="shrink-0 border-b border-border/70 px-3 py-2 text-xs text-destructive">
-          That message is not available in this channel.
+          Это сообщение недоступно в этом канале.
         </p>
       ) : null}
       <div
-        aria-label="Messages"
+        aria-label="Сообщения"
         className="min-h-0 flex-1 space-y-1 overflow-y-auto overscroll-contain p-2"
         data-testid="workflow-message-picker-results"
         id={listId}
@@ -352,15 +352,15 @@ export function WorkflowMessagePicker({
             className="flex items-center justify-center gap-2 px-3 py-8 text-sm text-muted-foreground"
             role="status"
           >
-            <LoaderCircle className="h-4 w-4 animate-spin" /> Loading messages…
+            <LoaderCircle className="h-4 w-4 animate-spin" /> Загрузка сообщений…
           </p>
         ) : visibleCandidates.length === 0 ? (
           <p className="px-3 py-8 text-center text-sm text-muted-foreground">
             {failed
-              ? "Couldn’t load messages."
+              ? "Не удалось загрузить сообщения."
               : normalizedQuery
-                ? "No messages found."
-                : "No messages yet."}
+                ? "Сообщения не найдены."
+                : "Пока нет сообщений."}
           </p>
         ) : null}
         {failed ? (
@@ -376,7 +376,7 @@ export function WorkflowMessagePicker({
             }}
             type="button"
           >
-            Couldn’t load all messages. Retry
+            Не удалось загрузить все сообщения. Повторить
           </button>
         ) : null}
         {!normalizedQuery && historyQuery.hasNextPage ? (
@@ -387,8 +387,8 @@ export function WorkflowMessagePicker({
             type="button"
           >
             {historyQuery.isFetchingNextPage
-              ? "Loading older messages…"
-              : "Load older messages"}
+              ? "Загрузка старых сообщений…"
+              : "Загрузить старые сообщения"}
           </button>
         ) : null}
       </div>
@@ -417,7 +417,7 @@ function MessageOption({
 }) {
   const author = candidate.pubkey
     ? resolveUserLabel({ profiles, pubkey: candidate.pubkey })
-    : "Selected message";
+    : "Выбранное сообщение";
   const profile = candidate.pubkey
     ? profiles?.[candidate.pubkey.toLowerCase()]
     : undefined;

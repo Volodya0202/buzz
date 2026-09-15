@@ -34,7 +34,7 @@ export function ImageLightboxZoomControls({
   return (
     <>
       <button
-        aria-label="Zoom out"
+        aria-label="Уменьшить масштаб"
         className={ZOOM_BUTTON_CLASS_NAME}
         disabled={zoom <= IMAGE_LIGHTBOX_MIN_ZOOM}
         type="button"
@@ -47,7 +47,7 @@ export function ImageLightboxZoomControls({
         <ZoomOut aria-hidden="true" className="h-4 w-4 opacity-80" />
       </button>
       <input
-        aria-label="Image zoom"
+        aria-label="Масштаб изображения"
         className="image-zoom-slider h-3 w-32 cursor-pointer sm:w-44"
         max={IMAGE_LIGHTBOX_MAX_ZOOM}
         min={IMAGE_LIGHTBOX_MIN_ZOOM}
@@ -71,7 +71,7 @@ export function ImageLightboxZoomControls({
         }}
       />
       <button
-        aria-label="Zoom in"
+        aria-label="Увеличить масштаб"
         className={ZOOM_BUTTON_CLASS_NAME}
         disabled={zoom >= IMAGE_LIGHTBOX_MAX_ZOOM}
         type="button"
