@@ -35,6 +35,12 @@ import {
 import { VirtualizedList } from "@/shared/ui/VirtualizedList";
 import { CommunityInviteDialog } from "./CommunityInviteDialog";
 
+const ROLE_LABELS: Record<string, string> = {
+  owner: "Владелец",
+  admin: "Администратор",
+  member: "Участник",
+};
+
 function formatDisplayName(member: RelayMember, displayName?: string | null) {
   const trimmedDisplayName = displayName?.trim();
   if (
@@ -43,7 +49,7 @@ function formatDisplayName(member: RelayMember, displayName?: string | null) {
   ) {
     return trimmedDisplayName;
   }
-  return member.role === "owner" ? "Community owner" : "Unnamed member";
+  return member.role === "owner" ? "Владелец сообщества" : "Безымянный участник";
 }
 
 function npubFromPubkey(pubkey: string): string | null {
@@ -125,7 +131,7 @@ function RelayMemberRow({
       toast.error(
         error instanceof Error
           ? error.message
-          : "Couldn’t update this community member.",
+          : "Не удалось обновить участника сообщества.",
       );
     }
   }
@@ -164,17 +170,17 @@ function RelayMemberRow({
           className="flex items-center gap-1.5 text-xs text-muted-foreground/70"
           data-settings-subcopy
         >
-          <span className="shrink-0 capitalize">{member.role}</span>
+          <span className="shrink-0">{ROLE_LABELS[member.role] ?? member.role}</span>
           <span aria-hidden="true" className="shrink-0">
             ·
           </span>
-          <span className="shrink-0">Added {formatDate(member.createdAt)}</span>
+          <span className="shrink-0">Добавлен {formatDate(member.createdAt)}</span>
           {isSelf ? (
             <>
               <span aria-hidden="true" className="shrink-0">
                 ·
               </span>
-              <span className="shrink-0">You</span>
+              <span className="shrink-0">Вы</span>
             </>
           ) : null}
         </div>
@@ -203,11 +209,11 @@ function RelayMemberRow({
                         pubkey: member.pubkey,
                         role: "admin",
                       }),
-                    "Made community admin",
+                    "Назначен администратором сообщества",
                   )
                 }
               >
-                Make admin
+                Назначить админом
               </DropdownMenuItem>
             ) : null}
             {canDemote ? (
@@ -219,11 +225,11 @@ function RelayMemberRow({
                         pubkey: member.pubkey,
                         role: "member",
                       }),
-                    "Made community member",
+                    "Назначен участником сообщества",
                   )
                 }
               >
-                Make member
+                Сделать участником
               </DropdownMenuItem>
             ) : null}
             {canRemove && (canPromote || canDemote) ? (
@@ -235,11 +241,11 @@ function RelayMemberRow({
                 onClick={() =>
                   void mutateWithToast(
                     () => removeMutation.mutateAsync(member.pubkey),
-                    "Removed community member",
+                    "Участник удалён из сообщества",
                   )
                 }
               >
-                Remove from community
+                Удалить из сообщества
               </DropdownMenuItem>
             ) : null}
           </DropdownMenuContent>
@@ -295,7 +301,7 @@ export function CommunityMembersSettingsCard({
     return (
       <section className="min-w-0" data-testid="settings-community-members">
         <p className="text-sm text-muted-foreground">
-          Checking invite permissions…
+          Проверка прав на приглашение…
         </p>
       </section>
     );
@@ -313,17 +319,17 @@ export function CommunityMembersSettingsCard({
             data-testid="community-invite-dialog-trigger"
             onClick={() => setInviteDialogOpen(true)}
           >
-            Invite to community
+            Пригласить в сообщество
           </Button>
         }
-        title="Invites"
-        description="Manage members and community access."
+        title="Приглашения"
+        description="Управление участниками и доступом к сообществу."
       />
 
       <SettingsOptionGroup
         title={
           <>
-            Members
+            Участники
             {members.length > 0 ? (
               <span className="ml-1.5 font-normal">{members.length}</span>
             ) : null}
@@ -339,7 +345,7 @@ export function CommunityMembersSettingsCard({
               className="w-full rounded-lg border border-border/70 bg-background py-2 pl-9 pr-3 text-sm placeholder:text-muted-foreground focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring"
               data-testid="community-members-search"
               onChange={(event) => setSearch(event.target.value)}
-              placeholder="Search members"
+              placeholder="Поиск участников"
               spellCheck={false}
               type="text"
               value={search}
@@ -354,15 +360,15 @@ export function CommunityMembersSettingsCard({
 
           {membersQuery.isLoading ? (
             <p className="py-3 text-sm text-muted-foreground">
-              Loading community members…
+              Загрузка участников сообщества…
             </p>
           ) : members.length === 0 ? (
             <p className="rounded-lg border border-dashed border-border/70 px-3 py-6 text-center text-sm text-muted-foreground">
-              No community members yet.
+              Пока нет участников сообщества.
             </p>
           ) : filteredMembers.length === 0 ? (
             <p className="rounded-lg border border-dashed border-border/70 px-3 py-6 text-center text-sm text-muted-foreground">
-              No members match your search.
+              Нет участников, соответствующих вашему поиску.
             </p>
           ) : (
             <VirtualizedList

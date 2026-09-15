@@ -43,10 +43,10 @@ function pairingErrorMessage(error: unknown) {
         : "";
 
   if (message.toLowerCase().includes("timeout waiting for eose")) {
-    return "Pairing took too long. Try again.";
+    return "Сопряжение заняло слишком много времени. Попробуйте снова.";
   }
 
-  return message || "We couldn't start pairing. Try again.";
+  return message || "Не удалось начать сопряжение. Попробуйте снова.";
 }
 
 function isPairingSessionTimeout(message: string) {
@@ -121,12 +121,12 @@ function PairingSteps({ step }: { step: PairingStep }) {
           testId="mobile-pairing-scan-step-indicator"
         />
         <div className="min-w-0 pt-0.5">
-          <p className="text-base font-medium">Scan QR code</p>
+          <p className="text-base font-medium">Сканируйте QR-код</p>
           <p
             className="mt-1 text-sm text-muted-foreground/70"
             data-settings-subcopy
           >
-            Open Buzz on your mobile device and scan the code shown here.
+            Откройте Buzz на мобильном устройстве и отсканируйте код здесь.
           </p>
         </div>
       </li>
@@ -138,13 +138,12 @@ function PairingSteps({ step }: { step: PairingStep }) {
           testId="mobile-pairing-confirm-step-indicator"
         />
         <div className="min-w-0 pt-0.5">
-          <p className="text-base font-medium">Confirm mobile code</p>
+          <p className="text-base font-medium">Подтвердите код</p>
           <p
             className="mt-1 text-sm text-muted-foreground/70"
             data-settings-subcopy
           >
-            Check that the six-digit code matches on both devices, then confirm
-            it.
+            Убедитесь, что шестизначный код совпадает на обоих устройствах, затем подтвердите его.
           </p>
         </div>
       </li>
@@ -160,15 +159,15 @@ function PairingSteps({ step }: { step: PairingStep }) {
         />
         <div aria-live="polite" className="min-w-0 pt-0.5">
           <p className="text-base font-medium">
-            {isPaired ? "Paired" : "Pair your mobile app"}
+            {isPaired ? "Подключено" : "Подключите мобильное приложение"}
           </p>
           <p
             className="mt-1 text-sm text-muted-foreground/70"
             data-settings-subcopy
           >
             {isPaired
-              ? "Your mobile app is now connected to this relay."
-              : "Your mobile app will connect after you confirm the code."}
+              ? "Ваше мобильное приложение подключено к этому реле."
+              : "Мобильное приложение подключится после подтверждения кода."}
           </p>
         </div>
       </li>
@@ -196,13 +195,13 @@ function PairingCodeConfirmation({
         className="self-start text-base font-medium"
         data-testid="pairing-sas-title"
       >
-        Confirm mobile code
+        Подтвердите код
       </p>
       <fieldset
         className="flex w-full self-center justify-center gap-[6px]"
         data-testid="pairing-sas-code"
       >
-        <legend className="sr-only">Confirmation code {formattedCode}</legend>
+        <legend className="sr-only">Код подтверждения {formattedCode}</legend>
         {PAIRING_CODE_DIGIT_POSITIONS.map((position) => (
           <span
             aria-hidden="true"
@@ -233,7 +232,7 @@ function PairingCodeConfirmation({
           onClick={onConfirm}
         >
           <Check />
-          Codes match
+          Коды совпадают
         </Button>
         <Button
           className="w-full"
@@ -241,7 +240,7 @@ function PairingCodeConfirmation({
           onClick={onDeny}
           variant="outline"
         >
-          Cancel
+          Отмена
         </Button>
       </div>
     </div>
@@ -366,7 +365,7 @@ export function MobilePairingCard({
   async function handleCopy() {
     if (!qrUri) return;
     await writeTextToClipboard(qrUri);
-    toast.success("Copied to clipboard");
+    toast.success("Скопировано в буфер обмена");
   }
 
   async function handleConfirmSas() {
@@ -377,7 +376,7 @@ export function MobilePairingCard({
       setError(
         err instanceof Error
           ? err.message
-          : "We couldn't send your identity. Try again.",
+          : "Не удалось передать профиль. Попробуйте снова.",
       );
       pairingActiveRef.current = false;
       setStep("error");
@@ -387,19 +386,19 @@ export function MobilePairingCard({
   function handleDenySas() {
     pairingActiveRef.current = false;
     cancelPairing().catch(() => {});
-    setError("The codes didn't match. Pairing was canceled.");
+    setError("Коды не совпали. Сопряжение отменено.");
     setStep("error");
   }
 
   return (
     <section className="min-w-0" data-testid="settings-mobile">
       <SettingsSectionHeader
-        title="Mobile"
+        title="Мобильное приложение"
         description={
           <>
-            Connect the Buzz mobile app to this relay by scanning a QR code. The
-            connection is secured with end-to-end encryption and a verification
-            code.
+            Подключите мобильное приложение Buzz к этому реле, отсканировав
+            QR-код. Соединение защищено сквозным шифрованием и проверочным
+            кодом.
           </>
         }
       />
@@ -417,11 +416,11 @@ export function MobilePairingCard({
             and is visually hidden, so it changes nothing on screen. */}
         <p aria-live="polite" className="sr-only" data-testid="pairing-status">
           {step === "sas" && sasCode
-            ? `Verification code ${sasCode.slice(0, 3)} ${sasCode.slice(3, 6)} ready. Check that it matches on your mobile device, then confirm the codes match.`
+            ? `Проверочный код ${sasCode.slice(0, 3)} ${sasCode.slice(3, 6)} готов. Проверьте совпадение на мобильном устройстве и подтвердите.`
             : step === "transferring"
-              ? "Codes confirmed. Pairing your mobile device."
+              ? "Коды подтверждены. Подключение мобильного устройства..."
               : step === "done"
-                ? "Your mobile app is now paired."
+                ? "Мобильное приложение успешно подключено."
                 : ""}
         </p>
         <SettingsOptionRow
@@ -458,7 +457,7 @@ export function MobilePairingCard({
                     data-testid="pairing-transfer-spinner"
                   />
                   <p className="text-sm text-muted-foreground">
-                    Pairing mobile device...
+                    Подключение мобильного устройства...
                   </p>
                 </div>
               ) : step === "qr" && qrUri ? (
@@ -467,13 +466,13 @@ export function MobilePairingCard({
                   centerImageSrc="/app-icon@2x.png"
                   data-testid="mobile-pairing-qr"
                   size={240}
-                  title="Mobile pairing QR code"
+                  title="QR-код сопряжения с мобильным приложением"
                   value={qrUri}
                 />
               ) : step === "expired" ? (
                 <div className="flex max-w-52 origin-center animate-in flex-col items-center gap-3 text-center fade-in-0 zoom-in-95 duration-[250ms] ease-[cubic-bezier(0.23,1,0.32,1)] motion-reduce:animate-none">
                   <p className="text-sm text-muted-foreground">
-                    Pairing code expired.
+                    Срок действия кода сопряжения истек.
                   </p>
                   <Button
                     data-testid="regenerate-pairing-button"
@@ -483,14 +482,14 @@ export function MobilePairingCard({
                     variant="outline"
                   >
                     <RefreshCw className="mr-1.5 h-4 w-4" />
-                    Generate new pairing code
+                    Создать новый код сопряжения
                   </Button>
                 </div>
               ) : step === "error" ? (
                 <div className="flex max-w-52 flex-col items-center gap-3 text-center">
                   <TriangleAlert className="h-6 w-6 text-destructive" />
                   <p className="text-sm text-destructive">
-                    {error ?? "Pairing session ended."}
+                    {error ?? "Сеанс сопряжения завершен."}
                   </p>
                   <Button
                     data-testid="retry-pairing-button"
@@ -498,7 +497,7 @@ export function MobilePairingCard({
                     size="sm"
                     variant="outline"
                   >
-                    Try again
+                    Попробовать снова
                   </Button>
                 </div>
               ) : step === "idle" ? (
@@ -508,11 +507,11 @@ export function MobilePairingCard({
                     onClick={beginPairing}
                     type="button"
                   >
-                    Start pairing
+                    Начать сопряжение
                   </Button>
                 ) : (
                   <p className="max-w-44 text-center text-sm text-muted-foreground">
-                    Sign in to generate a mobile pairing code.
+                    Войдите, чтобы создать код сопряжения с мобильным устройством.
                   </p>
                 )
               ) : step === "done" ? (
@@ -520,7 +519,7 @@ export function MobilePairingCard({
                   <div className="flex h-12 w-12 items-center justify-center rounded-full bg-green-100 dark:bg-green-900/30">
                     <Check className="h-6 w-6 text-green-600 dark:text-green-400" />
                   </div>
-                  <p className="text-base font-medium">Paired</p>
+                  <p className="text-base font-medium">Подключено</p>
                 </div>
               ) : (
                 <div className="flex flex-col items-center justify-center gap-3">
@@ -530,7 +529,7 @@ export function MobilePairingCard({
                     data-testid="pairing-loading-spinner"
                   />
                   <p className="text-sm text-muted-foreground">
-                    Starting pairing...
+                    Запуск сопряжения...
                   </p>
                 </div>
               )}
@@ -547,7 +546,7 @@ export function MobilePairingCard({
                   variant="outline"
                 >
                   <Copy className="mr-1.5 h-4 w-4" />
-                  Copy pairing code
+                  Копировать код сопряжения
                 </Button>
               ) : null}
             </div>

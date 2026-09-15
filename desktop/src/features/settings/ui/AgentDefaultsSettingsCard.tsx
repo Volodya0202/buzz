@@ -5,8 +5,8 @@ export function AgentDefaultsSettingsCard() {
   return (
     <SettingsOptionGroup
       data-testid="settings-global-agent-config"
-      description="Provider, model, effort, and environment settings inherited by local agents. Agent-specific settings always take priority."
-      title="Agent defaults"
+      description="Настройки провайдера, модели, режима рассуждений и переменных окружения, наследуемые локальными агентами. Индивидуальные настройки агента всегда имеют приоритет."
+      title="Настройки агентов по умолчанию"
     >
       <div className="px-4 py-4">
         <AgentDefaultsEditor layout="flat" />

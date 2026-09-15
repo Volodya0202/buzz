@@ -62,7 +62,7 @@ export function CustomEmojiSettingsCard() {
         return;
       }
       if (!blob.type.startsWith("image/")) {
-        toast.error("Choose an image file for custom emoji.");
+        toast.error("Выберите файл изображения для пользовательского эмодзи.");
         return;
       }
       setPendingUpload({ url: blob.url, filename: blob.filename ?? null });
@@ -76,7 +76,7 @@ export function CustomEmojiSettingsCard() {
       toast.error(
         error instanceof Error
           ? error.message
-          : "Failed to upload emoji image.",
+          : "Не удалось загрузить изображение эмодзи.",
       );
     } finally {
       setIsUploading(false);
@@ -92,10 +92,10 @@ export function CustomEmojiSettingsCard() {
       });
       setName("");
       setPendingUpload(null);
-      toast.success(`Added :${stored}:`);
+      toast.success(`Добавлен :${stored}:`);
     } catch (error) {
       toast.error(
-        error instanceof Error ? error.message : "Failed to add emoji.",
+        error instanceof Error ? error.message : "Не удалось добавить эмодзи.",
       );
     }
   }, [normalized, pendingUpload, setEmoji]);
@@ -109,10 +109,10 @@ export function CustomEmojiSettingsCard() {
     async (shortcode: string) => {
       try {
         await removeEmoji.mutateAsync(shortcode);
-        toast.success(`Removed :${shortcode}:`);
+        toast.success(`Удалён :${shortcode}:`);
       } catch (error) {
         toast.error(
-          error instanceof Error ? error.message : "Failed to remove emoji.",
+          error instanceof Error ? error.message : "Не удалось удалить эмодзи.",
         );
       }
     },
@@ -126,11 +126,11 @@ export function CustomEmojiSettingsCard() {
   return (
     <section className="min-w-0" data-testid="settings-custom-emoji">
       <SettingsSectionHeader
-        title="Custom emoji"
+        title="Пользовательские эмодзи"
         description={
           <>
-            Add your own custom emoji for everyone on this relay to use. Type{" "}
-            <code>:name:</code> in messages and reactions.
+            Добавляйте собственные эмодзи, доступные всем на этом реле. Вводите{" "}
+            <code>:название:</code> в сообщениях и реакциях.
           </>
         }
       />
@@ -143,16 +143,15 @@ export function CustomEmojiSettingsCard() {
             if (canSubmit) void handleAdd();
           }}
         >
-          <SettingsOptionGroup title="Add emoji">
+          <SettingsOptionGroup title="Добавить эмодзи">
             <div className="flex flex-wrap items-center justify-between gap-3 px-4 py-3 text-sm">
               <div className="min-w-0 flex-[1_1_22rem]">
-                <h4 className="text-sm font-medium">Upload an image</h4>
+                <h4 className="text-sm font-medium">Загрузить изображение</h4>
                 <p
                   className="text-sm font-normal text-muted-foreground/70"
                   data-settings-subcopy
                 >
-                  Square images work best. GIF, PNG, JPEG, and WebP files are
-                  supported.
+                  Лучше всего подходят квадратные изображения. Поддерживаются форматы GIF, PNG, JPEG и WebP.
                 </p>
               </div>
               <div className="flex min-w-0 flex-[1_1_16rem] items-center gap-3">
@@ -182,10 +181,10 @@ export function CustomEmojiSettingsCard() {
                     variant="outline"
                   >
                     {isUploading
-                      ? "Uploading…"
+                      ? "Загрузка…"
                       : pendingUpload
-                        ? "Choose different image"
-                        : "Upload image"}
+                        ? "Выбрать другое изображение"
+                        : "Загрузить изображение"}
                   </Button>
                 </div>
               </div>
@@ -193,13 +192,13 @@ export function CustomEmojiSettingsCard() {
 
             <div className="flex flex-wrap items-start justify-between gap-3 px-4 py-3 text-sm">
               <div className="min-w-0 flex-[1_1_22rem]">
-                <h4 className="text-sm font-medium">Give it a name</h4>
+                <h4 className="text-sm font-medium">Задайте название</h4>
                 <p
                   className="text-sm font-normal text-muted-foreground/70"
                   data-settings-subcopy
                 >
-                  This is what you’ll type to add this emoji to messages and
-                  reactions.
+                  Это то, что вы будете вводить, чтобы добавить эмодзи в
+                  сообщения и реакции.
                 </p>
               </div>
               <div className="w-full min-w-0 max-w-sm flex-[1_1_20rem] space-y-2">
@@ -224,23 +223,23 @@ export function CustomEmojiSettingsCard() {
                 </div>
                 {nameInvalid ? (
                   <p className="text-sm text-destructive">
-                    Use only letters, numbers, hyphen, or underscore.
+                    Используйте только буквы, цифры, дефис или подчёркивание.
                   </p>
                 ) : pendingUpload === null ? (
                   <p
                     className="text-sm font-normal text-muted-foreground/70"
                     data-settings-subcopy
                   >
-                    Choose an image first; Buzz will suggest a name from the
-                    filename.
+                    Сначала выберите изображение; Buzz предложит название на основе
+                    имени файла.
                   </p>
                 ) : ownDuplicate ? (
                   <p
                     className="text-sm font-normal text-muted-foreground/70"
                     data-settings-subcopy
                   >
-                    You already have :{normalized}: — saving will replace its
-                    image.
+                    У вас уже есть :{normalized}: — сохранение заменит его
+                    изображение.
                   </p>
                 ) : null}
               </div>
@@ -255,14 +254,14 @@ export function CustomEmojiSettingsCard() {
                   setEmoji.isPending || (name.length === 0 && !pendingUpload)
                 }
               >
-                Clear
+                Очистить
               </Button>
               <Button
                 type="submit"
                 data-testid="custom-emoji-add"
                 disabled={!canSubmit}
               >
-                {setEmoji.isPending ? "Saving…" : "Save emoji"}
+                {setEmoji.isPending ? "Сохранение…" : "Сохранить эмодзи"}
               </Button>
             </div>
           </SettingsOptionGroup>
@@ -270,19 +269,19 @@ export function CustomEmojiSettingsCard() {
 
         <div data-testid="custom-emoji-mine">
           {ownLoading ? (
-            <SettingsOptionGroup title="My emoji">
+            <SettingsOptionGroup title="Мои эмодзи">
               <div className="px-4 py-3 text-sm font-normal text-muted-foreground">
-                Loading…
+                Загрузка…
               </div>
             </SettingsOptionGroup>
           ) : own.length === 0 ? (
-            <SettingsOptionGroup title="My emoji">
+            <SettingsOptionGroup title="Мои эмодзи">
               <div className="px-4 py-3 text-sm font-normal text-muted-foreground">
-                You haven&apos;t added any emoji yet. Add one above.
+                Вы ещё не добавили ни одного эмодзи. Добавьте эмодзи выше.
               </div>
             </SettingsOptionGroup>
           ) : (
-            <SettingsOptionGroup title={`My emoji (${own.length})`}>
+            <SettingsOptionGroup title={`Мои эмодзи (${own.length})`}>
               {own.map((e) => (
                 <div
                   key={e.shortcode}
@@ -315,8 +314,8 @@ export function CustomEmojiSettingsCard() {
         {!communityLoading && othersEmoji.length > 0 ? (
           <div data-testid="custom-emoji-community">
             <SettingsOptionGroup
-              description="Added by other members. You can use these, but only their owner can remove them."
-              title={`Community emoji (${othersEmoji.length})`}
+              description="Добавлены другими участниками. Вы можете их использовать, но удалить их может только владелец."
+              title={`Эмодзи сообщества (${othersEmoji.length})`}
             >
               {othersEmoji.map((e) => (
                 <div

@@ -14,6 +14,10 @@ import {
 import {
   KIND_AGENT_OBSERVER_FRAME,
   KIND_AGENT_TURN_METRIC,
+  KIND_HUDDLE_ENDED,
+  KIND_HUDDLE_PARTICIPANT_JOINED,
+  KIND_HUDDLE_PARTICIPANT_LEFT,
+  KIND_HUDDLE_STARTED,
 } from "@/shared/constants/kinds";
 import { useChannelsQuery } from "@/features/channels/hooks";
 import { useIdentityQuery } from "@/shared/api/hooks";
@@ -40,6 +44,30 @@ import {
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
+const GROUP_LABELS: Record<string, string> = {
+  "Messages & posts": "Сообщения и публикации",
+  "Reactions, edits & deletions": "Реакции, изменения и удаления",
+  "Huddle events": "События созвонов",
+  "System messages": "Системные сообщения",
+};
+
+const KIND_LABELS: Record<number, string> = {
+  5: "Удаление событий (kind 5)",
+  7: "Реакции (kind 7)",
+  9: "Потоковые сообщения (kind 9)",
+  9005: "Встроенные удаления Buzz (kind 9005)",
+  40002: "Потоковые сообщения v2 (kind 40002)",
+  40003: "Редактирование сообщений (kind 40003)",
+  40008: "Диффы сообщений (kind 40008)",
+  40099: "Системные сообщения (kind 40099)",
+  45001: "Публикации форума (kind 45001)",
+  45003: "Комментарии форума (kind 45003)",
+  [KIND_HUDDLE_STARTED]: "Начало созвона",
+  [KIND_HUDDLE_PARTICIPANT_JOINED]: "Участник присоединился",
+  [KIND_HUDDLE_PARTICIPANT_LEFT]: "Участник вышел",
+  [KIND_HUDDLE_ENDED]: "Завершение созвона",
+};
+
 function scopeLabel(
   sub: SaveSubscription,
   channelNameById: Map<string, string>,
@@ -49,17 +77,17 @@ function scopeLabel(
   }
   if (sub.scopeType === "owner_p") {
     if (sub.kinds.includes(KIND_AGENT_TURN_METRIC)) {
-      return "My agents' turn metrics";
+      return "Метрики ходов моих агентов";
     }
-    return "My agent session frames";
+    return "Фреймы сессий моих агентов";
   }
   return sub.scopeValue;
 }
 
 function kindSummary(kinds: number[]): string {
-  if (kinds.length === 0) return "no kinds";
+  if (kinds.length === 0) return "нет типов";
   if (kinds.length <= 4) return kinds.join(", ");
-  return `${kinds.slice(0, 3).join(", ")} +${kinds.length - 3} more`;
+  return `${kinds.slice(0, 3).join(", ")} +ещё ${kinds.length - 3}`;
 }
 
 // ── Observer-feed archive section ─────────────────────────────────────────────
@@ -78,20 +106,20 @@ function ObserverArchiveSection({
   const toggleDisabled = toggling;
   return (
     <div data-testid="local-archive-observer-section">
-      <SettingsOptionGroup title="Agent observer feed">
+      <SettingsOptionGroup title="Лента наблюдателя агентов">
         <SettingsOptionRow>
           <div className="min-w-0 flex-1">
             <label
               className="text-sm font-medium"
               htmlFor="local-archive-observer-toggle"
             >
-              Archive my agents' observer frames
+              Архивировать фреймы наблюдателя моих агентов
             </label>
             <p
               className="text-sm font-normal text-muted-foreground/70"
               data-settings-subcopy
             >
-              {`Saves kind ${KIND_AGENT_OBSERVER_FRAME} observer frames addressed to your pubkey. These are ephemeral — not stored by the relay — so local archiving is the only way to retain them.`}
+              {`Сохраняет фреймы наблюдателя kind ${KIND_AGENT_OBSERVER_FRAME}, адресованные вашему публичному ключу. Они эфемерны — реле их не хранит — поэтому локальное архивирование является единственным способом их сохранить.`}
             </p>
           </div>
           <Switch
@@ -122,22 +150,22 @@ function AgentMetricArchiveSection({
 }: AgentMetricSectionProps) {
   return (
     <div data-testid="local-archive-agent-metric-section">
-      <SettingsOptionGroup title="Agent turn metrics">
+      <SettingsOptionGroup title="Метрики ходов агентов">
         <SettingsOptionRow>
           <div className="min-w-0 flex-1">
             <label
               className="text-sm font-medium"
               htmlFor="local-archive-agent-metric-toggle"
             >
-              Archive my agents' turn metrics
+              Архивировать метрики ходов моих агентов
             </label>
             <p
               className="text-sm font-normal text-muted-foreground/70"
               data-settings-subcopy
             >
-              Saves kind {KIND_AGENT_TURN_METRIC} turn-metric events addressed
-              to your pubkey. Stored as plaintext in your local archive so
-              token-usage calculators can read them directly.
+              Сохраняет события метрик ходов kind {KIND_AGENT_TURN_METRIC}, адресованные
+              вашему публичному ключу. Хранятся в виде открытого текста в вашем локальном
+              архиве, поэтому калькуляторы расхода токенов могут считывать их напрямую.
             </p>
           </div>
           <Switch
@@ -182,7 +210,7 @@ function KindChecklist({ checkedKinds, onChange }: KindChecklistProps) {
                 className="cursor-pointer text-sm font-medium"
                 htmlFor={`local-archive-group-${group.label}`}
               >
-                {group.label}
+                {GROUP_LABELS[group.label] ?? group.label}
               </label>
             </div>
             {/* Individual kind checkboxes */}
@@ -201,7 +229,7 @@ function KindChecklist({ checkedKinds, onChange }: KindChecklistProps) {
                     className="cursor-pointer text-sm text-muted-foreground"
                     htmlFor={`local-archive-kind-${kind}`}
                   >
-                    {label}
+                    {KIND_LABELS[kind] ?? label}
                   </label>
                 </div>
               ))}
@@ -229,14 +257,14 @@ function CustomKindsInput({ value, onChange }: CustomKindsInputProps) {
         className="mb-1.5 block text-sm font-medium"
         htmlFor="local-archive-custom-kinds"
       >
-        Advanced: custom kinds
+        Дополнительно: пользовательские типы (kinds)
       </label>
       <input
         className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
         data-testid="local-archive-custom-kinds"
         id="local-archive-custom-kinds"
         onChange={(e) => onChange(e.target.value)}
-        placeholder="e.g. 30023 1337"
+        placeholder="например, 30023 1337"
         type="text"
         value={value}
       />
@@ -244,15 +272,15 @@ function CustomKindsInput({ value, onChange }: CustomKindsInputProps) {
         className="mt-1 text-xs text-muted-foreground/70"
         data-settings-subcopy
       >
-        Space- or comma-separated non-negative integers. Kinds already in the
-        checklist above are ignored.
+        Неотрицательные целые числа через пробел или запятую. Типы, уже
+        выбранные в списке выше, игнорируются.
       </p>
       {hasInvalid && (
         <p
           className="mt-1 text-xs text-destructive"
           data-testid="local-archive-custom-kinds-error"
         >
-          Invalid tokens (ignored):{" "}
+          Недопустимые токены (проигнорированы):{" "}
           {invalid.map((t, i) => (
             <React.Fragment key={t}>
               {i > 0 && ", "}
@@ -307,10 +335,10 @@ function AddSubscriptionForm({
         request.kinds,
       );
       onSaved();
-      toast.success("Archive subscription created.");
+      toast.success("Подписка на архив создана.");
     } catch (err) {
       toast.error(
-        err instanceof Error ? err.message : "Failed to create subscription.",
+        err instanceof Error ? err.message : "Не удалось создать подписку.",
       );
     } finally {
       setIsAdding(false);
@@ -333,7 +361,7 @@ function AddSubscriptionForm({
             className="mb-1.5 block text-sm font-medium"
             htmlFor="local-archive-channel-select"
           >
-            Channel
+            Канал
           </label>
           <select
             className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
@@ -342,7 +370,7 @@ function AddSubscriptionForm({
             onChange={(e) => setSelectedChannelId(e.target.value)}
             value={selectedChannelId}
           >
-            <option value="">Select a channel…</option>
+            <option value="">Выберите канал…</option>
             {channels.map((ch) => (
               <option key={ch.id} value={ch.id}>
                 {ch.name}
@@ -353,7 +381,7 @@ function AddSubscriptionForm({
 
         {/* Event types (per-kind checklist) */}
         <div>
-          <p className="mb-3 text-sm font-medium">Event types</p>
+          <p className="mb-3 text-sm font-medium">Типы событий</p>
           <KindChecklist
             checkedKinds={checkedKinds}
             onChange={setCheckedKinds}
@@ -370,7 +398,7 @@ function AddSubscriptionForm({
             type="button"
             variant="outline"
           >
-            Cancel
+            Отмена
           </Button>
           <Button
             data-testid="local-archive-confirm-add"
@@ -378,7 +406,7 @@ function AddSubscriptionForm({
             onClick={() => void handleAdd()}
             type="button"
           >
-            {isAdding ? "Saving…" : "Save"}
+            {isAdding ? "Сохранение…" : "Сохранить"}
           </Button>
         </div>
       </div>
@@ -435,10 +463,10 @@ export function LocalArchiveSettingsCard() {
       try {
         await deleteSaveSubscription(scopeType, scopeValue);
         await reload();
-        toast.success("Archive subscription removed.");
+        toast.success("Подписка на архив удалена.");
       } catch (err) {
         toast.error(
-          err instanceof Error ? err.message : "Failed to remove subscription.",
+          err instanceof Error ? err.message : "Не удалось удалить подписку.",
         );
       } finally {
         setDeletingKey(null);
@@ -469,15 +497,15 @@ export function LocalArchiveSettingsCard() {
         setExplicitObserverArchiveChoice(pubkey, checked);
         toast.success(
           checked
-            ? "Observer feed archive enabled."
-            : "Observer feed archive disabled.",
+            ? "Архив ленты наблюдателя включён."
+            : "Архив ленты наблюдателя выключен.",
         );
         await reload();
       } catch (err) {
         toast.error(
           err instanceof Error
             ? err.message
-            : "Failed to update observer archive.",
+            : "Не удалось обновить архив наблюдателя.",
         );
       } finally {
         setObserverToggling(false);
@@ -499,15 +527,15 @@ export function LocalArchiveSettingsCard() {
         setExplicitAgentMetricArchiveChoice(pubkey, checked);
         toast.success(
           checked
-            ? "Agent turn metric archive enabled."
-            : "Agent turn metric archive disabled.",
+            ? "Архив метрик ходов включён."
+            : "Архив метрик ходов выключен.",
         );
         await reload();
       } catch (err) {
         toast.error(
           err instanceof Error
             ? err.message
-            : "Failed to update agent metric archive.",
+            : "Не удалось обновить архив метрик ходов.",
         );
       } finally {
         setMetricToggling(false);
@@ -524,8 +552,8 @@ export function LocalArchiveSettingsCard() {
   return (
     <section className="min-w-0" data-testid="settings-local-archive">
       <SettingsSectionHeader
-        title="Local archive"
-        description="Save copies of relay messages to a local SQLite database in your Buzz nest. Events are re-verified against the relay at archive time."
+        title="Локальный архив"
+        description="Сохраняйте копии сообщений реле в локальную базу данных SQLite в вашем гнезде Buzz. События повторно проверяются на реле во время архивации."
       />
 
       <div className="space-y-6">
@@ -546,20 +574,20 @@ export function LocalArchiveSettingsCard() {
         {/* Channel subscriptions */}
         <div data-testid="local-archive-subscriptions">
           {isLoading ? (
-            <SettingsOptionGroup title="Channel subscriptions">
+            <SettingsOptionGroup title="Подписки каналов">
               <div className="px-4 py-3 text-sm font-normal text-muted-foreground">
-                Loading…
+                Загрузка…
               </div>
             </SettingsOptionGroup>
           ) : channelSubs.length === 0 ? (
-            <SettingsOptionGroup title="Channel subscriptions">
+            <SettingsOptionGroup title="Подписки каналов">
               <div className="px-4 py-3 text-sm font-normal text-muted-foreground">
-                No channel subscriptions yet. Add one below.
+                Подписок на каналы пока нет. Добавьте подписку ниже.
               </div>
             </SettingsOptionGroup>
           ) : (
             <SettingsOptionGroup
-              title={`Channel subscriptions (${channelSubs.length})`}
+              title={`Подписки каналов (${channelSubs.length})`}
             >
               {channelSubs.map((sub) => {
                 const key = `${sub.scopeType}:${sub.scopeValue}`;
@@ -578,7 +606,7 @@ export function LocalArchiveSettingsCard() {
                         className="text-xs text-muted-foreground/70"
                         data-settings-subcopy
                       >
-                        {sub.scopeType} · kinds: {kindSummary(sub.kinds)}
+                        {sub.scopeType} · типы: {kindSummary(sub.kinds)}
                       </p>
                     </div>
                     <Button
@@ -609,18 +637,18 @@ export function LocalArchiveSettingsCard() {
                 setIsAddingOpen(false);
                 void reload();
               }}
-              title="Add channel subscription"
+              title="Добавить подписку на канал"
             />
           ) : (
-            <SettingsOptionGroup title="Add channel subscription">
+            <SettingsOptionGroup title="Добавить подписку на канал">
               <SettingsOptionRow>
                 <div className="min-w-0 flex-1">
-                  <p className="text-sm font-medium">Subscribe to a channel</p>
+                  <p className="text-sm font-medium">Подписаться на канал</p>
                   <p
                     className="text-xs text-muted-foreground/70"
                     data-settings-subcopy
                   >
-                    Choose a channel and select which event types to archive.
+                    Выберите канал и укажите типы событий для архивации.
                   </p>
                 </div>
                 <Button
@@ -629,7 +657,7 @@ export function LocalArchiveSettingsCard() {
                   size="sm"
                   variant="outline"
                 >
-                  Add
+                  Добавить
                 </Button>
               </SettingsOptionRow>
             </SettingsOptionGroup>

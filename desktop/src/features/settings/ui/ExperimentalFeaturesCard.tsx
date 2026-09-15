@@ -5,18 +5,48 @@ import { Switch } from "@/shared/ui/switch";
 import { SettingsOptionGroup, SettingsOptionRow } from "./SettingsOptionGroup";
 import { SettingsSectionHeader } from "./SettingsSectionHeader";
 
+const FEATURE_LOCALIZATION: Record<
+  string,
+  { name: string; description: string }
+> = {
+  workflows: {
+    name: "Рабочие процессы (Workflows)",
+    description: "Автоматизации на основе YAML с этапами подтверждения",
+  },
+  projects: {
+    name: "Проекты (Projects)",
+    description: "Просмотр Git-репозиториев и совместная работа",
+  },
+  pulse: {
+    name: "Пульс (Pulse)",
+    description: "Лента активности с заметками, публикациями и действиями агентов",
+  },
+  forum: {
+    name: "Форумные каналы (Forum Channels)",
+    description: "Каналы с ветками обсуждений для развернутых дискуссий",
+  },
+  agentManagedProfiles: {
+    name: "Профили, управляемые агентами",
+    description:
+      "Разрешить агентам самостоятельно управлять своим именем и аватаром на реле вместо восстановления локальной копии",
+  },
+};
+
 function FeatureRow({ feature }: { feature: FeatureDefinition }) {
   const [enabled, toggle] = useFeatureToggle(feature.id);
   const switchId = `feature-toggle-${feature.id}`;
+  const localized = FEATURE_LOCALIZATION[feature.id];
+  const displayName = localized?.name ?? feature.name;
+  const displayDesc = localized?.description ?? feature.description;
 
   return (
     <SettingsOptionRow>
       <div className="min-w-0 flex-1">
         <p className="text-sm font-medium" id={`${switchId}-label`}>
-          {feature.name}
+          {displayName}
         </p>
         <p className="text-xs text-muted-foreground/70" data-settings-subcopy>
-          {feature.description}
+          {displayDesc}
         </p>
       </div>
       <Switch
@@ -47,16 +77,16 @@ export function ExperimentalFeaturesCard() {
   return (
     <section className="min-w-0" data-testid="settings-experimental">
       <SettingsSectionHeader
-        title="Experiments"
+        title="Эксперименты"
         description={
           <>
-            These features are functional but still being refined. Enable them
-            to try new capabilities early.
+            Эти функции работают, но всё ещё дорабатываются. Включите их, чтобы
+            первыми опробовать новые возможности.
           </>
         }
       />
 
-      <SettingsOptionGroup title="Features">
+      <SettingsOptionGroup title="Функции">
         {previewFeatures.map((f) => (
           <FeatureRow feature={f} key={f.id} />
         ))}

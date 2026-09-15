@@ -56,7 +56,7 @@ function CommandAvailabilityBadge({ command }: { command: string }) {
           : "bg-amber-500/15 text-amber-600 dark:text-amber-400",
       )}
     >
-      {available ? "Found on PATH" : "Not found on PATH"}
+      {available ? "Найдено в PATH" : "Не найдено в PATH"}
     </span>
   );
 }
@@ -117,7 +117,7 @@ function ArgsEditor({
             />
           </FieldShell>
           <Button
-            aria-label="Remove argument"
+            aria-label="Удалить аргумент"
             onClick={() => onChange(args.filter((_, idx) => idx !== i))}
             size="icon"
             type="button"
@@ -134,7 +134,7 @@ function ArgsEditor({
         variant="outline"
       >
         <Plus className="mr-1 h-4 w-4" />
-        Add argument
+        Добавить аргумент
       </Button>
     </div>
   );
@@ -173,7 +173,7 @@ function EnvEditor({
             />
           </FieldShell>
           <Button
-            aria-label="Remove env var"
+            aria-label="Удалить переменную среды"
             onClick={() => onChange(env.filter((_, idx) => idx !== i))}
             size="icon"
             type="button"
@@ -190,7 +190,7 @@ function EnvEditor({
         variant="outline"
       >
         <Plus className="mr-1 h-4 w-4" />
-        Add env var
+        Добавить переменную среды
       </Button>
     </div>
   );
@@ -295,10 +295,10 @@ export function CustomHarnessForm({
       {chromeless ? null : (
         <div className="flex items-center justify-between">
           <p className="text-sm font-medium">
-            {originalId ? "Edit harness" : "Add custom harness"}
+            {originalId ? "Редактировать среду" : "Добавить кастомную среду"}
           </p>
           <button
-            aria-label="Cancel"
+            aria-label="Отмена"
             className="rounded-md p-1 text-muted-foreground hover:bg-muted hover:text-foreground"
             onClick={onCancel}
             type="button"
@@ -322,7 +322,7 @@ export function CustomHarnessForm({
               className="text-sm font-medium text-foreground"
               htmlFor="ch-label"
             >
-              Name
+              Имя
             </label>
             <FieldShell>
               <Input
@@ -343,7 +343,7 @@ export function CustomHarnessForm({
             >
               ID
               <span className={PERSONA_LABEL_OPTIONAL_CLASS}>
-                (auto-derived)
+                (определяется автоматически)
               </span>
             </label>
             <FieldShell>
@@ -365,7 +365,7 @@ export function CustomHarnessForm({
               className="text-sm font-medium text-foreground"
               htmlFor="ch-command"
             >
-              Command
+              Команда
             </label>
             <CommandAvailabilityBadge command={form.command} />
           </div>
@@ -380,12 +380,12 @@ export function CustomHarnessForm({
             />
           </FieldShell>
           <p className="text-xs text-muted-foreground">
-            Any command that speaks ACP over stdio works.
+            Работает любая команда, поддерживающая ACP через stdio.
           </p>
         </div>
 
         <div className="space-y-1.5">
-          <p className="text-sm font-medium text-foreground">Arguments</p>
+          <p className="text-sm font-medium text-foreground">Аргументы</p>
           <ArgsEditor
             args={form.args}
             onChange={(args) => setForm((p) => ({ ...p, args }))}
@@ -394,9 +394,9 @@ export function CustomHarnessForm({
 
         <div className="space-y-1.5">
           <p className="text-sm font-medium text-foreground">
-            Env vars
+            Переменные среды
             <span className={PERSONA_LABEL_OPTIONAL_CLASS}>
-              (override at spawn time; Buzz-managed vars always win)
+              (переопределение при запуске; переменные Buzz всегда имеют приоритет)
             </span>
           </p>
           <EnvEditor
@@ -410,8 +410,8 @@ export function CustomHarnessForm({
             className="text-sm font-medium text-foreground"
             htmlFor="ch-docs-url"
           >
-            Docs URL
-            <span className={PERSONA_LABEL_OPTIONAL_CLASS}>(optional)</span>
+            URL документации
+            <span className={PERSONA_LABEL_OPTIONAL_CLASS}>(необязательно)</span>
           </label>
           <FieldShell>
             <Input
@@ -429,8 +429,8 @@ export function CustomHarnessForm({
             className="text-sm font-medium text-foreground"
             htmlFor="ch-install-hint"
           >
-            Install hint
-            <span className={PERSONA_LABEL_OPTIONAL_CLASS}>(optional)</span>
+            Инструкция по установке
+            <span className={PERSONA_LABEL_OPTIONAL_CLASS}>(необязательно)</span>
           </label>
           <FieldShell>
             <Input
@@ -463,7 +463,7 @@ export function CustomHarnessForm({
           type="submit"
         >
           {save.isPending ? <Spinner className="mr-2 h-3.5 w-3.5" /> : null}
-          Save
+          Сохранить
         </Button>
       </div>
     </form>

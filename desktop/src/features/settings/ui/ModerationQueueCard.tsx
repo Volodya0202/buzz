@@ -140,6 +140,16 @@ async function enforceResolution(
   }
 }
 
+const REPORT_TYPE_LABELS_RU: Record<ReportType, string> = {
+  illegal: "Недопустимый контент",
+  nudity: "Материалы сексуального характера",
+  malware: "Вредоносное ПО",
+  spam: "Спам",
+  impersonation: "Выдача себя за другое лицо",
+  profanity: "Ненормативная лексика",
+  other: "Другое",
+};
+
 const RESOLUTION_OPTIONS: {
   action: ResolutionAction;
   label: string;
@@ -147,33 +157,33 @@ const RESOLUTION_OPTIONS: {
 }[] = [
   {
     action: "delete",
-    label: "Delete content",
-    description: "Remove the reported content and resolve.",
+    label: "Удалить контент",
+    description: "Удалить контент, на который поступила жалоба, и закрыть ее.",
   },
   {
     action: "kick",
-    label: "Kick author",
-    description: "Remove the author from the community.",
+    label: "Исключить автора",
+    description: "Удалить автора из сообщества.",
   },
   {
     action: "ban",
-    label: "Ban author",
-    description: "Block the author from the community.",
+    label: "Заблокировать автора",
+    description: "Заблокировать автора в сообществе.",
   },
   {
     action: "timeout",
-    label: "Time out author",
-    description: "Temporarily mute the author.",
+    label: "Ограничить автора во времени",
+    description: "Временно заглушить автора.",
   },
   {
     action: "escalate",
-    label: "Escalate",
-    description: "Route to the platform-safety lane.",
+    label: "Эскалировать",
+    description: "Передать в службу безопасности платформы.",
   },
   {
     action: "dismiss",
-    label: "Dismiss",
-    description: "No violation — close without action.",
+    label: "Отклонить",
+    description: "Нарушений нет — закрыть без действий.",
   },
 ];
 
@@ -198,12 +208,12 @@ function targetLabel(group: ModerationQueueGroup): string {
   switch (group.targetKind) {
     case "event":
       // An event id is not a pubkey identity: keep the generic hex form.
-      return `Message ${truncatePubkey(group.target)}`;
+      return `Сообщение ${truncatePubkey(group.target)}`;
     case "pubkey":
-      return `Member ${truncateNpub(group.target)}`;
+      return `Участник ${truncateNpub(group.target)}`;
     case "blob":
       // Blob ids are not pubkey identities either.
-      return `Attachment ${truncatePubkey(group.target)}`;
+      return `Вложение ${truncatePubkey(group.target)}`;
   }
 }
 
@@ -215,14 +225,17 @@ function ReporterLine({
   displayName?: string | null;
 }) {
   const who = displayName?.trim() || truncateNpub(report.reporterPubkey);
+  const typeText =
+    REPORT_TYPE_LABELS_RU[report.reportType] ??
+    reportTypeLabel(report.reportType);
   return (
     <div className="rounded-md border border-border/50 bg-background/50 px-2.5 py-1.5">
       <div className="flex flex-wrap items-center gap-1.5 text-xs">
         <span className="font-medium">
-          {reportTypeLabel(report.reportType)}
+          {typeText}
         </span>
         <span className="text-muted-foreground">
-          reported by {who} · {formatTimestamp(report.createdAt)}
+          жалоба от {who} · {formatTimestamp(report.createdAt)}
         </span>
       </div>
       {report.note ? (
@@ -258,12 +271,12 @@ function ResolveMenu({
           size="sm"
           type="button"
         >
-          Resolve
+          Принять меры
           <ChevronDown className="h-4 w-4" />
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="w-64">
-        <DropdownMenuLabel>Resolution</DropdownMenuLabel>
+        <DropdownMenuLabel>Решение</DropdownMenuLabel>
         <DropdownMenuSeparator />
         {options.map((option) => (
           <DropdownMenuItem
@@ -300,6 +313,8 @@ function QueueGroupCard({
 }) {
   const topType = groupTopReportType(group);
   const tier = severityTier(topType);
+  const typeText =
+    REPORT_TYPE_LABELS_RU[topType] ?? reportTypeLabel(topType);
   return (
     <div
       className="space-y-2.5 rounded-lg border border-border/60 bg-background/60 p-3"
@@ -317,14 +332,14 @@ function QueueGroupCard({
               {tier === "critical" ? (
                 <ShieldAlert className="mr-1 h-3 w-3" />
               ) : null}
-              {reportTypeLabel(topType)}
+              {typeText}
             </span>
             <span className="truncate font-mono text-xs text-muted-foreground">
               {targetLabel(group)}
             </span>
             <span className="text-xs text-muted-foreground">
               · {group.reports.length}{" "}
-              {group.reports.length === 1 ? "report" : "reports"}
+              {group.reports.length === 1 ? "жалоба" : group.reports.length < 5 ? "жалобы" : "жалоб"}
             </span>
           </div>
         </div>
@@ -354,8 +369,8 @@ function QueueGroupCard({
         <div className="flex items-start gap-1.5 rounded-md bg-amber-500/10 px-2.5 py-1.5 text-xs text-amber-700 dark:text-amber-300">
           <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0" />
           <span>
-            {group.priorActions.length} prior action
-            {group.priorActions.length === 1 ? "" : "s"} against this target
+            {group.priorActions.length}{" "}
+            {group.priorActions.length === 1 ? "предш. действие" : "предш. действий"} по этой цели
             {" — "}
             {group.priorActions
               .slice(0, 3)
@@ -429,11 +444,11 @@ function QueueTab() {
         ),
       );
       toast.success(
-        status === "dismissed" ? "Report dismissed" : "Report resolved",
+        status === "dismissed" ? "Жалоба отклонена" : "Жалоба обработана",
       );
     } catch (error) {
       toast.error(
-        error instanceof Error ? error.message : "Failed to resolve the report",
+        error instanceof Error ? error.message : "Не удалось обработать жалобу",
       );
     }
   }
@@ -446,12 +461,12 @@ function QueueTab() {
     );
   }
   if (reportsQuery.isLoading) {
-    return <p className="text-sm text-muted-foreground">Loading reports…</p>;
+    return <p className="text-sm text-muted-foreground">Загрузка жалоб…</p>;
   }
   if (groups.length === 0) {
     return (
       <p className="rounded-lg border border-dashed border-border/70 bg-background/40 px-3 py-6 text-center text-sm text-muted-foreground">
-        No open reports. The queue is clear.
+        Нет открытых жалоб. Очередь пуста.
       </p>
     );
   }
@@ -500,7 +515,7 @@ function AuditRow({
           </span>
         ) : null}
         <span className="text-xs text-muted-foreground">
-          by {who} · {formatTimestamp(action.createdAt)}
+          модератор: {who} · {formatTimestamp(action.createdAt)}
         </span>
       </div>
       {action.publicReason ? (
@@ -541,12 +556,12 @@ function AuditTab() {
     );
   }
   if (auditQuery.isLoading) {
-    return <p className="text-sm text-muted-foreground">Loading audit log…</p>;
+    return <p className="text-sm text-muted-foreground">Загрузка журнала аудита…</p>;
   }
   if (actions.length === 0) {
     return (
       <p className="rounded-lg border border-dashed border-border/70 bg-background/40 px-3 py-6 text-center text-sm text-muted-foreground">
-        No moderation actions yet.
+        Действий по модерации пока нет.
       </p>
     );
   }
@@ -574,26 +589,26 @@ export function ModerationQueueCard() {
       data-testid="settings-moderation"
     >
       <SettingsSectionHeader
-        title="Moderation"
-        description="Review reported content and take action. Visible to community moderators only."
+        title="Модерация"
+        description="Просматривайте жалобы на контент и принимайте меры. Доступно только модераторам сообщества."
       />
 
       {!isModerator ? (
         membershipQuery.isLoading ? (
-          <p className="text-sm text-muted-foreground">Checking access…</p>
+          <p className="text-sm text-muted-foreground">Проверка прав доступа…</p>
         ) : (
           <p className="rounded-lg border border-dashed border-border/70 bg-background/40 px-3 py-6 text-center text-sm text-muted-foreground">
-            The moderation queue is available to community moderators only.
+            Очередь модерации доступна только модераторам сообщества.
           </p>
         )
       ) : (
         <Tabs defaultValue="queue">
           <TabsList>
             <TabsTrigger data-testid="moderation-tab-queue" value="queue">
-              Queue
+              Очередь
             </TabsTrigger>
             <TabsTrigger data-testid="moderation-tab-audit" value="audit">
-              Audit log
+              Журнал аудита
             </TabsTrigger>
           </TabsList>
           <TabsContent value="queue">

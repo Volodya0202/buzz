@@ -77,6 +77,40 @@ function writeDraft(key: string, value: string): void {
   }
 }
 
+function localizeServingLabel(label: string): string {
+  if (!label) return "";
+  if (label.startsWith("In use now by another member · ")) {
+    return label
+      .replace("In use now by another member · ", "Используется другим участником · ")
+      .replace("live", "активно");
+  }
+  if (label.startsWith("Used by another member · ")) {
+    return label
+      .replace("Used by another member · ", "Использовалось другим участником · ")
+      .replace(/requests?/, "запросов");
+  }
+  if (label.startsWith("Serving your agent · ")) {
+    return label
+      .replace("Serving your agent · ", "Обработка запроса вашего агента · ")
+      .replace("live", "активно");
+  }
+  if (label === "Idle · no one using it right now") {
+    return "Ожидание · сейчас не используется";
+  }
+  if (label === "Idle · no one using it yet") {
+    return "Ожидание · пока не используется";
+  }
+  return label;
+}
+
+function localizeServingDetail(detail: string | null): string | null {
+  if (!detail) return null;
+  return detail
+    .replace(/peers? on the mesh/, "узлов в сети")
+    .replace("tok/s", "ток/с")
+    .replace(/requests? served this session/, "запросов обработано за сессию");
+}
+
 /**
  * Settings → Compute → Share compute.
  *
@@ -227,13 +261,13 @@ export function MeshComputeSettingsCard() {
   return (
     <section className="min-w-0" data-testid="settings-mesh-share-compute">
       <SettingsSectionHeader
-        title="Share compute"
-        description="Share this machine with members of this relay so they can run agents here."
+        title="Общий доступ к вычислениям"
+        description="Предоставьте доступ к вычислениям этой машины участникам этого реле, чтобы они могли запускать агентов здесь."
       />
 
       {error ? (
         <p className="mb-3 rounded-lg bg-destructive/10 px-3 py-2 text-sm text-destructive">
-          Couldn't check shared compute: {error}
+          Не удалось проверить общий доступ к вычислениям: {error}
         </p>
       ) : null}
       {actionError ? (
@@ -245,7 +279,7 @@ export function MeshComputeSettingsCard() {
         <DownloadProgressBar progress={downloadProgress} />
       ) : null}
 
-      <SettingsOptionGroup title="Sharing">
+      <SettingsOptionGroup title="Общий доступ">
         <div className="space-y-5 px-4 py-3">
           <div className="flex min-w-0 items-start justify-between gap-6">
             <div className="min-w-0">
@@ -253,7 +287,7 @@ export function MeshComputeSettingsCard() {
                 className="text-sm font-medium"
                 htmlFor="mesh-share-compute-toggle"
               >
-                Share this machine
+                Поделиться мощностями этой машины
               </label>
               {!isSharing ? (
                 <StatusLine
@@ -303,7 +337,7 @@ export function MeshComputeSettingsCard() {
               onClick={() => setAdvancedOpen((current) => !current)}
               type="button"
             >
-              <span>Advanced</span>
+              <span>Дополнительно</span>
               <ChevronDown
                 className={cn(
                   "h-4 w-4 text-muted-foreground transition-transform duration-150 ease-out",
@@ -314,7 +348,7 @@ export function MeshComputeSettingsCard() {
             {advancedOpen ? (
               <div className="mt-3 space-y-1.5">
                 <label className="text-sm font-medium" htmlFor="mesh-vram">
-                  Max VRAM (GB)
+                  Макс. VRAM (ГБ)
                 </label>
                 <AgentConfigTextInput
                   data-testid="mesh-share-compute-vram"
@@ -326,13 +360,13 @@ export function MeshComputeSettingsCard() {
                     setMaxVramGb(next);
                     writeDraft(MAX_VRAM_DRAFT_STORAGE_KEY, next);
                   }}
-                  placeholder="No limit"
+                  placeholder="Без ограничений"
                   usePersonaInputStyle
                   value={maxVramGb}
                 />
                 {status?.consoleUrl ? (
                   <p className="text-sm font-normal text-muted-foreground">
-                    Debug console:{" "}
+                    Консоль отладки:{" "}
                     <a
                       className="underline"
                       href={status.consoleUrl}
@@ -366,7 +400,7 @@ export function MeshComputeSettingsCard() {
                   className="space-y-1"
                   data-testid="mesh-share-compute-sharing-status"
                 >
-                  <h3 className="text-sm font-medium">Status</h3>
+                  <h3 className="text-sm font-medium">Статус</h3>
                   <div className="space-y-1 rounded-lg bg-muted/30 px-3 py-2">
                     <StatusLine
                       isConsuming={isConsuming}
@@ -384,11 +418,11 @@ export function MeshComputeSettingsCard() {
                         data-testid="mesh-serving-usage"
                         title={servingIndicator.detail ?? undefined}
                       >
-                        {servingIndicator.label}
+                        {localizeServingLabel(servingIndicator.label)}
                         {servingIndicator.detail ? (
                           <span className="text-muted-foreground">
                             {" "}
-                            · {servingIndicator.detail}
+                            · {localizeServingDetail(servingIndicator.detail)}
                           </span>
                         ) : null}
                       </p>
@@ -428,7 +462,7 @@ function DownloadProgressBar({
     >
       <div className="flex items-baseline justify-between gap-2 text-sm">
         <span className="min-w-0 truncate font-medium">
-          {progress.status === "preparing" ? "Preparing" : "Downloading"}{" "}
+          {progress.status === "preparing" ? "Подготовка" : "Загрузка"}{" "}
           {progress.label}
         </span>
         <span className="shrink-0 text-muted-foreground">
@@ -454,10 +488,10 @@ function DownloadProgressBar({
 }
 
 const FIT_LABEL: Record<MeshCatalogEntry["fit"], string> = {
-  comfortable: "Fits well",
-  tight: "Tight fit",
-  tradeoff: "Trade-off",
-  too_large: "Too large",
+  comfortable: "Подходит отлично",
+  tight: "Впритык",
+  tradeoff: "С компромиссами",
+  too_large: "Слишком большая",
 };
 
 const FIT_CLASS: Record<MeshCatalogEntry["fit"], string> = {
@@ -510,7 +544,7 @@ function MeshModelPicker({
                 {installed.name ?? installed.id}
               </span>
               <span className="shrink-0 text-2xs text-muted-foreground">
-                Installed
+                Установлена
               </span>
             </div>
           ),
@@ -521,7 +555,7 @@ function MeshModelPicker({
     return [
       ...catalogOptions,
       ...localOptions,
-      { label: "Custom model…", value: CUSTOM_MODEL_DROPDOWN_VALUE },
+      { label: "Пользовательская модель…", value: CUSTOM_MODEL_DROPDOWN_VALUE },
     ];
   }, [catalog?.entries, installedModels]);
   const knownModel = options.some((option) => option.value === model.trim());
@@ -543,7 +577,7 @@ function MeshModelPicker({
   return (
     <div className="space-y-1.5" data-testid="mesh-share-compute-catalog">
       <label className="text-sm font-medium" htmlFor="mesh-share-compute-model">
-        Model
+        Модель
       </label>
       <AgentDropdownSelect
         className={MESH_SELECT_TRIGGER_CLASS}
@@ -551,7 +585,7 @@ function MeshModelPicker({
         id="mesh-share-compute-model"
         onValueChange={handleModelChange}
         options={options}
-        placeholder="Select a model"
+        placeholder="Выберите модель"
         placeholderClassName="text-muted-foreground/55"
         searchable
         testId="mesh-share-compute-model"
@@ -579,9 +613,9 @@ function MeshModelPicker({
         data-settings-subcopy
       >
         {catalog
-          ? `Recommended for this machine${catalog.gpuName ? ` (${catalog.gpuName}, ${catalog.vramDisplay} AI memory)` : ""}.`
-          : "Choose a model or enter a model reference or local file."}{" "}
-        Buzz downloads remote models when sharing starts.
+          ? `Рекомендовано для этой машины${catalog.gpuName ? ` (${catalog.gpuName}, память ИИ: ${catalog.vramDisplay})` : ""}.`
+          : "Выберите модель или укажите идентификатор модели или локальный файл."}{" "}
+        Buzz загрузит удалённые модели при запуске общего доступа.
       </p>
     </div>
   );
@@ -597,17 +631,17 @@ function MeshModelOptionLabel({ entry }: { entry: MeshCatalogEntry }) {
       </span>
       {entry.recommended ? (
         <span className="shrink-0 rounded bg-primary/15 px-1.5 text-2xs font-medium text-primary">
-          Recommended
+          Рекомендовано
         </span>
       ) : null}
       {entry.installed ? (
         <span className="shrink-0 text-2xs text-muted-foreground">
-          Installed
+          Установлена
         </span>
       ) : null}
       {!entry.curated ? (
         <span className="shrink-0 text-2xs text-muted-foreground">
-          Advanced
+          Дополнительно
         </span>
       ) : null}
     </div>
@@ -628,10 +662,10 @@ function StatusLine({
   status: MeshNodeStatus | null;
 }) {
   if (pendingAction === "start") {
-    return <p className="text-sm text-muted-foreground">Starting…</p>;
+    return <p className="text-sm text-muted-foreground">Запуск…</p>;
   }
   if (pendingAction === "stop") {
-    return <p className="text-sm text-muted-foreground">Stopping…</p>;
+    return <p className="text-sm text-muted-foreground">Остановка…</p>;
   }
   // A client-mode runtime owns the single slot: this machine is consuming a
   // peer's compute, not sharing. The switch stays off, but remains available
@@ -639,13 +673,13 @@ function StatusLine({
   if (isConsuming) {
     return (
       <p className="text-sm text-muted-foreground">
-        This machine is currently using another member's shared compute. Turn on
-        sharing to switch to the selected local model; Buzz may briefly restart.
+        Эта машина сейчас использует общие вычислительные мощности другого участника. Включите
+        общий доступ, чтобы переключиться на выбранную локальную модель; Buzz может кратковременно перезапуститься.
       </p>
     );
   }
   if (!status) {
-    return <p className="text-sm text-muted-foreground">Checking status…</p>;
+    return <p className="text-sm text-muted-foreground">Проверка статуса…</p>;
   }
   const { state, health, modelId, modelName } = status;
   const modelLabel = displayModel ?? modelName ?? modelId ?? "";
@@ -657,40 +691,40 @@ function StatusLine({
     const reason =
       health.status === "degraded" || health.status === "failed"
         ? health.reason
-        : "Starting…";
+        : "Запуск…";
     return <p className="text-sm text-muted-foreground">{reason}</p>;
   }
   if (state === "running") {
     if (health.status === "failed") {
       return (
         <p className="text-sm text-destructive">
-          Couldn't load: {health.reason}
+          Не удалось загрузить: {health.reason}
         </p>
       );
     }
     if (health.status === "degraded") {
       return (
         <p className="text-sm text-amber-600 dark:text-amber-400">
-          Active{modelLabel ? ` — ${modelLabel}` : ""}. {health.reason}
+          Активно{modelLabel ? ` — ${modelLabel}` : ""}. {health.reason}
         </p>
       );
     }
     return (
       <p className="text-sm text-muted-foreground">
-        {omitSharingVerb ? "" : "Sharing"}
-        {modelLabel ? `${omitSharingVerb ? "" : " "}${modelLabel}` : ""} with
-        relay members.
+        {omitSharingVerb ? "" : "Общий доступ к "}
+        {modelLabel ? `${omitSharingVerb ? "" : ""}${modelLabel} ` : ""}для
+        участников реле.
       </p>
     );
   }
   if (state === "stopping") {
-    return <p className="text-sm text-muted-foreground">Stopping…</p>;
+    return <p className="text-sm text-muted-foreground">Остановка…</p>;
   }
   if (state === "failed") {
     const reason =
       health.status === "failed" || health.status === "degraded"
         ? health.reason
-        : "Couldn't start.";
+        : "Не удалось запустить.";
     return <p className="text-sm text-destructive">{reason}</p>;
   }
   return null;

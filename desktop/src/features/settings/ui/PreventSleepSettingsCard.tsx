@@ -10,7 +10,7 @@ export function PreventSleepSettingsCard() {
     <div className="min-w-0 space-y-3">
       <SettingsOptionGroup
         data-testid="agents-preferences-card"
-        title="Preferences"
+        title="Предпочтения"
       >
         <SettingsOptionRow>
           <div className="min-w-0">
@@ -18,15 +18,13 @@ export function PreventSleepSettingsCard() {
               className="text-sm font-medium"
               htmlFor="prevent-sleep-switch"
             >
-              Keep awake while agents are active
+              Не переходить в спящий режим, пока агенты активны
             </label>
             <p
               className="text-sm font-normal text-muted-foreground/70"
               data-settings-subcopy
             >
-              Prevents your computer from sleeping while local agents are
-              running. Automatically releases when all agents stop or after 1
-              hour without agent activity.
+              Предотвращает переход компьютера в спящий режим во время работы локальных агентов. Автоматически отключается, когда все агенты останавливаются или после 1 часа отсутствия активности агентов.
             </p>
           </div>
           <Switch
@@ -45,15 +43,13 @@ export function PreventSleepSettingsCard() {
 
       {enabled && !hasRunningAgents && (
         <p className="mt-3 text-sm text-muted-foreground">
-          Waiting for agents to start
+          Ожидание запуска агентов
         </p>
       )}
 
       {expired && (
         <p className="mt-3 rounded-xl border border-yellow-500/30 bg-yellow-500/10 px-3 py-2 text-sm text-yellow-700 dark:text-yellow-400">
-          Sleep prevention expired after 1 hour without agent activity. It will
-          resume on the next agent activity, or toggle off and on to re-enable
-          now.
+          Предотвращение перехода в спящий режим отключено из-за отсутствия активности агентов в течение 1 часа. Оно возобновится при следующей активности агентов, или переключите тумблер для немедленного включения.
         </p>
       )}
     </div>

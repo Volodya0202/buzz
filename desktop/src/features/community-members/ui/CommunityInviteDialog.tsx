@@ -38,9 +38,9 @@ export function CommunityInviteDialog({
         data-testid="community-invite-dialog"
       >
         <DialogHeader>
-          <DialogTitle>Invite to community</DialogTitle>
+          <DialogTitle>Пригласить в сообщество</DialogTitle>
           <DialogDescription>
-            Add someone directly or share a link they can use to join.
+            Добавьте кого-нибудь напрямую или поделитесь ссылкой для присоединения.
           </DialogDescription>
         </DialogHeader>
 
@@ -48,7 +48,7 @@ export function CommunityInviteDialog({
           <DirectAddMemberForm
             isOwner={isOwner}
             showLabel={false}
-            submitLabel="Invite"
+            submitLabel="Пригласить"
           />
         </section>
 
@@ -58,7 +58,7 @@ export function CommunityInviteDialog({
         >
           <Separator className="bg-input/40" />
           <span className="absolute left-1/2 -translate-x-1/2 bg-background px-3 text-sm text-muted-foreground">
-            Or, copy a link
+            Или скопируйте ссылку
           </span>
         </div>
 

@@ -184,12 +184,12 @@ export function BackupTestFlow({
       try {
         text = (await file.text()).trim();
       } catch {
-        if (mountedRef.current) setError("Could not read that file.");
+        if (mountedRef.current) setError("Не удалось прочитать этот файл.");
         return;
       }
       if (!mountedRef.current) return;
       if (!text.toLowerCase().startsWith("ncryptsec1")) {
-        setError("That doesn't look like a key backup file.");
+        setError("Это не похоже на файл резервной копии ключей.");
         return;
       }
       setError(null);
@@ -225,7 +225,7 @@ export function BackupTestFlow({
     } catch (err) {
       if (mountedRef.current && requestId === requestRef.current)
         setError(
-          err instanceof Error ? err.message : "Could not verify this backup.",
+          err instanceof Error ? err.message : "Не удалось проверить эту резервную копию.",
         );
     } finally {
       if (mountedRef.current && requestId === requestRef.current)
@@ -260,12 +260,12 @@ export function BackupTestFlow({
           }
         >
           <p className="text-lg font-medium text-foreground">
-            This backup works
+            Эта резервная копия работает
           </p>
           <p className="mt-1.5 text-sm leading-6 text-muted-foreground">
             {result.matchesCurrentIdentity
-              ? "It restores your current Buzz identity."
-              : "It restores a different identity than the one signed in here."}
+              ? "Она восстанавливает вашу текущую личность Buzz."
+              : "Она восстанавливает личность, отличную от той, под которой вы вошли здесь."}
           </p>
           <div className="mt-3 flex justify-center">
             <PubKey
@@ -285,7 +285,7 @@ export function BackupTestFlow({
           type="button"
           variant="ghost"
         >
-          Test another backup
+          Проверить другую резервную копию
         </Button>
       </div>
     );
@@ -318,7 +318,7 @@ export function BackupTestFlow({
             onClick={() => fileInputRef.current?.click()}
             type="button"
           >
-            <span className="text-sm font-medium">Select your backup file</span>
+            <span className="text-sm font-medium">Выберите файл резервной копии</span>
           </button>
           {isWindowDragging ? (
             /*
@@ -340,7 +340,7 @@ export function BackupTestFlow({
             >
               <span className="flex items-center gap-2 rounded-full bg-foreground px-4 py-2 text-sm font-semibold text-background shadow-sm ring-1 ring-background/15">
                 <FileUp aria-hidden="true" className="size-4" />
-                <span>Drop your backup file here</span>
+                <span>Перетащите файл резервной копии сюда</span>
               </span>
             </div>
           ) : null}
@@ -370,11 +370,11 @@ export function BackupTestFlow({
             <Check aria-hidden="true" className="h-4 w-4 text-primary" />
           </div>
           <p className="text-center text-sm leading-6 text-muted-foreground">
-            That's the one. Now enter your password to prove you can unlock it.
+            Отлично. Теперь введите пароль, чтобы доказать, что вы можете её разблокировать.
           </p>
           <div className="relative">
             <Input
-              aria-label="Backup password"
+              aria-label="Пароль от резервной копии"
               autoComplete="off"
               className="h-10 bg-background pr-10 font-mono"
               data-testid="backup-test-password"
@@ -386,13 +386,13 @@ export function BackupTestFlow({
                   void handleVerify();
                 }
               }}
-              placeholder="Your backup password"
+              placeholder="Ваш пароль от резервной копии"
               ref={passwordInputRef}
               type={isRevealed ? "text" : "password"}
               value={attempt}
             />
             <Button
-              aria-label={isRevealed ? "Hide password" : "Reveal password"}
+              aria-label={isRevealed ? "Скрыть пароль" : "Показать пароль"}
               className="absolute right-1 top-1/2 h-8 w-8 -translate-y-1/2 text-muted-foreground hover:text-foreground"
               data-testid="backup-test-password-reveal-toggle"
               disabled={isVerifying}
@@ -428,10 +428,10 @@ export function BackupTestFlow({
               {isVerifying ? (
                 <>
                   <Spinner className="h-4 w-4 border-2" />
-                  Checking…
+                  Проверка…
                 </>
               ) : (
-                "Verify backup"
+                "Проверить резервную копию"
               )}
             </Button>
             <Button
@@ -449,7 +449,7 @@ export function BackupTestFlow({
               type="button"
               variant="ghost"
             >
-              Use a different file
+              Использовать другой файл
             </Button>
           </div>
         </>

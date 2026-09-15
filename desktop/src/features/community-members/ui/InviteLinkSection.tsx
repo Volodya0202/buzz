@@ -17,19 +17,19 @@ import { Input } from "@/shared/ui/input";
 import { Spinner } from "@/shared/ui/spinner";
 
 const TTL_OPTIONS: { label: string; value: number }[] = [
-  { label: "1 day", value: 24 * 60 * 60 },
-  { label: "3 days", value: 3 * 24 * 60 * 60 },
-  { label: "7 days", value: 7 * 24 * 60 * 60 },
-  { label: "30 days", value: 30 * 24 * 60 * 60 },
+  { label: "1 день", value: 24 * 60 * 60 },
+  { label: "3 дня", value: 3 * 24 * 60 * 60 },
+  { label: "7 дней", value: 7 * 24 * 60 * 60 },
+  { label: "30 дней", value: 30 * 24 * 60 * 60 },
 ];
 
 const MAX_USE_OPTIONS: { label: string; value: number | null }[] = [
-  { label: "No limit", value: null },
-  { label: "1 use", value: 1 },
-  { label: "3 uses", value: 3 },
-  { label: "5 uses", value: 5 },
-  { label: "10 uses", value: 10 },
-  { label: "25 uses", value: 25 },
+  { label: "Без ограничений", value: null },
+  { label: "1 раз", value: 1 },
+  { label: "3 раза", value: 3 },
+  { label: "5 раз", value: 5 },
+  { label: "10 раз", value: 10 },
+  { label: "25 раз", value: 25 },
 ];
 
 export const DEFAULT_INVITE_TTL_SECS = TTL_OPTIONS[1].value;
@@ -65,24 +65,24 @@ export function InviteLinkSection({
   );
   const shouldReduceMotion = useReducedMotion();
   const ttlLabel =
-    TTL_OPTIONS.find((option) => option.value === ttlSecs)?.label ?? "3 days";
+    TTL_OPTIONS.find((option) => option.value === ttlSecs)?.label ?? "3 дня";
   const maxUsesLabel =
     MAX_USE_OPTIONS.find((option) => option.value === maxUses)?.label ??
-    "No limit";
+    "Без ограничений";
   const isGenerating = generationStatus === "generating";
   const hasGenerationFailed = generationStatus === "failed";
   const inviteSettingsKey = `${ttlSecs}:${maxUses ?? "no-limit"}`;
   const isWorking = isGenerating || copyStatus === "copying";
   const copyLabel = hasGenerationFailed
-    ? "Retry"
+    ? "Повторить"
     : copyStatus === "copied"
-      ? "Copied"
-      : "Copy link";
+      ? "Скопировано"
+      : "Копировать";
   const copyButtonWidth = isWorking
     ? "6.25rem"
     : copyStatus === "copied"
-      ? "5.25rem"
-      : "4.5rem";
+      ? "7rem"
+      : "6.5rem";
   const copyButtonTransition = shouldReduceMotion
     ? { duration: 0 }
     : { duration: 0.12, ease: [0.77, 0, 0.175, 1] as const };
@@ -120,7 +120,7 @@ export function InviteLinkSection({
       }
       if (generationRequestId.current === requestId) {
         setGenerationStatus("failed");
-        toast.error("Couldn’t create an invite link.");
+        toast.error("Не удалось создать ссылку-приглашение.");
       }
     }
   }, [inviteSettingsKey, maxUses, ttlSecs]);
@@ -143,10 +143,10 @@ export function InviteLinkSection({
     try {
       await writeTextToClipboard(inviteUrl);
       setCopyStatus("copied");
-      toast.success("Invite link copied");
+      toast.success("Ссылка скопирована");
     } catch {
       setCopyStatus("idle");
-      toast.error("Couldn’t copy the invite link. Try again.");
+      toast.error("Не удалось скопировать ссылку. Попробуйте ещё раз.");
     }
   }
 
@@ -160,8 +160,8 @@ export function InviteLinkSection({
           disabled={isGenerating}
           placeholder={
             hasGenerationFailed
-              ? "Couldn’t create invite link"
-              : "Creating invite link…"
+              ? "Не удалось создать ссылку"
+              : "Создание ссылки…"
           }
           readOnly
           value={inviteUrl}
@@ -207,7 +207,7 @@ export function InviteLinkSection({
 
       <div className="mt-3 space-y-3">
         <div className="flex items-center justify-between gap-4">
-          <span className="text-sm font-medium">Expires after</span>
+          <span className="text-sm font-medium">Срок действия</span>
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button
@@ -242,7 +242,7 @@ export function InviteLinkSection({
           </DropdownMenu>
         </div>
         <div className="flex items-center justify-between gap-4">
-          <span className="text-sm font-medium">Limit number of uses</span>
+          <span className="text-sm font-medium">Ограничение количества использований</span>
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button

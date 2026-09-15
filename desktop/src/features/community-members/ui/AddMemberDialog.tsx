@@ -38,11 +38,11 @@ const ROLE_OPTIONS: Array<{
 }> = [
   {
     value: "member",
-    label: "Member",
+    label: "Участник",
   },
   {
     value: "admin",
-    label: "Admin",
+    label: "Администратор",
   },
 ];
 
@@ -58,7 +58,7 @@ export function DirectAddMemberForm({
   isOwner,
   onAdded,
   showLabel = true,
-  submitLabel = "Add member",
+  submitLabel = "Добавить участника",
 }: {
   isOwner: boolean;
   onAdded?: () => void;
@@ -131,7 +131,7 @@ export function DirectAddMemberForm({
     [isOwner],
   );
   const selectedRoleLabel =
-    roleOptions.find((option) => option.value === role)?.label ?? "Member";
+    roleOptions.find((option) => option.value === role)?.label ?? "Участник";
   const actionTransition = shouldReduceMotion
     ? { duration: 0 }
     : { duration: 0.18, ease: [0.23, 1, 0.32, 1] as const };
@@ -179,11 +179,11 @@ export function DirectAddMemberForm({
       toast.success(
         selectedUsers.length === 1
           ? role === "admin"
-            ? "Admin added"
-            : "Member added"
+            ? "Администратор добавлен"
+            : "Участник добавлен"
           : role === "admin"
-            ? "Admins added"
-            : "Members added",
+            ? "Администраторы добавлены"
+            : "Участники добавлены",
       );
       reset();
       onAdded?.();
@@ -204,7 +204,7 @@ export function DirectAddMemberForm({
       <div className="space-y-1.5">
         {showLabel ? (
           <label className="text-sm font-medium" htmlFor="member-search">
-            Person
+            Пользователь
           </label>
         ) : null}
         <div className="flex gap-2">
@@ -272,7 +272,7 @@ export function DirectAddMemberForm({
                       }}
                       placeholder={
                         selectedUsers.length === 0
-                          ? "Search people or paste an npub"
+                          ? "Поиск людей или вставьте npub"
                           : ""
                       }
                       ref={searchInputRef}
@@ -293,7 +293,7 @@ export function DirectAddMemberForm({
                         <DropdownMenu modal={false}>
                           <DropdownMenuTrigger asChild>
                             <button
-                              aria-label="Choose member role"
+                              aria-label="Выбрать роль участника"
                               className="inline-flex items-center gap-1.5 bg-transparent text-sm text-muted-foreground outline-hidden transition-colors hover:text-foreground focus-visible:text-foreground disabled:cursor-not-allowed disabled:opacity-60"
                               data-testid="member-role"
                               disabled={addMutation.isPending}
@@ -340,143 +340,142 @@ export function DirectAddMemberForm({
               onOpenAutoFocus={(event) => event.preventDefault()}
               sideOffset={6}
             >
-              <div
-                className="max-h-64 overflow-y-auto overscroll-contain py-1"
-                data-testid="member-search-results"
-                id="member-search-results"
-                role="listbox"
-              >
-                {userSearchQuery.isLoading ? (
-                  <p className="px-3 py-3 text-sm text-muted-foreground">
-                    Searching…
-                  </p>
-                ) : searchResults.length > 0 || directResult ? (
-                  <>
-                    {directResult ? (
-                      <SearchResult
-                        onSelect={() => selectUser(directResult)}
-                        user={directResult}
-                      />
-                    ) : null}
-                    {searchResults.map((user) => (
-                      <SearchResult
-                        key={user.pubkey}
-                        onSelect={() => selectUser(user)}
-                        user={user}
-                      />
-                    ))}
-                  </>
-                ) : (
-                  <p className="px-3 py-3 text-sm text-muted-foreground">
-                    No people found. Paste a full npub or hex public key to add
-                    someone directly.
-                  </p>
-                )}
-              </div>
-            </PopoverContent>
-          </Popover>
-          <AnimatePresence initial={false}>
-            {selectedUsers.length > 0 ? (
-              <motion.div
-                animate={{ opacity: 1, scale: 1, x: 0 }}
-                className="shrink-0"
-                exit={{ opacity: 0, scale: 0.96, x: -4 }}
-                initial={{ opacity: 0, scale: 0.96, x: -4 }}
-                transition={actionTransition}
-              >
-                <Button
-                  className="h-11"
-                  data-testid="confirm-add-member"
-                  disabled={!canAdd}
-                  size="sm"
-                  type="submit"
+                <div
+                  className="max-h-64 overflow-y-auto overscroll-contain py-1"
+                  data-testid="member-search-results"
+                  id="member-search-results"
+                  role="listbox"
                 >
-                  {addMutation.isPending ? "Inviting…" : submitLabel}
-                </Button>
-              </motion.div>
-            ) : null}
-          </AnimatePresence>
+                  {userSearchQuery.isLoading ? (
+                    <p className="px-3 py-3 text-sm text-muted-foreground">
+                      Поиск…
+                    </p>
+                  ) : searchResults.length > 0 || directResult ? (
+                    <>
+                      {directResult ? (
+                        <SearchResult
+                          onSelect={() => selectUser(directResult)}
+                          user={directResult}
+                        />
+                      ) : null}
+                      {searchResults.map((user) => (
+                        <SearchResult
+                          key={user.pubkey}
+                          onSelect={() => selectUser(user)}
+                          user={user}
+                        />
+                      ))}
+                    </>
+                  ) : (
+                    <p className="px-3 py-3 text-sm text-muted-foreground">
+                      Люди не найдены. Вставьте полный npub или hex публичный ключ, чтобы добавить кого-то напрямую.
+                    </p>
+                  )}
+                </div>
+              </PopoverContent>
+            </Popover>
+            <AnimatePresence initial={false}>
+              {selectedUsers.length > 0 ? (
+                <motion.div
+                  animate={{ opacity: 1, scale: 1, x: 0 }}
+                  className="shrink-0"
+                  exit={{ opacity: 0, scale: 0.96, x: -4 }}
+                  initial={{ opacity: 0, scale: 0.96, x: -4 }}
+                  transition={actionTransition}
+                >
+                  <Button
+                    className="h-11"
+                    data-testid="confirm-add-member"
+                    disabled={!canAdd}
+                    size="sm"
+                    type="submit"
+                  >
+                    {addMutation.isPending ? "Приглашение…" : submitLabel}
+                  </Button>
+                </motion.div>
+              ) : null}
+            </AnimatePresence>
+          </div>
+          {isAlreadyMember ? (
+            <p className="text-xs text-destructive">
+              Этот пользователь уже является участником сообщества.
+            </p>
+          ) : null}
+          {userSearchQuery.error instanceof Error ? (
+            <p className="text-xs text-destructive">
+              {userSearchQuery.error.message}
+            </p>
+          ) : null}
         </div>
-        {isAlreadyMember ? (
-          <p className="text-xs text-destructive">
-            This person is already a community member.
+
+        {addMutation.error instanceof Error ? (
+          <p className="rounded-xl border border-destructive/30 bg-destructive/10 px-3 py-2 text-sm text-destructive">
+            {addMutation.error.message}
           </p>
         ) : null}
-        {userSearchQuery.error instanceof Error ? (
-          <p className="text-xs text-destructive">
-            {userSearchQuery.error.message}
-          </p>
-        ) : null}
-      </div>
+      </form>
+    );
+  }
 
-      {addMutation.error instanceof Error ? (
-        <p className="rounded-xl border border-destructive/30 bg-destructive/10 px-3 py-2 text-sm text-destructive">
-          {addMutation.error.message}
-        </p>
-      ) : null}
-    </form>
-  );
-}
+  function SearchResult({
+    onSelect,
+    user,
+  }: {
+    onSelect: () => void;
+    user: UserSearchResult;
+  }) {
+    const name = formatSearchUserName(user);
+    const isDirectPubkey = user.displayName === null && user.nip05Handle === null;
 
-function SearchResult({
-  onSelect,
-  user,
-}: {
-  onSelect: () => void;
-  user: UserSearchResult;
-}) {
-  const name = formatSearchUserName(user);
-  const isDirectPubkey = user.displayName === null && user.nip05Handle === null;
-
-  return (
-    <button
-      className="flex min-h-11 w-full items-center gap-3 px-3 py-2 text-left transition-colors hover:bg-muted/50 focus-visible:bg-muted/50 focus-visible:outline-hidden"
-      data-testid={`member-search-result-${user.pubkey}`}
-      onClick={onSelect}
-      role="option"
-      type="button"
-    >
-      <ProfileAvatar
-        avatarUrl={user.avatarUrl}
-        className="h-8 w-8 text-xs shadow-none"
-        iconClassName="h-4 w-4"
-        label={name}
-        shape={user.isAgent ? "squircle" : "circle"}
-      />
-      <span className="min-w-0 flex-1 truncate text-sm font-medium">
-        {name}
-      </span>
-      {isDirectPubkey ? (
-        <span className="shrink-0 text-xs text-muted-foreground">
-          public key
-        </span>
-      ) : null}
-    </button>
-  );
-}
-
-export function AddMemberDialog({
-  isOwner,
-  open,
-  onOpenChange,
-}: {
-  isOwner: boolean;
-  open: boolean;
-  onOpenChange: (open: boolean) => void;
-}) {
-  return (
-    <Dialog onOpenChange={onOpenChange} open={open}>
-      <DialogContent
-        className="max-w-md overflow-hidden p-0"
-        data-testid="add-relay-member-dialog"
+    return (
+      <button
+        className="flex min-h-11 w-full items-center gap-3 px-3 py-2 text-left transition-colors hover:bg-muted/50 focus-visible:bg-muted/50 focus-visible:outline-hidden"
+        data-testid={`member-search-result-${user.pubkey}`}
+        onClick={onSelect}
+        role="option"
+        type="button"
       >
-        <div className="flex max-h-[85vh] flex-col">
-          <DialogHeader className="border-b border-border/60 px-6 py-5 pr-14">
-            <DialogTitle>Add member</DialogTitle>
-            <DialogDescription>
-              Add a person to this community by their public key.
-            </DialogDescription>
-          </DialogHeader>
+        <ProfileAvatar
+          avatarUrl={user.avatarUrl}
+          className="h-8 w-8 text-xs shadow-none"
+          iconClassName="h-4 w-4"
+          label={name}
+          shape={user.isAgent ? "squircle" : "circle"}
+        />
+        <span className="min-w-0 flex-1 truncate text-sm font-medium">
+          {name}
+        </span>
+        {isDirectPubkey ? (
+          <span className="shrink-0 text-xs text-muted-foreground">
+            публичный ключ
+          </span>
+        ) : null}
+      </button>
+    );
+  }
+
+  export function AddMemberDialog({
+    isOwner,
+    open,
+    onOpenChange,
+  }: {
+    isOwner: boolean;
+    open: boolean;
+    onOpenChange: (open: boolean) => void;
+  }) {
+    return (
+      <Dialog onOpenChange={onOpenChange} open={open}>
+        <DialogContent
+          className="max-w-md overflow-hidden p-0"
+          data-testid="add-relay-member-dialog"
+        >
+          <div className="flex max-h-[85vh] flex-col">
+            <DialogHeader className="border-b border-border/60 px-6 py-5 pr-14">
+              <DialogTitle>Добавить участника</DialogTitle>
+              <DialogDescription>
+                Добавьте человека в это сообщество по его публичному ключу.
+              </DialogDescription>
+            </DialogHeader>
           <div className="px-6 py-4">
             <DirectAddMemberForm
               isOwner={isOwner}

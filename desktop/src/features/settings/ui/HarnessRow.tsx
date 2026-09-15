@@ -51,11 +51,11 @@ function runtimeInstallGuideLabel(runtime: AcpRuntimeCatalogEntry) {
     runtime.availability === "adapter_missing" ||
     runtime.availability === "adapter_outdated"
   ) {
-    return "Adapter install guide";
+    return "Руководство по установке адаптера";
   }
   return isDownloadPageUrl(runtime.installInstructionsUrl)
-    ? "Download page"
-    : "CLI setup guide";
+    ? "Страница загрузки"
+    : "Руководство по настройке CLI";
 }
 
 function RuntimeLogo({ runtime }: { runtime: AcpRuntimeCatalogEntry }) {
@@ -111,7 +111,7 @@ function RuntimeOverflowMenu({
     <DropdownMenu modal={false}>
       <DropdownMenuTrigger asChild>
         <button
-          aria-label={`Open actions for ${runtime.label}`}
+          aria-label={`Открыть действия для ${runtime.label}`}
           className="flex h-7 w-7 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
           data-testid={`doctor-runtime-menu-${runtime.id}`}
           type="button"
@@ -138,7 +138,7 @@ function RuntimeOverflowMenu({
         {runtime.nodeRequired ? (
           <DropdownMenuItem onSelect={() => void openUrl("https://nodejs.org")}>
             <ExternalLink className="h-4 w-4" />
-            Install Node.js
+            Установить Node.js
           </DropdownMenuItem>
         ) : null}
         {hasInstructions ? (
@@ -154,7 +154,7 @@ function RuntimeOverflowMenu({
             data-testid={`custom-harness-edit-${runtime.id}`}
             onSelect={onEdit}
           >
-            Edit
+            Редактировать
           </DropdownMenuItem>
         ) : null}
         {onDelete ? (
@@ -163,7 +163,7 @@ function RuntimeOverflowMenu({
             data-testid={`custom-harness-delete-${runtime.id}`}
             onSelect={onDelete}
           >
-            Delete
+            Удалить
           </DropdownMenuItem>
         ) : null}
       </DropdownMenuContent>
@@ -226,14 +226,14 @@ function RuntimeActions({
             className="inline-flex shrink-0 items-center rounded-md bg-emerald-500/15 px-2 py-0.5 text-xs font-medium text-emerald-600 dark:text-emerald-400"
             data-testid={`doctor-runtime-ready-${runtime.id}`}
           >
-            Ready
+            Готово
           </span>
         )
       ) : canInstall ? (
         // Rows needing multi-step setup render no action here — setup lives in
         // the Add-runtimes catalog. Custom rows keep their ••• menu instead.
         <Button
-          aria-label={`Install ${runtime.label}`}
+          aria-label={`Установить ${runtime.label}`}
           className="h-7 px-3 text-xs"
           data-testid={`doctor-runtime-install-${runtime.id}`}
           onClick={onInstall}
@@ -241,7 +241,7 @@ function RuntimeActions({
           type="button"
           variant="outline"
         >
-          {runtime.availability === "adapter_outdated" ? "Update" : "Install"}
+          {runtime.availability === "adapter_outdated" ? "Обновить" : "Установить"}
         </Button>
       ) : null}
     </div>
@@ -359,7 +359,7 @@ export function HarnessRow({
       onError: (error) => {
         setInstallResult({
           success: false,
-          error: error instanceof Error ? error.message : "Install failed.",
+          error: error instanceof Error ? error.message : "Сбой установки.",
         });
       },
     });
@@ -376,16 +376,16 @@ export function HarnessRow({
     : [];
   const connectMutation = useConnectAcpRuntimeMutation();
   const connectionError = connectMutation.error
-    ? `Couldn't connect ${runtime.label}: ${
+    ? `Не удалось подключиться к ${runtime.label}: ${
         connectMutation.error instanceof Error
           ? connectMutation.error.message
-          : "Connection failed."
+          : "Сбой подключения."
       }`
     : authMethodsQuery.error
-      ? `Couldn't load sign-in options: ${
+      ? `Не удалось загрузить варианты входа: ${
           authMethodsQuery.error instanceof Error
             ? authMethodsQuery.error.message
-            : "Request failed."
+            : "Сбой запроса."
         }`
       : null;
 
@@ -463,7 +463,7 @@ export function HarnessRow({
             className="mt-2 whitespace-pre-line rounded-lg border border-destructive/30 bg-destructive/10 px-3 py-1.5 text-sm text-destructive"
             data-testid={`doctor-runtime-config-error-${runtime.id}`}
           >
-            Config error: {runtime.authStatus.diagnostic}
+            Ошибка конфигурации: {runtime.authStatus.diagnostic}
           </p>
         ) : null}
 
@@ -497,8 +497,7 @@ export function HarnessRow({
             className="mt-2 rounded-lg border border-border/60 bg-background/60 px-3 py-1.5 text-sm text-muted-foreground"
             data-testid={`doctor-runtime-terminal-guidance-${runtime.id}`}
           >
-            Finish signing in from the Terminal window, then click Check again
-            to re-check {runtime.label}.
+            Завершите вход в окне терминала, затем нажмите "Проверить снова", чтобы повторно проверить {runtime.label}.
           </p>
         ) : null}
         {confirmingDelete ? (
@@ -520,7 +519,7 @@ export function HarnessRow({
                 type="button"
                 variant="ghost"
               >
-                Cancel
+                Отмена
               </Button>
               <Button
                 className="h-7 px-3 text-xs"
@@ -542,7 +541,7 @@ export function HarnessRow({
                 type="button"
                 variant="destructive"
               >
-                {del.isPending ? <Spinner className="h-3.5 w-3.5" /> : "Delete"}
+                {del.isPending ? <Spinner className="h-3.5 w-3.5" /> : "Удалить"}
               </Button>
             </div>
           </div>
@@ -559,18 +558,18 @@ export function HarnessRow({
       >
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Update {runtime.label} adapter?</AlertDialogTitle>
+            <AlertDialogTitle>Обновить адаптер {runtime.label}?</AlertDialogTitle>
             <AlertDialogDescription>
               {adapterUpdateWarning(runtime)}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogCancel>Отмена</AlertDialogCancel>
             <AlertDialogAction
               onClick={handleInstall}
               data-testid={`doctor-runtime-confirm-update-${runtime.id}`}
             >
-              Update
+              Обновить
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

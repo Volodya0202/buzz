@@ -45,7 +45,7 @@ function GitBashCard({
                   : "bg-amber-500/15 text-amber-600 dark:text-amber-400",
               )}
             >
-              {prerequisite.available ? "Available" : "Action needed"}
+              {prerequisite.available ? "Доступно" : "Требуется действие"}
             </span>
           </div>
           {!prerequisite.available ? (
@@ -54,7 +54,7 @@ function GitBashCard({
               onClick={() => void openUrl(prerequisite.installInstructionsUrl)}
               type="button"
             >
-              <ExternalLink className="h-4 w-4" /> Install Git for Windows
+              <ExternalLink className="h-4 w-4" /> Установить Git для Windows
             </button>
           ) : null}
         </div>
@@ -63,7 +63,7 @@ function GitBashCard({
             className="mt-3 space-y-1 text-sm text-muted-foreground/70"
             data-settings-subcopy
           >
-            <p>Required for buzz-agent shell tools on Windows.</p>
+            <p>Требуется для инструментов оболочки buzz-agent в Windows.</p>
             <p>{prerequisite.installHint}</p>
           </div>
         ) : null}
@@ -113,7 +113,7 @@ export function HarnessesSettingsPanel() {
   return (
     <SettingsOptionGroup
       data-testid="settings-harnesses"
-      description="Choose which agent tools Buzz can use on this device."
+      description="Выберите, какие инструменты агентов Buzz может использовать на этом устройстве."
       headerAction={
         <Button
           disabled={isRefreshing}
@@ -129,50 +129,50 @@ export function HarnessesSettingsPanel() {
           <RefreshCw
             className={cn("h-4 w-4", isRefreshing && "animate-spin")}
           />
-          Check again
+          Проверить снова
         </Button>
       }
-      title="Agent runtimes"
+      title="Среды выполнения агентов"
     >
       <div className="divide-y divide-border/55">
         {gitBashQuery.data ? (
           <section>
             <div className="px-4 py-3 text-sm">
               <h2 className="text-lg font-semibold tracking-tight">
-                System prerequisites
+                Системные требования
               </h2>
               <p
                 className="mt-1 text-sm font-normal text-muted-foreground/70"
                 data-settings-subcopy
               >
-                Windows tools required by supported agents.
+                Инструменты Windows, необходимые поддерживаемым агентам.
               </p>
             </div>
             <GitBashCard prerequisite={gitBashQuery.data} />
           </section>
         ) : null}
 
-        <section aria-label="Your runtimes">
+        <section aria-label="Ваши среды выполнения">
           {/* The sub-header only earns its keep when another section (System
               prerequisites, Windows-only) shares the page; otherwise it just
               restates the page header. */}
           {gitBashQuery.data ? (
             <div className="border-b border-border/55 px-4 py-3 text-sm">
               <h2 className="text-lg font-semibold tracking-tight">
-                Your runtimes
+                Ваши среды выполнения
               </h2>
               <p
                 className="mt-1 text-sm font-normal text-muted-foreground/70"
                 data-settings-subcopy
               >
-                Ready to use, or one click from installed.
+                Готовы к использованию или готовы к установке в один клик.
               </p>
             </div>
           ) : null}
 
           {runtimesQuery.isLoading ? (
             <div className="px-4 py-4 text-sm font-normal text-muted-foreground">
-              Checking agent runtimes...
+              Проверка сред выполнения агентов...
             </div>
           ) : rows.length > 0 ? (
             <div
@@ -190,7 +190,7 @@ export function HarnessesSettingsPanel() {
             </div>
           ) : (
             <div className="bg-amber-500/10 px-4 py-4 text-sm text-warning">
-              No agent runtimes ready yet — add one below.
+              Пока нет готовых сред выполнения агентов — добавьте ниже.
             </div>
           )}
 
@@ -210,7 +210,7 @@ export function HarnessesSettingsPanel() {
               variant="outline"
             >
               <Plus className="h-4 w-4" />
-              Add runtimes
+              Добавить среды
             </Button>
           </div>
         </section>
