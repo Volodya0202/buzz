@@ -182,9 +182,14 @@ export function saveCustomApiProvider(
   provider: Omit<CustomApiProvider, "id" | "createdAt"> & { id?: string },
 ): CustomApiProvider {
   const providers = getCustomApiProviders();
+  const slug =
+    provider.name
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, "-")
+      .replace(/^-|-$/g, "") || "provider";
+  const randomSuffix = Math.random().toString(36).slice(2, 7);
   const id =
-    provider.id ||
-    `custom-${provider.name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "") || "provider"}-${Date.now().toString(36)}`;
+    provider.id || `custom-${slug}-${Date.now().toString(36)}-${randomSuffix}`;
 
   const entry: CustomApiProvider = {
     id,

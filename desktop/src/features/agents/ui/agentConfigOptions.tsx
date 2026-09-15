@@ -47,6 +47,8 @@ const KNOWN_LLM_PROVIDER_IDS = [
   "anthropic",
   "databricks",
   "databricks_v2",
+  "gemini",
+  "google",
   "openai",
   "openai-compat",
   "openrouter",

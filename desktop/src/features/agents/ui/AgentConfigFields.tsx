@@ -558,9 +558,12 @@ export function AgentConfigFields({
       delete nextEnvVars[previousApiKey];
     }
 
+    const custom = nextProvider
+      ? getCustomApiProviders().find((p) => p.id === nextProvider)
+      : null;
+
     // Auto-inject credentials for custom providers or Gemini
     if (nextProvider) {
-      const custom = getCustomApiProviders().find((p) => p.id === nextProvider);
       if (custom) {
         if (nextApiKey) {
           nextEnvVars[nextApiKey] = custom.apiKey;
@@ -590,9 +593,13 @@ export function AgentConfigFields({
       model:
         nextProvider === "relay-mesh"
           ? config.model || "auto"
-          : autoSelectModelOnProviderChange && providerChanged
-            ? null
-            : config.model,
+          : custom?.defaultModel
+            ? custom.defaultModel
+            : nextProvider === "gemini" && !config.model
+              ? "gemini-2.0-flash"
+              : autoSelectModelOnProviderChange && providerChanged
+                ? null
+                : config.model,
     });
   }
 

@@ -265,3 +265,107 @@ test("auto-model selection clears the model; concrete selection sets it", () => 
   );
   assert.equal(concrete.model, "gpt-5");
 });
+
+// --- selectionOnProviderDropdownChange with custom providers & presets ---
+
+test("selecting gemini provider sets default URL and model", () => {
+  const next = selectionOnProviderDropdownChange(
+    { ...base, provider: "", model: "" },
+    {
+      runtime: "buzz-agent",
+      nextValue: "gemini",
+      clearModelWhenApiKeyMissing: false,
+    },
+  );
+
+  assert.equal(next.provider, "gemini");
+  assert.equal(
+    next.envVars["OPENAI_COMPAT_BASE_URL"],
+    "https://generativelanguage.googleapis.com/v1beta/openai/",
+  );
+  assert.equal(next.model, "gemini-2.0-flash");
+});
+
+test("selecting custom provider routes baseUrl correctly per type", async () => {
+  const { saveCustomApiProvider } = await import(
+    "../lib/customApiProviders.ts"
+  );
+  const store = new Map();
+  globalThis.window = {
+    localStorage: {
+      getItem: (k) => store.get(k) ?? null,
+      setItem: (k, v) => store.set(k, String(v)),
+      removeItem: (k) => store.delete(k),
+    },
+    dispatchEvent: () => true,
+  };
+
+  // 1. OmniRouter (openai-compat)
+  const omni = saveCustomApiProvider({
+    id: "custom-omnirouter-test",
+    name: "OmniRouter",
+    apiKey: "sk-omni-test",
+    type: "openai-compat",
+    baseUrl: "http://localhost:20128/v1",
+  });
+  const omniNext = selectionOnProviderDropdownChange(
+    { ...base, provider: "", model: "" },
+    {
+      runtime: "buzz-agent",
+      nextValue: omni.id,
+      clearModelWhenApiKeyMissing: false,
+    },
+  );
+  assert.equal(omniNext.envVars["OPENAI_COMPAT_API_KEY"], "sk-omni-test");
+  assert.equal(
+    omniNext.envVars["OPENAI_COMPAT_BASE_URL"],
+    "http://localhost:20128/v1",
+  );
+
+  // 2. OpenRouter (openrouter)
+  const openrouter = saveCustomApiProvider({
+    id: "custom-openrouter-test",
+    name: "OpenRouter",
+    apiKey: "sk-or-test",
+    type: "openrouter",
+    baseUrl: "https://openrouter.ai/api/v1",
+    defaultModel: "nvidia/nemotron-3.5-lightning:free",
+  });
+  const orNext = selectionOnProviderDropdownChange(
+    { ...base, provider: "", model: "" },
+    {
+      runtime: "buzz-agent",
+      nextValue: openrouter.id,
+      clearModelWhenApiKeyMissing: false,
+    },
+  );
+  assert.equal(orNext.envVars["OPENROUTER_API_KEY"], "sk-or-test");
+  assert.equal(
+    orNext.envVars["OPENROUTER_BASE_URL"],
+    "https://openrouter.ai/api/v1",
+  );
+  assert.equal(orNext.model, "nvidia/nemotron-3.5-lightning:free");
+
+  // 3. Anthropic (anthropic)
+  const anthropic = saveCustomApiProvider({
+    id: "custom-anthropic-test",
+    name: "Anthropic",
+    apiKey: "sk-ant-test",
+    type: "anthropic",
+    baseUrl: "https://custom.anthropic.endpoint",
+  });
+  const antNext = selectionOnProviderDropdownChange(
+    { ...base, provider: "", model: "" },
+    {
+      runtime: "buzz-agent",
+      nextValue: anthropic.id,
+      clearModelWhenApiKeyMissing: false,
+    },
+  );
+  assert.equal(antNext.envVars["ANTHROPIC_API_KEY"], "sk-ant-test");
+  assert.equal(
+    antNext.envVars["ANTHROPIC_BASE_URL"],
+    "https://custom.anthropic.endpoint",
+  );
+});
+

@@ -2,10 +2,14 @@ import assert from "node:assert/strict";
 import test from "node:test";
 
 import {
+  GEMINI_MODEL_PRESETS,
   getDefaultPersonaRuntime,
   getPersonaModelOptions,
   getPersonaProviderOptions,
+  getProviderApiKeyEnvVar,
   getProviderApiKeyLabel,
+  OPENROUTER_FREE_MODEL_PRESETS,
+  requiredCredentialEnvKeys,
   resetConfigForHarnessChange,
   runtimeSupportsLlmProviderSelection,
 } from "./agentConfigOptions.tsx";
@@ -294,3 +298,48 @@ test("getProviderApiKeyLabel_provider_id_trimmed_and_lowercased", () => {
   // Mirrors getProviderApiKeyEnvVar normalisation behaviour.
   assert.equal(getProviderApiKeyLabel(" Anthropic "), "Anthropic API Key");
 });
+
+test("getPersonaModelOptions for openrouter returns free model presets", () => {
+  const options = getPersonaModelOptions("buzz-agent", "openrouter");
+  assert.deepEqual(options, OPENROUTER_FREE_MODEL_PRESETS);
+  assert.ok(
+    options.some((o) => o.id === "nvidia/nemotron-3.5-lightning:free"),
+  );
+  assert.ok(options.some((o) => o.id === "google/gemma-4-31b-it:free"));
+  assert.ok(options.some((o) => o.id === "anthropic/claude-3.7-sonnet"));
+});
+
+test("getPersonaModelOptions for gemini returns Gemini presets", () => {
+  const options = getPersonaModelOptions("buzz-agent", "gemini");
+  assert.deepEqual(options, GEMINI_MODEL_PRESETS);
+  assert.ok(options.some((o) => o.id === "gemini-2.0-flash"));
+});
+
+test("getPersonaModelOptions for google alias returns Gemini presets", () => {
+  const options = getPersonaModelOptions("buzz-agent", "google");
+  assert.deepEqual(options, GEMINI_MODEL_PRESETS);
+});
+
+test("getProviderApiKeyEnvVar returns correct env var per provider", () => {
+  assert.equal(getProviderApiKeyEnvVar("openrouter"), "OPENROUTER_API_KEY");
+  assert.equal(getProviderApiKeyEnvVar("gemini"), "OPENAI_COMPAT_API_KEY");
+  assert.equal(getProviderApiKeyEnvVar("google"), "OPENAI_COMPAT_API_KEY");
+  assert.equal(getProviderApiKeyEnvVar("openai-compat"), "OPENAI_COMPAT_API_KEY");
+  assert.equal(getProviderApiKeyEnvVar("anthropic"), "ANTHROPIC_API_KEY");
+  assert.equal(getProviderApiKeyEnvVar("databricks"), null);
+  assert.equal(getProviderApiKeyEnvVar("databricks_v2"), null);
+  assert.equal(getProviderApiKeyEnvVar("unknown-llm"), null);
+});
+
+test("requiredCredentialEnvKeys returns required credentials for openrouter and gemini", () => {
+  assert.deepEqual(requiredCredentialEnvKeys("buzz-agent", "openrouter"), [
+    "OPENROUTER_API_KEY",
+  ]);
+  assert.deepEqual(requiredCredentialEnvKeys("buzz-agent", "gemini"), [
+    "OPENAI_COMPAT_API_KEY",
+  ]);
+  assert.deepEqual(requiredCredentialEnvKeys("buzz-agent", "databricks"), [
+    "DATABRICKS_HOST",
+  ]);
+});
+

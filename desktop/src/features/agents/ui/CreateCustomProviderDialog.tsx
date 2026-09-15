@@ -77,8 +77,12 @@ export function CreateCustomProviderDialog({
     if (!trimmedKey) return;
 
     const detectedInfo = detectProviderFromApiKey(trimmedKey);
-    const finalName = providerName.trim() || detectedInfo.name;
-    const finalBaseUrl = baseUrl.trim() || detectedInfo.baseUrl;
+    const finalName = userEditedName
+      ? providerName.trim() || detectedInfo.name
+      : detectedInfo.name;
+    const finalBaseUrl = userEditedBaseUrl
+      ? baseUrl.trim() || undefined
+      : detectedInfo.baseUrl;
 
     const created = saveCustomApiProvider({
       name: finalName,
