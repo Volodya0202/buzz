@@ -7,6 +7,10 @@ use url::Url;
 const GEMINI_LOGIN_WINDOW_LABEL: &str = "gemini-login";
 const GEMINI_URL: &str = "https://gemini.google.com";
 
+// Standard desktop Chrome User-Agent without embedded WebView tokens to avoid Google sign-in blocks
+const DESKTOP_CHROME_USER_AGENT: &str =
+    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/133.0.0.0 Safari/537.36";
+
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct GeminiSessionData {
@@ -85,10 +89,118 @@ async fn query_gemini_cookies(app: &AppHandle) -> Result<Option<GeminiSessionDat
     Ok(extract_gemini_session_from_cookies(&cookies))
 }
 
-/// Check if active Gemini session cookies already exist in the webview storage.
+/// Automatically extracts Gemini session cookies from local Firefox profiles.
+pub fn import_firefox_gemini_cookies() -> Option<GeminiSessionData> {
+    #[cfg(target_os = "windows")]
+    let profiles_base = std::env::var("APPDATA")
+        .ok()
+        .map(|appdata| std::path::PathBuf::from(appdata).join("Mozilla").join("Firefox").join("Profiles"));
+
+    #[cfg(target_os = "macos")]
+    let profiles_base = dirs::home_dir().map(|h| {
+        h.join("Library")
+            .join("Application Support")
+            .join("Firefox")
+            .join("Profiles")
+    });
+
+    #[cfg(target_os = "linux")]
+    let profiles_base = dirs::home_dir().map(|h| h.join(".mozilla").join("firefox"));
+
+    let Some(profiles_dir) = profiles_base else {
+        return None;
+    };
+
+    if !profiles_dir.exists() {
+        return None;
+    }
+
+    let entries = std::fs::read_dir(profiles_dir).ok()?;
+    for entry in entries.flatten() {
+        let path = entry.path();
+        if path.is_dir() {
+            let db_path = path.join("cookies.sqlite");
+            if db_path.exists() {
+                if let Ok(temp_file) = tempfile::NamedTempFile::new() {
+                    let temp_path = temp_file.path().to_path_buf();
+                    if std::fs::copy(&db_path, &temp_path).is_ok() {
+                        if let Ok(conn) = rusqlite::Connection::open(&temp_path) {
+                            let query = "SELECT name, value, host FROM moz_cookies WHERE host LIKE '%google.com' AND name IN ('__Secure-1PSID', '__Secure-1PSIDTS', '__Secure-1PSIDCC', '__Secure-1PAPISID', 'SID', 'HSID', 'SSID')";
+                            if let Ok(mut stmt) = conn.prepare(query) {
+                                let mut psid = None;
+                                let mut psidts = None;
+                                let mut psidcc = None;
+                                let mut relevant_pairs = Vec::new();
+
+                                let rows = stmt.query_map([], |row| {
+                                    let name: String = row.get(0)?;
+                                    let value: String = row.get(1)?;
+                                    let host: String = row.get(2)?;
+                                    Ok((name, value, host))
+                                });
+
+                                if let Ok(rows) = rows {
+                                    for r in rows.flatten() {
+                                        let (name, value, _host) = r;
+                                        if value.is_empty() {
+                                            continue;
+                                        }
+                                        match name.as_str() {
+                                            "__Secure-1PSID" => {
+                                                psid = Some(value.clone());
+                                                relevant_pairs.push(format!("{name}={value}"));
+                                            }
+                                            "__Secure-1PSIDTS" => {
+                                                psidts = Some(value.clone());
+                                                relevant_pairs.push(format!("{name}={value}"));
+                                            }
+                                            "__Secure-1PSIDCC" => {
+                                                psidcc = Some(value.clone());
+                                                relevant_pairs.push(format!("{name}={value}"));
+                                            }
+                                            "__Secure-1PAPISID" | "SID" | "HSID" | "SSID" => {
+                                                relevant_pairs.push(format!("{name}={value}"));
+                                            }
+                                            _ => {}
+                                        }
+                                    }
+                                }
+
+                                if let Some(psid_val) = psid {
+                                    let cookie_header = relevant_pairs.join("; ");
+                                    return Some(GeminiSessionData {
+                                        psid: psid_val,
+                                        psidts,
+                                        psidcc,
+                                        cookie_header,
+                                    });
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+    None
+}
+
+/// Check if active Gemini session cookies already exist in the browser or webview storage.
 #[tauri::command]
 pub async fn get_gemini_cookies(app: AppHandle) -> Result<Option<GeminiSessionData>, String> {
+    // 1. Check if user has active session in local browser (e.g. Firefox)
+    if let Some(session) = import_firefox_gemini_cookies() {
+        return Ok(Some(session));
+    }
+
+    // 2. Check webview storage
     query_gemini_cookies(&app).await
+}
+
+/// Explicit command to import Gemini cookies from local browser profiles.
+#[tauri::command]
+pub async fn import_browser_gemini_cookies() -> Result<Option<GeminiSessionData>, String> {
+    Ok(import_firefox_gemini_cookies())
 }
 
 /// Close the Gemini login window if currently open.
@@ -112,7 +224,7 @@ pub async fn open_gemini_login_window(app: AppHandle) -> Result<(), String> {
         return Ok(());
     }
 
-    // Create the login webview window
+    // Create the login webview window with a clean User-Agent and script that removes embedded markers
     let login_window = WebviewWindowBuilder::new(
         &app,
         GEMINI_LOGIN_WINDOW_LABEL,
@@ -122,6 +234,20 @@ pub async fn open_gemini_login_window(app: AppHandle) -> Result<(), String> {
     .inner_size(960.0, 720.0)
     .min_inner_size(640.0, 480.0)
     .center()
+    .user_agent(DESKTOP_CHROME_USER_AGENT)
+    .initialization_script(
+        r#"
+        try {
+            if (window.chrome) {
+                try { delete window.chrome.webview; } catch(e) {}
+                try { Object.defineProperty(window.chrome, 'webview', { get: () => undefined }); } catch(e) {}
+            }
+            try {
+                Object.defineProperty(navigator, 'webdriver', { get: () => undefined });
+            } catch(e) {}
+        } catch(e) {}
+        "#,
+    )
     .build()
     .map_err(|e| format!("failed to create login window: {e}"))?;
 

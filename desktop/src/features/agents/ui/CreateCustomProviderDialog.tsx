@@ -119,8 +119,26 @@ export function CreateCustomProviderDialog({
   }
 
   async function handleAutoLogin() {
-    setIsWaitingForLogin(true);
     setLoginSuccess(false);
+    // First, check if browser (e.g. Firefox) already has active session cookies!
+    try {
+      const existing = await invoke<{
+        psid: string;
+        psidts?: string;
+        psidcc?: string;
+        cookieHeader: string;
+      } | null>("get_gemini_cookies");
+      if (existing && (existing.cookieHeader || existing.psid)) {
+        setApiKey(existing.cookieHeader || existing.psid);
+        setLoginSuccess(true);
+        return;
+      }
+    } catch (err) {
+      console.warn("Probe existing cookies failed:", err);
+    }
+
+    // If not found in browser, open login window
+    setIsWaitingForLogin(true);
     try {
       await invoke("open_gemini_login_window");
     } catch (err) {
@@ -136,13 +154,13 @@ export function CreateCustomProviderDialog({
         psidts?: string;
         psidcc?: string;
         cookieHeader: string;
-      } | null>("get_gemini_cookies");
+      } | null>("import_browser_gemini_cookies");
       if (session && (session.cookieHeader || session.psid)) {
         setApiKey(session.cookieHeader || session.psid);
         setLoginSuccess(true);
       }
     } catch (err) {
-      console.warn("Could not retrieve existing cookies:", err);
+      console.warn("Could not retrieve browser cookies:", err);
     }
   }
 

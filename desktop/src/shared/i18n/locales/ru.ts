@@ -116,7 +116,7 @@ export const ru: TranslationDict = {
     statusActive: "Сессия активна",
     autoLoginBtn: "Войти и получить куки автоматически",
     waitingLogin: "Открыто окно входа. Войдите в Google аккаунт...",
-    loginSuccess: "✓ Куки успешно получены автоматически!",
-    checkExisting: "Проверить сохранённую сессию",
+    loginSuccess: "✓ Куки сессии Google успешно получены!",
+    checkExisting: "Импортировать из браузера",
   },
 };

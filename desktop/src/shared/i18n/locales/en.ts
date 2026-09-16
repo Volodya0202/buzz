@@ -114,7 +114,7 @@ export const en: TranslationDict = {
     statusActive: "Session active",
     autoLoginBtn: "Log in and get cookies automatically",
     waitingLogin: "Login window open. Please sign in to Google...",
-    loginSuccess: "✓ Cookies captured automatically!",
-    checkExisting: "Check existing session",
+    loginSuccess: "✓ Google session cookies captured successfully!",
+    checkExisting: "Import from browser",
   },
 };

@@ -552,6 +552,7 @@ pub fn run() {
             clear_builderlab_auth,
             open_gemini_login_window,
             get_gemini_cookies,
+            import_browser_gemini_cookies,
             close_gemini_login_window,
             get_builderlab_nostr_identity,
             bind_builderlab_nostr_identity,
