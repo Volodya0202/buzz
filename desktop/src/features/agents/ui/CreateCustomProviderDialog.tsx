@@ -1,7 +1,10 @@
 import * as React from "react";
-import { Key, Sparkles, ExternalLink, Eye, EyeOff, Check } from "lucide-react";
+import { Key, Sparkles, ExternalLink, Eye, EyeOff, Check, Loader2, Globe } from "lucide-react";
 import { openUrl } from "@tauri-apps/plugin-opener";
+import { invoke } from "@tauri-apps/api/core";
+import { listen, type UnlistenFn } from "@tauri-apps/api/event";
 
+import { useTranslation } from "@/shared/i18n";
 import {
   Dialog,
   DialogContent,
@@ -29,12 +32,51 @@ export function CreateCustomProviderDialog({
   onOpenChange,
   onProviderCreated,
 }: CreateCustomProviderDialogProps) {
+  const { dict } = useTranslation();
   const [apiKey, setApiKey] = React.useState("");
   const [providerName, setProviderName] = React.useState("");
   const [baseUrl, setBaseUrl] = React.useState("");
   const [showKey, setShowKey] = React.useState(false);
   const [userEditedName, setUserEditedName] = React.useState(false);
   const [userEditedBaseUrl, setUserEditedBaseUrl] = React.useState(false);
+  const [isWaitingForLogin, setIsWaitingForLogin] = React.useState(false);
+  const [loginSuccess, setLoginSuccess] = React.useState(false);
+
+  // Listen for background captured session cookies from the native Gemini login window
+  React.useEffect(() => {
+    if (!open) return;
+    let unlisten: UnlistenFn | undefined;
+    let isSubscribed = true;
+
+    async function bindListener() {
+      try {
+        unlisten = await listen<{
+          psid: string;
+          psidts?: string;
+          psidcc?: string;
+          cookieHeader: string;
+        }>("gemini-cookies-captured", (event) => {
+          if (!isSubscribed) return;
+          const session = event.payload;
+          const val = session?.cookieHeader || session?.psid;
+          if (val) {
+            setApiKey(val);
+            setIsWaitingForLogin(false);
+            setLoginSuccess(true);
+          }
+        });
+      } catch (err) {
+        console.warn("Failed to listen for gemini cookies:", err);
+      }
+    }
+
+    void bindListener();
+
+    return () => {
+      isSubscribed = false;
+      unlisten?.();
+    };
+  }, [open]);
 
   const detected = React.useMemo(() => {
     if (!apiKey.trim()) return null;
@@ -62,13 +104,46 @@ export function CreateCustomProviderDialog({
     setShowKey(false);
     setUserEditedName(false);
     setUserEditedBaseUrl(false);
+    setIsWaitingForLogin(false);
+    setLoginSuccess(false);
   }
 
   function handleClose(nextOpen: boolean) {
     if (!nextOpen) {
       handleReset();
+      if (isWaitingForLogin) {
+        void invoke("close_gemini_login_window");
+      }
     }
     onOpenChange(nextOpen);
+  }
+
+  async function handleAutoLogin() {
+    setIsWaitingForLogin(true);
+    setLoginSuccess(false);
+    try {
+      await invoke("open_gemini_login_window");
+    } catch (err) {
+      console.error("Failed to open Gemini login window:", err);
+      setIsWaitingForLogin(false);
+    }
+  }
+
+  async function handleCheckExisting() {
+    try {
+      const session = await invoke<{
+        psid: string;
+        psidts?: string;
+        psidcc?: string;
+        cookieHeader: string;
+      } | null>("get_gemini_cookies");
+      if (session && (session.cookieHeader || session.psid)) {
+        setApiKey(session.cookieHeader || session.psid);
+        setLoginSuccess(true);
+      }
+    } catch (err) {
+      console.warn("Could not retrieve existing cookies:", err);
+    }
   }
 
   function handleSubmit(event: React.FormEvent) {
@@ -197,12 +272,81 @@ export function CreateCustomProviderDialog({
                   void openUrl("https://gemini.google.com")
                 }
               >
-                <ExternalLink className="h-3 w-3" /> Gemini Web (Подписка)
+                <ExternalLink className="h-3 w-3" /> Gemini Web
               </button>
             </div>
-            <details className="mt-2 text-xs text-muted-foreground/90 cursor-pointer select-none">
+
+            {/* Automated Gemini Web Connection */}
+            <div className="pt-2 border-t border-border/40 space-y-2">
+              <div className="flex items-center justify-between gap-2 flex-wrap">
+                <span className="font-semibold text-xs text-foreground flex items-center gap-1.5">
+                  <Globe className="h-3.5 w-3.5 text-primary" />
+                  <span>Gemini Web (Подписка):</span>
+                </span>
+                <div className="flex items-center gap-1.5">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={handleAutoLogin}
+                    disabled={isWaitingForLogin}
+                    className="h-7 text-xs px-2.5 gap-1.5 border-primary/40 bg-primary/10 hover:bg-primary/20 text-primary font-medium"
+                  >
+                    {isWaitingForLogin ? (
+                      <>
+                        <Loader2 className="h-3.5 w-3.5 animate-spin text-primary" />
+                        <span>{dict.geminiBridge.waitingLogin}</span>
+                      </>
+                    ) : (
+                      <>
+                        <Sparkles className="h-3.5 w-3.5 text-amber-500" />
+                        <span>{dict.geminiBridge.autoLoginBtn}</span>
+                      </>
+                    )}
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    onClick={handleCheckExisting}
+                    className="h-7 text-xs px-2 text-muted-foreground hover:text-foreground"
+                    title={dict.geminiBridge.checkExisting}
+                  >
+                    {dict.geminiBridge.checkExisting}
+                  </Button>
+                </div>
+              </div>
+
+              {isWaitingForLogin && (
+                <div className="flex items-center justify-between p-2 rounded bg-amber-500/10 border border-amber-500/30 text-2xs text-amber-700 dark:text-amber-300">
+                  <span className="flex items-center gap-1.5">
+                    <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                    {dict.geminiBridge.waitingLogin}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      void invoke("close_gemini_login_window");
+                      setIsWaitingForLogin(false);
+                    }}
+                    className="text-2xs underline hover:opacity-80 font-medium ml-2"
+                  >
+                    {dict.common.cancel}
+                  </button>
+                </div>
+              )}
+
+              {loginSuccess && (
+                <div className="flex items-center gap-1.5 p-2 rounded bg-emerald-500/10 border border-emerald-500/30 text-2xs text-emerald-700 dark:text-emerald-300 font-medium">
+                  <Check className="h-3.5 w-3.5 text-emerald-500" />
+                  {dict.geminiBridge.loginSuccess}
+                </div>
+              )}
+            </div>
+
+            <details className="mt-1.5 text-xs text-muted-foreground/80 cursor-pointer select-none">
               <summary className="font-medium hover:text-foreground">
-                Как подключить подписку Gemini Advanced (без API)?
+                Ручной ввод куки (альтернатива)
               </summary>
               <div className="mt-1.5 leading-relaxed bg-background/70 p-2 rounded border border-border/50 text-2xs space-y-1">
                 <p>1. Откройте <strong>gemini.google.com</strong> в браузере со своей учетной записью.</p>

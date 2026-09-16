@@ -114,5 +114,9 @@ export const ru: TranslationDict = {
       "Откройте gemini.google.com в браузере -> F12 -> Application -> Cookies -> скопируйте значение __Secure-1PSID.",
     connected: "Подключено к Gemini Web",
     statusActive: "Сессия активна",
+    autoLoginBtn: "Войти и получить куки автоматически",
+    waitingLogin: "Открыто окно входа. Войдите в Google аккаунт...",
+    loginSuccess: "✓ Куки успешно получены автоматически!",
+    checkExisting: "Проверить сохранённую сессию",
   },
 };

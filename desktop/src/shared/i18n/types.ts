@@ -106,5 +106,9 @@ export interface TranslationDict {
     howToGetCookies: string;
     connected: string;
     statusActive: string;
+    autoLoginBtn: string;
+    waitingLogin: string;
+    loginSuccess: string;
+    checkExisting: string;
   };
 }

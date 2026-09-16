@@ -112,5 +112,9 @@ export const en: TranslationDict = {
       "Open gemini.google.com in browser -> F12 -> Application -> Cookies -> copy __Secure-1PSID value.",
     connected: "Connected to Gemini Web",
     statusActive: "Session active",
+    autoLoginBtn: "Log in and get cookies automatically",
+    waitingLogin: "Login window open. Please sign in to Google...",
+    loginSuccess: "✓ Cookies captured automatically!",
+    checkExisting: "Check existing session",
   },
 };
