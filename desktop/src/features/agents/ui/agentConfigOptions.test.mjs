@@ -312,12 +312,14 @@ test("getPersonaModelOptions for openrouter returns free model presets", () => {
 test("getPersonaModelOptions for gemini returns Gemini presets", () => {
   const options = getPersonaModelOptions("buzz-agent", "gemini");
   assert.deepEqual(options, GEMINI_MODEL_PRESETS);
+  assert.ok(options.some((o) => o.id === "gemini-3.8-flash"));
   assert.ok(options.some((o) => o.id === "gemini-2.0-flash"));
 });
 
 test("getPersonaModelOptions for google alias returns Gemini presets", () => {
   const options = getPersonaModelOptions("buzz-agent", "google");
   assert.deepEqual(options, GEMINI_MODEL_PRESETS);
+  assert.ok(options.some((o) => o.id === "gemini-3.8-flash"));
 });
 
 test("getProviderApiKeyEnvVar returns correct env var per provider", () => {

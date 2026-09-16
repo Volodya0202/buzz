@@ -102,8 +102,12 @@ class GeminiBridgeHandler(BaseHTTPRequestHandler):
             models = {
                 "object": "list",
                 "data": [
-                    {"id": "gemini-advanced", "object": "model", "owned_by": "google"},
+                    {"id": "gemini-3.8-flash", "object": "model", "owned_by": "google"},
                     {"id": "gemini-2.0-flash", "object": "model", "owned_by": "google"},
+                    {"id": "gemini-2.0-flash-thinking-exp", "object": "model", "owned_by": "google"},
+                    {"id": "gemini-2.0-pro-exp", "object": "model", "owned_by": "google"},
+                    {"id": "gemini-advanced", "object": "model", "owned_by": "google"},
+                    {"id": "gemini-flash", "object": "model", "owned_by": "google"},
                     {"id": "gemini-1.5-pro", "object": "model", "owned_by": "google"},
                     {"id": "gemini-1.5-flash", "object": "model", "owned_by": "google"},
                 ]
@@ -163,7 +167,13 @@ class GeminiBridgeHandler(BaseHTTPRequestHandler):
 
         async def execute():
             client = await get_or_create_client(auth_header)
-            response = await client.generate_content(full_prompt)
+            target_model = None
+            m = model_name.lower()
+            if "pro" in m or "advanced" in m:
+                target_model = "gemini-pro"
+            elif "flash" in m:
+                target_model = "gemini-flash"
+            response = await client.generate_content(full_prompt, model=target_model)
             return response.text
 
         future = asyncio.run_coroutine_threadsafe(execute(), loop)

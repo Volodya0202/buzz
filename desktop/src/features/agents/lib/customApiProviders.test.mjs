@@ -75,7 +75,18 @@ test("detectProviderFromApiKey identifies Google Gemini keys (AI Studio)", () =>
     "https://generativelanguage.googleapis.com/v1beta/openai/",
   );
   assert.equal(result.defaultModel, "gemini-2.0-flash");
+  assert.ok(result.models?.includes("gemini-3.8-flash"));
   assert.ok(result.models?.includes("gemini-2.0-flash"));
+});
+
+test("detectProviderFromApiKey identifies Gemini Web session cookies", () => {
+  const result = detectProviderFromApiKey("__Secure-1PSID=test-cookie-123");
+  assert.equal(result.type, "gemini-web");
+  assert.equal(result.envVar, "GEMINI_SESSION_COOKIE");
+  assert.equal(result.baseUrl, "http://127.0.0.1:20129/v1");
+  assert.equal(result.defaultModel, "gemini-advanced");
+  assert.ok(result.models?.includes("gemini-3.8-flash"));
+  assert.ok(result.models?.includes("gemini-advanced"));
 });
 
 test("detectProviderFromApiKey identifies Google OAuth Bearer token", () => {
@@ -83,6 +94,7 @@ test("detectProviderFromApiKey identifies Google OAuth Bearer token", () => {
   assert.equal(result.type, "gemini");
   assert.equal(result.envVar, "OPENAI_COMPAT_API_KEY");
   assert.equal(result.defaultModel, "gemini-2.0-flash");
+  assert.ok(result.models?.includes("gemini-3.8-flash"));
 });
 
 test("detectProviderFromApiKey falls back to openai-compat for generic/omnirouter keys", () => {

@@ -282,7 +282,12 @@ export const OPENROUTER_FREE_MODEL_PRESETS: readonly PersonaModelOption[] = [
 ];
 
 export const GEMINI_MODEL_PRESETS: readonly PersonaModelOption[] = [
+  { id: "gemini-3.8-flash", label: "gemini-3.8-flash (Flash High / Экспериментальная)" },
+  { id: "gemini-2.0-flash-thinking-exp", label: "gemini-2.0-flash-thinking-exp" },
   { id: "gemini-2.0-flash", label: "gemini-2.0-flash" },
+  { id: "gemini-flash", label: "gemini-flash" },
+  { id: "gemini-advanced", label: "gemini-advanced" },
+  { id: "gemini-2.0-pro-exp", label: "gemini-2.0-pro-exp" },
   { id: "gemini-2.0-flash-lite-preview", label: "gemini-2.0-flash-lite-preview" },
   { id: "gemini-1.5-flash", label: "gemini-1.5-flash" },
   { id: "gemini-1.5-pro", label: "gemini-1.5-pro" },
@@ -313,7 +318,12 @@ export function getPersonaModelOptions(
     return OPENROUTER_FREE_MODEL_PRESETS;
   }
 
-  if (norm === "gemini" || norm === "google" || custom?.type === "gemini") {
+  if (
+    norm === "gemini" ||
+    norm === "google" ||
+    custom?.type === "gemini" ||
+    custom?.type === "gemini-web"
+  ) {
     return GEMINI_MODEL_PRESETS;
   }
 
