@@ -2,6 +2,7 @@ import asyncio
 import glob
 import json
 import os
+import re
 import shutil
 import sqlite3
 import sys
@@ -140,10 +141,63 @@ class GeminiBridgeHandler(BaseHTTPRequestHandler):
             return
 
         messages = req_json.get('messages', [])
+        tools = req_json.get('tools', [])
         model_name = req_json.get('model', 'gemini-advanced')
+
+        # Check if this turn is an immediate follow-up after an auto-synthesized buzz messages send
+        is_after_send = False
+        if messages:
+            last_msg = messages[-1]
+            if last_msg.get("role") == "tool":
+                for m in reversed(messages[:-1]):
+                    if m.get("role") == "assistant":
+                        for tc in m.get("tool_calls", []):
+                            fn_args = tc.get("function", {}).get("arguments", "")
+                            if "messages send" in fn_args:
+                                is_after_send = True
+                                break
+                        break
+
+        if is_after_send:
+            print("[GeminiBridge] Follow-up turn after successful messages send. Completing turn.")
+            openai_response = {
+                "id": f"chatcmpl-gemini-{int(time.time()*1000)}",
+                "object": "chat.completion",
+                "created": int(time.time()),
+                "model": model_name,
+                "choices": [
+                    {
+                        "index": 0,
+                        "message": {
+                            "role": "assistant",
+                            "content": "",
+                        },
+                        "finish_reason": "stop"
+                    }
+                ],
+                "usage": {"prompt_tokens": 1, "completion_tokens": 0, "total_tokens": 1}
+            }
+            resp_bytes = json.dumps(openai_response).encode('utf-8')
+            self.send_response(200)
+            self.send_header('Content-Type', 'application/json')
+            self.send_header('Content-Length', str(len(resp_bytes)))
+            self.send_header('Access-Control-Allow-Origin', '*')
+            self.end_headers()
+            self.wfile.write(resp_bytes)
+            return
+
+        # Find shell tool if available
+        shell_tool_name = None
+        if tools:
+            for t in tools:
+                t_name = t.get("function", {}).get("name", "")
+                if t_name.endswith("__shell") or t_name == "shell":
+                    shell_tool_name = t_name
+                    break
 
         # Combine messages into prompt
         prompt_parts = []
+        all_raw_text = []
         for msg in messages:
             role = msg.get('role', 'user')
             content = msg.get('content', '')
@@ -154,14 +208,18 @@ class GeminiBridgeHandler(BaseHTTPRequestHandler):
                         part_texts.append(p.get('text', ''))
                 content = "\n".join(part_texts)
             
+            all_raw_text.append(str(content))
             if role == 'system':
                 prompt_parts.append(f"[System Instruction: {content}]")
             elif role == 'user':
                 prompt_parts.append(f"User: {content}")
             elif role == 'assistant':
                 prompt_parts.append(f"Assistant: {content}")
+            elif role == 'tool':
+                prompt_parts.append(f"[Tool Result: {content}]")
 
         full_prompt = "\n\n".join(prompt_parts) if prompt_parts else "Hello"
+        combined_history = "\n".join(all_raw_text)
 
         print(f"[GeminiBridge] Forwarding request to Gemini Web (prompt len={len(full_prompt)})...")
 
@@ -188,6 +246,51 @@ class GeminiBridgeHandler(BaseHTTPRequestHandler):
             self.wfile.write(json.dumps(err_resp).encode('utf-8'))
             return
 
+        tool_calls = []
+        finish_reason = "stop"
+
+        if shell_tool_name and reply_text and reply_text.strip():
+            # 1. Check if model explicitly output a buzz messages send command
+            cmd_match = re.search(r'(buzz\s+messages\s+send\s+.*?)(?:\n|$|```)', reply_text)
+            if cmd_match:
+                cmd = cmd_match.group(1).strip()
+                tool_calls.append({
+                    "id": f"call_send_{int(time.time()*1000)}",
+                    "type": "function",
+                    "function": {
+                        "name": shell_tool_name,
+                        "arguments": json.dumps({"command": cmd})
+                    }
+                })
+                finish_reason = "tool_calls"
+            else:
+                # 2. Automatically wrap conversational text into buzz messages send
+                ch_matches = re.findall(r'Channel:\s*(?:[^\n#]*#)?([0-9a-fA-F-]{36})', combined_history, re.IGNORECASE)
+                rep_matches = re.findall(r'(?:--reply-to\s+|Thread root:\s*)([0-9a-fA-F]{64})', combined_history)
+                if ch_matches:
+                    channel_id = ch_matches[-1]
+                    reply_to = rep_matches[-1] if rep_matches else None
+                    reply_arg = f"--reply-to {reply_to} " if reply_to else ""
+                    escaped_text = reply_text.replace("'", "'\\''")
+                    cmd = f"printf '%s' '{escaped_text}' | buzz messages send --channel {channel_id} {reply_arg}--content -"
+                    print(f"[GeminiBridge] Auto-publishing to channel {channel_id} (reply_to={reply_to})")
+                    tool_calls.append({
+                        "id": f"call_auto_send_{int(time.time()*1000)}",
+                        "type": "function",
+                        "function": {
+                            "name": shell_tool_name,
+                            "arguments": json.dumps({"command": cmd})
+                        }
+                    })
+                    finish_reason = "tool_calls"
+
+        msg_payload = {
+            "role": "assistant",
+            "content": reply_text,
+        }
+        if tool_calls:
+            msg_payload["tool_calls"] = tool_calls
+
         openai_response = {
             "id": f"chatcmpl-gemini-{int(time.time()*1000)}",
             "object": "chat.completion",
@@ -196,11 +299,8 @@ class GeminiBridgeHandler(BaseHTTPRequestHandler):
             "choices": [
                 {
                     "index": 0,
-                    "message": {
-                        "role": "assistant",
-                        "content": reply_text,
-                    },
-                    "finish_reason": "stop"
+                    "message": msg_payload,
+                    "finish_reason": finish_reason
                 }
             ],
             "usage": {
@@ -217,7 +317,7 @@ class GeminiBridgeHandler(BaseHTTPRequestHandler):
         self.send_header('Access-Control-Allow-Origin', '*')
         self.end_headers()
         self.wfile.write(resp_bytes)
-        print(f"[GeminiBridge] Successfully responded with {len(reply_text)} chars.")
+        print(f"[GeminiBridge] Successfully responded with {len(reply_text)} chars (tool_calls={len(tool_calls)}).")
 
 if __name__ == '__main__':
     port = 20129
