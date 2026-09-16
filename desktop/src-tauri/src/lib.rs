@@ -369,6 +369,11 @@ pub fn run() {
                     .store(port, std::sync::atomic::Ordering::Relaxed);
             });
 
+            // Start local Gemini Web bridge in the background if Python is available
+            tauri::async_runtime::spawn_blocking(|| {
+                let _ = gemini_auth::ensure_gemini_bridge();
+            });
+
             // Create the Buzz nest (~/.buzz or ~/.buzz-dev for dev builds) before
             // agents are restored, so default_agent_workdir() resolves to the
             // nest directory. Non-fatal: agents fall back to $HOME if nest
@@ -554,6 +559,7 @@ pub fn run() {
             get_gemini_cookies,
             import_browser_gemini_cookies,
             close_gemini_login_window,
+            start_gemini_bridge,
             get_builderlab_nostr_identity,
             bind_builderlab_nostr_identity,
             delete_builderlab_nostr_identity,

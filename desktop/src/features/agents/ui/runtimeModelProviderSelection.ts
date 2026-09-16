@@ -168,10 +168,15 @@ export function selectionOnProviderDropdownChange(
         };
       }
       if (custom.type === "gemini-web") {
+        const bridgeUrl =
+          custom.baseUrl && !custom.baseUrl.includes("gemini.google.com")
+            ? custom.baseUrl
+            : "http://127.0.0.1:20129/v1";
         next.envVars = {
           ...next.envVars,
           GEMINI_SESSION_COOKIE: custom.apiKey,
           OPENAI_COMPAT_API_KEY: custom.apiKey,
+          OPENAI_COMPAT_BASE_URL: bridgeUrl,
         };
       }
       if (custom.defaultModel) {

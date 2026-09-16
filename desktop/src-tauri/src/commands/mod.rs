@@ -21,7 +21,7 @@ mod clipboard;
 mod dms;
 mod engrams;
 mod export_util;
-mod gemini_auth;
+pub mod gemini_auth;
 mod global_agent_config;
 mod identity;
 mod identity_archive;

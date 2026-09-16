@@ -755,6 +755,17 @@ pub fn spawn_agent_child(
     for (key, value) in &descriptor.env {
         command.env(key, value);
     }
+
+    // Auto-normalize gemini.google.com to the local Gemini Web bridge
+    if let Some(base_url) = descriptor.env.get("OPENAI_COMPAT_BASE_URL") {
+        if base_url.contains("gemini.google.com") {
+            command.env("OPENAI_COMPAT_BASE_URL", crate::commands::GEMINI_BRIDGE_BASE_URL);
+            let _ = crate::commands::ensure_gemini_bridge();
+        }
+    }
+    if descriptor.env.contains_key("GEMINI_SESSION_COOKIE") {
+        let _ = crate::commands::ensure_gemini_bridge();
+    }
     // Resolve once and stamp the same value onto the environment and snapshot.
     let acp_session_policy = super::effective_acp_session_policy(record, &personas);
     super::apply_acp_session_policy_env(&mut command, acp_session_policy);

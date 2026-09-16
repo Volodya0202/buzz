@@ -132,7 +132,7 @@ export function detectProviderFromApiKey(rawKey: string): DetectedProviderInfo {
       type: "gemini-web",
       name: "Gemini Advanced (Подписка Web)",
       envVar: "GEMINI_SESSION_COOKIE",
-      baseUrl: "https://gemini.google.com",
+      baseUrl: "http://127.0.0.1:20129/v1",
       models: [
         "gemini-advanced",
         "gemini-2.0-pro-exp",
@@ -140,7 +140,7 @@ export function detectProviderFromApiKey(rawKey: string): DetectedProviderInfo {
         "gemini-1.5-flash",
       ],
       defaultModel: "gemini-advanced",
-      hint: "Распознана сессия подписки Gemini Advanced (Web)",
+      hint: "Распознана сессия подписки Gemini Advanced (Web через локальный мост 127.0.0.1:20129)",
     };
   }
 
@@ -181,9 +181,19 @@ export function getCustomApiProviders(): CustomApiProvider[] {
     if (!raw) return [];
     const parsed = JSON.parse(raw);
     if (Array.isArray(parsed)) {
-      return parsed.filter(
-        (p) => p && typeof p.id === "string" && typeof p.apiKey === "string",
-      );
+      return parsed
+        .filter(
+          (p) => p && typeof p.id === "string" && typeof p.apiKey === "string",
+        )
+        .map((p) => {
+          if (
+            p.type === "gemini-web" &&
+            (!p.baseUrl || p.baseUrl.includes("gemini.google.com"))
+          ) {
+            return { ...p, baseUrl: "http://127.0.0.1:20129/v1" };
+          }
+          return p;
+        });
     }
     return [];
   } catch {

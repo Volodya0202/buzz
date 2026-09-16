@@ -288,3 +288,89 @@ pub async fn open_gemini_login_window(app: AppHandle) -> Result<(), String> {
 
     Ok(())
 }
+
+pub const GEMINI_BRIDGE_PORT: u16 = 20129;
+pub const GEMINI_BRIDGE_BASE_URL: &str = "http://127.0.0.1:20129/v1";
+const GEMINI_BRIDGE_HEALTH_URL: &str = "http://127.0.0.1:20129/health";
+const GEMINI_BRIDGE_SCRIPT: &str = include_str!("../../resources/gemini_bridge.py");
+
+/// Checks whether the local Gemini Web bridge is alive.
+pub fn is_gemini_bridge_alive() -> bool {
+    let client = reqwest::blocking::Client::builder()
+        .timeout(Duration::from_millis(500))
+        .build()
+        .ok();
+    if let Some(c) = client {
+        if let Ok(resp) = c.get(GEMINI_BRIDGE_HEALTH_URL).send() {
+            return resp.status().is_success();
+        }
+    }
+    false
+}
+
+/// Ensures the local Gemini Web bridge process is running.
+pub fn ensure_gemini_bridge() -> Result<u16, String> {
+    if is_gemini_bridge_alive() {
+        return Ok(GEMINI_BRIDGE_PORT);
+    }
+
+    let bridge_dir = dirs::data_dir()
+        .map(|d| d.join("xyz.block.buzz.app"))
+        .unwrap_or_else(std::env::temp_dir);
+    let _ = std::fs::create_dir_all(&bridge_dir);
+    let bridge_path = bridge_dir.join("gemini_bridge.py");
+    let _ = std::fs::write(&bridge_path, GEMINI_BRIDGE_SCRIPT);
+
+    let python_candidates = [
+        "python",
+        "py",
+        "python3",
+        r"C:\Python313\python.exe",
+        r"C:\Python312\python.exe",
+        r"C:\Python311\python.exe",
+    ];
+
+    let mut spawned = false;
+    for py in &python_candidates {
+        let mut cmd = std::process::Command::new(py);
+        cmd.arg(&bridge_path);
+        #[cfg(target_os = "windows")]
+        {
+            use std::os::windows::process::CommandExt;
+            cmd.creation_flags(0x08000000); // CREATE_NO_WINDOW
+        }
+        cmd.stdin(std::process::Stdio::null());
+        cmd.stdout(std::process::Stdio::null());
+        cmd.stderr(std::process::Stdio::null());
+
+        if let Ok(_) = cmd.spawn() {
+            spawned = true;
+            break;
+        }
+    }
+
+    if !spawned {
+        return Err("Python not found. Please install Python to run the Gemini Web bridge.".to_string());
+    }
+
+    let start = std::time::Instant::now();
+    while start.elapsed() < Duration::from_secs(3) {
+        if is_gemini_bridge_alive() {
+            eprintln!("buzz-desktop: gemini web bridge is running on 127.0.0.1:{GEMINI_BRIDGE_PORT}");
+            return Ok(GEMINI_BRIDGE_PORT);
+        }
+        std::thread::sleep(Duration::from_millis(200));
+    }
+
+    Ok(GEMINI_BRIDGE_PORT)
+}
+
+/// Tauri command to start or verify the local Gemini Web bridge.
+#[tauri::command]
+pub async fn start_gemini_bridge() -> Result<String, String> {
+    tokio::task::spawn_blocking(ensure_gemini_bridge)
+        .await
+        .map_err(|e| e.to_string())?
+        .map(|_| GEMINI_BRIDGE_BASE_URL.to_string())
+}
+
