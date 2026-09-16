@@ -61,6 +61,23 @@ function recoverEmbeddedCode(trimmed: string): {
   };
 }
 
+function extractLlmAuthErrorDetail(remainder: string): string | null {
+  const trimmed = remainder.trim();
+  const prefixMatch = /^llm auth:\s*/i.exec(trimmed);
+  const detail = prefixMatch ? trimmed.slice(prefixMatch[0].length).trim() : trimmed;
+  if (!detail) return null;
+  if (detail.startsWith("{") && detail.endsWith("}")) {
+    try {
+      const parsed = JSON.parse(detail);
+      if (parsed?.error?.message) return String(parsed.error.message);
+      if (parsed?.message) return String(parsed.message);
+    } catch {
+      // not valid JSON
+    }
+  }
+  return null;
+}
+
 export function friendlyAgentLastError(
   raw: string | null,
   code?: number | null,
@@ -77,8 +94,17 @@ export function friendlyAgentLastError(
     : (embedded?.code ?? null);
   if (effectiveCode != null) {
     switch (effectiveCode) {
-      case -32001:
+      case -32001: {
+        const remainder = embedded?.remainder ?? trimmed;
+        const detail = extractLlmAuthErrorDetail(remainder);
+        if (detail) {
+          return {
+            severity: "denied",
+            copy: `Ошибка авторизации у LLM-провайдера: ${detail}`,
+          };
+        }
         return { severity: "denied", copy: RELAY_MESH_DENIED_COPY };
+      }
       case -32002:
         return { severity: "denied", copy: MODEL_NOT_FOUND_COPY };
       case -32603: {
@@ -110,6 +136,13 @@ export function friendlyAgentLastError(
     trimmed.startsWith("Agent reported error: llm auth:") ||
     trimmed.startsWith("llm auth:")
   ) {
+    const detail = extractLlmAuthErrorDetail(trimmed);
+    if (detail) {
+      return {
+        severity: "denied",
+        copy: `Ошибка авторизации у LLM-провайдера: ${detail}`,
+      };
+    }
     return { severity: "denied", copy: RELAY_MESH_DENIED_COPY };
   }
 

@@ -316,3 +316,14 @@ test("-32603 does not affect -32001/-32002 classification (regression)", () => {
     copy: MODEL_NOT_FOUND_COPY,
   });
 });
+
+test("code -32001 with JSON error extracts upstream provider message", () => {
+  const raw =
+    'Agent reported error (code -32001): llm auth: {"error":{"message":"unauthorized client detected, contact support for assistance at https://discord.gg/HgekCyHJqB"},"message":"UNAUTHENTICATED","success":false,"type":"unauthorized_client_error"}';
+  const result = friendlyAgentLastError(raw, -32001);
+  assert.deepEqual(result, {
+    severity: "denied",
+    copy: "Ошибка авторизации у LLM-провайдера: unauthorized client detected, contact support for assistance at https://discord.gg/HgekCyHJqB",
+  });
+});
+

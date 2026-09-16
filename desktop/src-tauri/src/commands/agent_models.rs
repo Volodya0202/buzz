@@ -345,13 +345,134 @@ use openrouter::{
 };
 
 fn is_openai_compatible_provider(provider: Option<&str>) -> bool {
+    let lower = provider
+        .map(str::trim)
+        .map(str::to_ascii_lowercase);
     matches!(
-        provider
-            .map(str::trim)
-            .map(str::to_ascii_lowercase)
-            .as_deref(),
+        lower.as_deref(),
         Some("openai" | "openai-compat")
-    )
+    ) || lower.as_ref().map(|s| s.starts_with("custom-")).unwrap_or(false)
+}
+
+/// Probes `/v1/models` on a custom provider endpoint using the supplied API key and base URL.
+/// Returns a sorted list of model ID strings, or a helpful error message if rejected.
+#[tauri::command]
+pub async fn probe_custom_provider_models(
+    base_url: String,
+    api_key: String,
+    provider_type: Option<String>,
+    state: State<'_, AppState>,
+) -> Result<Vec<String>, String> {
+    let trimmed_url = base_url.trim().trim_end_matches('/');
+    if trimmed_url.is_empty() {
+        return Err("Базовый URL провайдера не указан".to_string());
+    }
+
+    let models_url = if trimmed_url.ends_with("/models") {
+        trimmed_url.to_string()
+    } else {
+        format!("{trimmed_url}/models")
+    };
+
+    let p_type = provider_type
+        .as_deref()
+        .map(str::trim)
+        .map(str::to_ascii_lowercase)
+        .unwrap_or_default();
+
+    let mut req = state
+        .http_client
+        .get(&models_url)
+        .header(
+            "User-Agent",
+            "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Buzz/0.1.0",
+        );
+
+    let trimmed_key = api_key.trim();
+    if !trimmed_key.is_empty() {
+        if p_type == "anthropic" {
+            req = req
+                .header("x-api-key", trimmed_key)
+                .header("anthropic-version", "2023-06-01");
+        } else {
+            req = req.header("Authorization", format!("Bearer {trimmed_key}"));
+        }
+    }
+
+    if p_type == "openrouter" || trimmed_url.contains("openrouter.ai") {
+        req = req
+            .header("HTTP-Referer", "https://buzz.chat")
+            .header("X-Title", "Buzz");
+    }
+
+    let resp = req
+        .send()
+        .await
+        .map_err(|e| format!("Ошибка сети при запросе к {models_url}: {e}"))?;
+
+    let status = resp.status();
+    let body = resp
+        .text()
+        .await
+        .map_err(|e| format!("Не удалось прочитать ответ сервера: {e}"))?;
+
+    if !status.is_success() {
+        if let Ok(val) = serde_json::from_str::<serde_json::Value>(&body) {
+            if let Some(msg) = val
+                .get("error")
+                .and_then(|e| e.get("message"))
+                .and_then(|m| m.as_str())
+            {
+                return Err(format!("Ошибка сервера ({}): {}", status.as_u16(), msg));
+            }
+            if let Some(msg) = val.get("message").and_then(|m| m.as_str()) {
+                return Err(format!("Ошибка сервера ({}): {}", status.as_u16(), msg));
+            }
+        }
+        let snippet: String = body.chars().take(200).collect();
+        return Err(format!(
+            "Сервер вернул статус {}: {}",
+            status.as_u16(),
+            snippet
+        ));
+    }
+
+    let val: serde_json::Value = serde_json::from_str(&body)
+        .map_err(|e| format!("Некорректный JSON в ответе: {e}"))?;
+
+    let mut models = Vec::new();
+
+    if let Some(data) = val.get("data").and_then(|d| d.as_array()) {
+        for item in data {
+            if let Some(id) = item.get("id").and_then(|i| i.as_str()) {
+                if !id.trim().is_empty() {
+                    models.push(id.trim().to_string());
+                }
+            }
+        }
+    } else if let Some(arr) = val.get("models").and_then(|m| m.as_array()) {
+        for item in arr {
+            if let Some(name) = item
+                .get("name")
+                .and_then(|n| n.as_str())
+                .or_else(|| item.get("id").and_then(|i| i.as_str()))
+            {
+                let clean = name.strip_prefix("models/").unwrap_or(name).trim();
+                if !clean.is_empty() {
+                    models.push(clean.to_string());
+                }
+            }
+        }
+    }
+
+    models.sort();
+    models.dedup();
+
+    if models.is_empty() {
+        return Err("Сервер вернул пустой список моделей".to_string());
+    }
+
+    Ok(models)
 }
 
 #[cfg(test)]

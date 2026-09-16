@@ -311,7 +311,31 @@ export function getPersonaModelOptions(
     (p) => p.id === trimmedProvider || p.id.toLowerCase() === norm,
   );
   if (custom && custom.models && custom.models.length > 0) {
-    return custom.models.map((m) => ({ id: m, label: m }));
+    const list = [...custom.models];
+    if (custom.defaultModel && list.includes(custom.defaultModel)) {
+      const idx = list.indexOf(custom.defaultModel);
+      list.splice(idx, 1);
+      list.unshift(custom.defaultModel);
+    }
+    return list.map((m) => ({
+      id: m,
+      label: m === custom.defaultModel ? `${m} (по умолчанию)` : m,
+    }));
+  }
+
+  if (
+    norm.includes("deepseek") ||
+    norm.includes("agentrouter") ||
+    custom?.name.toLowerCase().includes("deepseek") ||
+    custom?.name.toLowerCase().includes("agentrouter") ||
+    custom?.baseUrl?.toLowerCase().includes("deepseek") ||
+    custom?.baseUrl?.toLowerCase().includes("agentrouter")
+  ) {
+    return [
+      { id: "deepseek-chat", label: "deepseek-chat" },
+      { id: "deepseek-reasoner", label: "deepseek-reasoner" },
+      { id: "deepseek-v4-flash", label: "deepseek-v4-flash" },
+    ];
   }
 
   if (norm === "openrouter" || custom?.type === "openrouter") {

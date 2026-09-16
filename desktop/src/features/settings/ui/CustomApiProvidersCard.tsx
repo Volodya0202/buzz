@@ -1,10 +1,11 @@
 import * as React from "react";
-import { Plus, Trash2, Key, Sparkles, ExternalLink } from "lucide-react";
+import { Plus, Trash2, Key, Sparkles, ExternalLink, Pencil, Cpu, Star } from "lucide-react";
 import { openUrl } from "@tauri-apps/plugin-opener";
 
 import { Button } from "@/shared/ui/button";
 import {
   useCustomApiProviders,
+  type CustomApiProvider,
 } from "@/features/agents/lib/customApiProviders";
 import { CreateCustomProviderDialog } from "@/features/agents/ui/CreateCustomProviderDialog";
 import { SettingsOptionGroup } from "./SettingsOptionGroup";
@@ -16,14 +17,32 @@ function maskKey(key: string): string {
 
 export function CustomApiProvidersCard() {
   const { providers, deleteProvider } = useCustomApiProviders();
-  const [createDialogOpen, setCreateDialogOpen] = React.useState(false);
+  const [dialogOpen, setDialogOpen] = React.useState(false);
+  const [editingProvider, setEditingProvider] = React.useState<CustomApiProvider | null>(null);
+
+  function handleOpenCreate() {
+    setEditingProvider(null);
+    setDialogOpen(true);
+  }
+
+  function handleOpenEdit(provider: CustomApiProvider) {
+    setEditingProvider(provider);
+    setDialogOpen(true);
+  }
+
+  function handleDialogClose(open: boolean) {
+    if (!open) {
+      setEditingProvider(null);
+    }
+    setDialogOpen(open);
+  }
 
   return (
     <>
       <SettingsOptionGroup
         data-testid="settings-custom-api-providers"
         title="Кастомные API провайдеры"
-        description="Подключение собственных моделей и сервисов (Google Gemini, Groq, OpenRouter, Anthropic и др.) только по ключу API."
+        description="Подключение собственных моделей и сервисов (Google Gemini, Groq, OpenRouter, DeepSeek, Anthropic и др.) по ключу API с автополучением моделей."
       >
         <div className="p-4 space-y-4">
           <div className="flex items-center justify-between gap-4">
@@ -35,7 +54,7 @@ export function CustomApiProvidersCard() {
             <Button
               type="button"
               size="sm"
-              onClick={() => setCreateDialogOpen(true)}
+              onClick={handleOpenCreate}
               className="inline-flex items-center gap-1.5"
             >
               <Plus className="h-4 w-4" />
@@ -48,10 +67,10 @@ export function CustomApiProvidersCard() {
               {providers.map((provider) => (
                 <div
                   key={provider.id}
-                  className="flex items-center justify-between p-3 gap-3 text-sm"
+                  className="flex items-start justify-between p-3 gap-3 text-sm"
                 >
-                  <div className="min-w-0 flex-1 space-y-0.5">
-                    <div className="flex items-center gap-2">
+                  <div className="min-w-0 flex-1 space-y-1.5">
+                    <div className="flex items-center gap-2 flex-wrap">
                       <span className="font-medium text-foreground truncate">
                         {provider.name}
                       </span>
@@ -67,30 +86,76 @@ export function CustomApiProvidersCard() {
                                 : "OpenAI-совместимый"}
                       </span>
                     </div>
-                    <div className="flex items-center gap-2 text-xs text-muted-foreground font-mono">
-                      <Key className="h-3 w-3 text-muted-foreground/70" />
-                      <span>{maskKey(provider.apiKey)}</span>
+
+                    <div className="flex items-center gap-2 text-xs text-muted-foreground font-mono flex-wrap">
+                      <span className="inline-flex items-center gap-1">
+                        <Key className="h-3 w-3 text-muted-foreground/70" />
+                        <span>{maskKey(provider.apiKey)}</span>
+                      </span>
                       {provider.baseUrl ? (
                         <>
                           <span>·</span>
-                          <span className="truncate max-w-[200px]">
+                          <span className="truncate max-w-[280px]">
                             {provider.baseUrl}
                           </span>
                         </>
                       ) : null}
                     </div>
+
+                    {/* Configured models preview */}
+                    {provider.models && provider.models.length > 0 ? (
+                      <div className="flex items-center gap-1.5 flex-wrap pt-0.5">
+                        <span className="text-2xs text-muted-foreground inline-flex items-center gap-1">
+                          <Cpu className="h-3 w-3" />
+                          <span>Модели ({provider.models.length}):</span>
+                        </span>
+                        {provider.models.slice(0, 5).map((m) => {
+                          const isDef = m === provider.defaultModel;
+                          return (
+                            <span
+                              key={m}
+                              className={`inline-flex items-center gap-0.5 text-2xs px-1.5 py-0.2 rounded border font-mono ${
+                                isDef
+                                  ? "bg-primary/15 border-primary/40 text-primary font-medium"
+                                  : "bg-muted/60 text-muted-foreground border-border/60"
+                              }`}
+                            >
+                              {isDef && <Star className="h-2.5 w-2.5 fill-primary text-primary" />}
+                              <span>{m}</span>
+                            </span>
+                          );
+                        })}
+                        {provider.models.length > 5 && (
+                          <span className="text-2xs text-muted-foreground">
+                            +{provider.models.length - 5} ещё
+                          </span>
+                        )}
+                      </div>
+                    ) : null}
                   </div>
 
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="icon"
-                    className="text-muted-foreground hover:text-destructive shrink-0 h-8 w-8"
-                    onClick={() => deleteProvider(provider.id)}
-                    title="Удалить провайдер"
-                  >
-                    <Trash2 className="h-4 w-4" />
-                  </Button>
+                  <div className="flex items-center gap-1 shrink-0">
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon"
+                      className="text-muted-foreground hover:text-foreground h-8 w-8"
+                      onClick={() => handleOpenEdit(provider)}
+                      title="Редактировать провайдер и модели"
+                    >
+                      <Pencil className="h-4 w-4" />
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon"
+                      className="text-muted-foreground hover:text-destructive h-8 w-8"
+                      onClick={() => deleteProvider(provider.id)}
+                      title="Удалить провайдер"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </div>
                 </div>
               ))}
             </div>
@@ -100,13 +165,12 @@ export function CustomApiProvidersCard() {
           <div className="rounded-lg bg-muted/30 border border-border/40 p-3 text-xs text-muted-foreground space-y-1.5">
             <div className="font-medium text-foreground flex items-center gap-1.5">
               <Sparkles className="h-4 w-4 text-amber-500" />
-              <span>Подключение Google Gemini через Google-аккаунт:</span>
+              <span>Кастомные провайдеры и модели:</span>
             </div>
             <p>
-              Вы можете бесплатно получить ключ Gemini в Google AI Studio,
-              войдя через свой Google-аккаунт, и вставить его здесь. Ключ
-              начинается на <code>AIza...</code> и работает со всеми моделями
-              (Gemini 2.0 Flash, 1.5 Pro).
+              Вы можете добавить любой сервис (DeepSeek, OpenRouter, Groq, OmniRouter, LiteLLM или Google Gemini),
+              нажать кнопку <strong>«Получить модели с сервера»</strong> или вручную добавить нужные модели.
+              Все настроенные модели автоматически станут доступны для выбора у каждого вашего агента.
             </p>
             <div className="pt-1">
               <button
@@ -117,7 +181,7 @@ export function CustomApiProvidersCard() {
                 }
               >
                 <ExternalLink className="h-3.5 w-3.5" />
-                <span>Открыть Google AI Studio для входа в аккаунт</span>
+                <span>Открыть Google AI Studio для бесплатного ключа Gemini</span>
               </button>
             </div>
           </div>
@@ -125,8 +189,9 @@ export function CustomApiProvidersCard() {
       </SettingsOptionGroup>
 
       <CreateCustomProviderDialog
-        open={createDialogOpen}
-        onOpenChange={setCreateDialogOpen}
+        open={dialogOpen}
+        onOpenChange={handleDialogClose}
+        initialProvider={editingProvider}
       />
     </>
   );

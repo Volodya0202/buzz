@@ -306,3 +306,148 @@ export function useCustomApiProviders(): {
     refresh,
   };
 }
+
+export const COMMON_PROVIDER_MODEL_PRESETS: Record<string, string[]> = {
+  deepseek: [
+    "deepseek-chat",
+    "deepseek-reasoner",
+    "deepseek-v4-flash",
+  ],
+  openrouter_free: [
+    "nvidia/nemotron-3.5-lightning:free",
+    "google/gemma-4-31b-it:free",
+    "nvidia/nemotron-3-nano-omni-30b-a3b-reasoning:free",
+    "cohere/north-mini-code:free",
+    "liquid/lfm-2.5-2.6b:free",
+    "nex-agi/nex-n2.5-mini:free",
+  ],
+  openai: [
+    "gpt-4o",
+    "gpt-4o-mini",
+    "o3-mini",
+    "gpt-4-turbo",
+  ],
+  anthropic: [
+    "claude-3-7-sonnet-latest",
+    "claude-3-5-sonnet-latest",
+    "claude-3-5-haiku-latest",
+  ],
+  gemini: [
+    "gemini-3.8-flash",
+    "gemini-2.0-flash",
+    "gemini-2.0-flash-lite-preview",
+    "gemini-2.0-flash-thinking-exp",
+    "gemini-1.5-pro",
+    "gemini-1.5-flash",
+  ],
+  qwen: [
+    "qwen-2.5-72b-instruct",
+    "qwen-2.5-coder-32b-instruct",
+    "qwen-2.5-32b-instruct",
+  ],
+  llama: [
+    "meta-llama/llama-3.3-70b-instruct",
+    "meta-llama/llama-3.1-8b-instruct",
+  ],
+};
+
+/**
+ * Fetches models from a provider endpoint using Tauri command (no CORS) or fallback fetch.
+ */
+export async function probeCustomProviderModels(
+  baseUrl: string,
+  apiKey: string,
+  providerType?: CustomProviderType,
+): Promise<string[]> {
+  const trimmedUrl = baseUrl.trim();
+  const trimmedKey = apiKey.trim();
+  if (!trimmedUrl) {
+    throw new Error("Базовый URL провайдера не указан");
+  }
+
+  // Try via native Tauri command first (avoids browser CORS)
+  try {
+    const { invoke } = await import("@tauri-apps/api/core");
+    const result = await invoke<string[]>("probe_custom_provider_models", {
+      baseUrl: trimmedUrl,
+      apiKey: trimmedKey,
+      providerType: providerType || null,
+    });
+    if (Array.isArray(result) && result.length > 0) {
+      return result;
+    }
+  } catch (err: unknown) {
+    const msg = err instanceof Error ? err.message : String(err);
+    if (
+      msg.includes("Ошибка сервера") ||
+      msg.includes("Ошибка сети") ||
+      msg.includes("Сервер вернул") ||
+      msg.includes("Базовый URL") ||
+      msg.includes("Некорректный JSON") ||
+      msg.includes("пустой список")
+    ) {
+      throw new Error(msg);
+    }
+    console.warn("Tauri probe_custom_provider_models failed, falling back to fetch:", err);
+  }
+
+  // Fallback via web fetch if not in Tauri or if Tauri is unavailable
+  const modelsUrl = trimmedUrl.endsWith("/models")
+    ? trimmedUrl
+    : `${trimmedUrl.replace(/\/+$/, "")}/models`;
+
+  const headers: Record<string, string> = {
+    Accept: "application/json",
+  };
+  if (trimmedKey) {
+    if (providerType === "anthropic") {
+      headers["x-api-key"] = trimmedKey;
+      headers["anthropic-version"] = "2023-06-01";
+    } else {
+      headers["Authorization"] = `Bearer ${trimmedKey}`;
+    }
+  }
+  if (providerType === "openrouter" || trimmedUrl.includes("openrouter.ai")) {
+    headers["HTTP-Referer"] = "https://buzz.chat";
+    headers["X-Title"] = "Buzz";
+  }
+
+  const res = await fetch(modelsUrl, { method: "GET", headers });
+  if (!res.ok) {
+    let errDetail = "";
+    try {
+      const errJson = await res.json();
+      errDetail = errJson?.error?.message || errJson?.message || "";
+    } catch {
+      // ignore
+    }
+    throw new Error(
+      `Сервер вернул статус ${res.status}${errDetail ? `: ${errDetail}` : ""}`,
+    );
+  }
+
+  const json = await res.json();
+  const models: string[] = [];
+
+  if (Array.isArray(json?.data)) {
+    for (const item of json.data) {
+      if (item?.id && typeof item.id === "string") {
+        models.push(item.id.trim());
+      }
+    }
+  } else if (Array.isArray(json?.models)) {
+    for (const item of json.models) {
+      const id = item?.name || item?.id;
+      if (typeof id === "string") {
+        models.push(id.replace(/^models\//, "").trim());
+      }
+    }
+  }
+
+  const unique = Array.from(new Set(models)).filter(Boolean).sort();
+  if (unique.length === 0) {
+    throw new Error("Сервер вернул пустой список моделей");
+  }
+  return unique;
+}
+
